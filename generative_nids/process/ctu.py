@@ -7,7 +7,7 @@ import multiprocessing as mp
 import numpy as np
 import pandas as pd
 
-from gen_ad_nids.process.aggregate import aggregate_extract_features, FLOW_COLUMNS
+from generative_nids.process.aggregate import aggregate_extract_features, FLOW_COLUMNS
 
 FLOW2CTU_COLUMNS = {
     'ts': 'StartTime',
