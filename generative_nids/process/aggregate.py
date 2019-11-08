@@ -1,9 +1,11 @@
 
 import multiprocessing as mp
 
+from collections import OrderedDict
+
 import numpy as np
 import pandas as pd
-
+from scipy.stats import entropy
 from tqdm import tqdm
 
 FLOW_COLUMNS = [
@@ -19,18 +21,26 @@ FLOW_COLUMNS = [
     'lbl',  # 0 norm, 1 anomaly
 ]
 
-FLOW_STAT_COLUMNS = [
-    'sa',   # src addr
-    'tws',  # time window start
-    'nf',   # num flows in a window
-    'sum_byt',  # sum total bytes
-    'avg_byt',  # avg total bytes
-    'avg_comm_t',  # avg communication time
-    'n_uniq_da',  # num unique dest addr
-    'n_uniq_dp',  # num unique dest port
-    'freq_pr',  # most freq proto
-    'lbl'
-]
+# Baseline Feature Set
+# ToDo: move to another module and unit test
+COMPUTE_FLOW_STATS = OrderedDict([
+    ('num_f', lambda f: f.shape[0]),
+    ('num_uniq_da', lambda f: f['da'].unique().shape[0]),
+    ('num_uniq_dp', lambda f: f['dp'].unique().shape[0]),
+    ('num_uniq_sp', lambda f: f['sp'].unique().shape[0]),
+    ('entropy_da', lambda f: entropy(f['da'].value_counts())),
+    ('entropy_dp', lambda f: entropy(f['dp'].value_counts())),
+    ('entropy_sp', lambda f: entropy(f['sp'].value_counts())),
+    ('avg_td', lambda f: np.mean(f['td'])),
+    ('std_td', lambda f: np.std(f['td'])),
+    ('avg_pkt', lambda f: np.mean(f['pkt'])),
+    ('std_pkt', lambda f: np.std(f['pkt'])),
+    ('avg_byt', lambda f: np.mean(f['byt'])),
+    ('std_byt', lambda f: np.std(f['byt'])),
+    ('lbl', lambda f: int(bool(np.sum(f['lbl']))))
+])
+
+FLOW_STATS_COLUMNS = ['sa', 'tws'] + list(COMPUTE_FLOW_STATS.keys())
 
 
 def aggregate_extract_features(flows, freq='5T', processes=1):
@@ -57,7 +67,7 @@ def aggregate_extract_features(flows, freq='5T', processes=1):
             res = extract_features_wkr((name, grp))
             log_progress(res)
 
-    processed = pd.DataFrame.from_records(records, columns=FLOW_STAT_COLUMNS)
+    processed = pd.DataFrame.from_records(records, columns=FLOW_STATS_COLUMNS)
     return processed
 
 
@@ -65,33 +75,13 @@ def extract_features_wkr(arg):
 
     grp_name, flow_grp = arg
 
-    # number of flows
-    num_flows = flow_grp.shape[0]
+    flow_stats = []
 
-    # sum of transferred bytes
-    sum_tot_bytes = np.sum(flow_grp['byt'])
-
-    # average sum of bytes per flow?
-    avg_bytes_per_flow = sum_tot_bytes/num_flows
-
-    # average communication time with each unique IP addresses
-    avg_comm_time_unique = np.mean(flow_grp.groupby('da')['td'].sum())
-
-    # num of unique dest IP addresses
-    num_dest_ip = flow_grp['da'].unique().shape[0]
-
-    # num of unique dest ports
-    num_dest_port = flow_grp['dp'].unique().shape[0]
-
-    # most freq used proto
-    freq_proto = flow_grp['pr'].mode()[0]
-
-    # label
-    label = (np.sum(flow_grp['lbl']) > 0).astype(np.int)  # Normal vs anomalous
+    for f in COMPUTE_FLOW_STATS .values():
+        flow_stats.append(f(flow_grp))
 
     record = (
-        grp_name[0], grp_name[1], num_flows, sum_tot_bytes, avg_bytes_per_flow,
-        avg_comm_time_unique, num_dest_ip, num_dest_port, freq_proto, label
+        grp_name[0], grp_name[1], *flow_stats
     )
 
     return record
