@@ -55,4 +55,3 @@ for scenario in scenarios:
     scenario_dest_dir = os.path.join(dest_dir, str(scenario))
     os.makedirs(scenario_dest_dir)
     sampled_flows.to_csv(os.path.join(scenario_dest_dir, flow_file), index=None)
-

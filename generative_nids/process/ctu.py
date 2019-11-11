@@ -26,6 +26,7 @@ CTU2FLOW_COLUMNS = {v: k for k, v in FLOW2CTU_COLUMNS.items()}
 
 ORIG_TRAIN_SCENARIOS = [3, 4, 5, 7, 10, 11, 12, 13]
 ORIG_TEST_SCENARIOS = [1, 2, 6, 8, 9]
+ALL_SCENARIOS = list(range(1, 14))
 
 
 def format_flows(flows):
@@ -42,7 +43,7 @@ def process_dataset(root_dir, out_dir=None, processes=-1, frequency='T'):
     if processes == -1:
         processes = mp.cpu_count() - 1
 
-    scenarios = os.listdir(root_dir)
+    scenarios = [s for s in os.listdir(root_dir) if s in map(str, ALL_SCENARIOS)]
     for scenario in scenarios:
         scenario_dir = os.path.join(root_dir, scenario)
         scenario_out_dir = os.path.join(out_dir, scenario)
