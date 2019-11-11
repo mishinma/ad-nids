@@ -10,7 +10,7 @@ dest_dir = 'data/ctu_mock/'
 if os.path.exists(dest_dir):
     raise FileExistsError('Test CTU13 dataset exists')
 
-scenarios = ['2', '3', '9']
+scenarios = [2, 3, 9]
 
 for scenario in scenarios:
     scenario_dir = os.path.join(data_dir, str(scenario))
