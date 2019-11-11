@@ -1,5 +1,8 @@
 import argparse
 import os
+import json
+import shutil
+import hashlib
 import glob
 import time
 import logging
@@ -9,6 +12,8 @@ import numpy as np
 import pandas as pd
 
 from generative_nids.process.aggregate import aggregate_extract_features, FLOW_COLUMNS
+
+DATASET_NAME = 'ctu13'
 
 FLOW2CTU_COLUMNS = {
     'ts': 'StartTime',
@@ -95,7 +100,35 @@ def create_train_test(root_dir,
     train = pd.concat([pd.read_csv(p) for p in train_paths])
     test = pd.concat([pd.read_csv(p) for p in test_paths])
 
-    return train, test
+    # create hash
+    data_hash = hashlib.md5()
+    data_hash.update(train.to_csv().encode('utf-8'))
+    data_hash.update(train.to_csv().encode('utf-8'))
+    data_hash = data_hash.hexdigest()
+
+    return train, test, data_hash
+
+
+def create_archive(root_dir, train, test, data_hash, meta=None):
+
+    root_dir = os.path.abspath(root_dir)
+    dataset_dir = os.path.join(root_dir, data_hash)
+
+    if os.path.exists(dataset_dir) or os.path.exists(f'{dataset_dir}.zip'):
+        raise FileExistsError(f'Dataset {data_hash} exists!')
+    os.makedirs(dataset_dir)
+
+    train.to_csv(os.path.join(dataset_dir, 'train.csv'))
+    test.to_csv(os.path.join(dataset_dir, 'test.csv'))
+    if meta is None:
+        meta = {}
+    meta['data_hash'] = data_hash
+
+    with open(os.path.join(dataset_dir, 'meta.json'), 'w') as f:
+        json.dump(meta, f)
+
+    shutil.make_archive(dataset_dir, 'zip', root_dir, data_hash)
+    shutil.rmtree(dataset_dir)
 
 
 if __name__ == '__main__':
@@ -114,4 +147,19 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    process_dataset(args.root_dir, args.out_dir, args.processes, args.frequency)
+    train_scenarios = ['2', '9']
+    test_scenarios = ['3']
+
+    # process_dataset(args.root_dir, args.out_dir, args.processes, args.frequency)
+    train, test, data_hash = create_train_test(
+        args.root_dir, train_scenarios=train_scenarios,
+        test_scenarios=test_scenarios, frequency=args.frequency
+    )
+
+    meta = {
+        'data_hash': data_hash,
+        'dataset': DATASET_NAME
+    }
+
+    create_archive('../tests/data/processed', train, test, data_hash,
+                   meta=meta)
