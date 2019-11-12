@@ -39,6 +39,7 @@ config.rst
 *.iml
 /.project
 /.pydevproject
+.venv/
 
 package-lock.json
 geckodriver.log
