@@ -102,8 +102,8 @@ def create_train_test(root_dir,
 
     # create hash
     data_hash = hashlib.md5()
-    data_hash.update(train.to_csv().encode('utf-8'))
-    data_hash.update(train.to_csv().encode('utf-8'))
+    data_hash.update(train.to_csv(index=None).encode('utf-8'))
+    data_hash.update(train.to_csv(index=None).encode('utf-8'))
     data_hash = data_hash.hexdigest()
 
     return train, test, data_hash
@@ -118,8 +118,8 @@ def create_archive(root_dir, train, test, data_hash, meta=None):
         raise FileExistsError(f'Dataset {data_hash} exists!')
     os.makedirs(dataset_dir)
 
-    train.to_csv(os.path.join(dataset_dir, 'train.csv'))
-    test.to_csv(os.path.join(dataset_dir, 'test.csv'))
+    train.to_csv(os.path.join(dataset_dir, 'train.csv'), index=None)
+    test.to_csv(os.path.join(dataset_dir, 'test.csv'), index=None)
     if meta is None:
         meta = {}
     meta['data_hash'] = data_hash
@@ -150,7 +150,7 @@ if __name__ == '__main__':
     train_scenarios = ['2', '9']
     test_scenarios = ['3']
 
-    # process_dataset(args.root_dir, args.out_dir, args.processes, args.frequency)
+    process_dataset(args.root_dir, args.out_dir, args.processes, args.frequency)
     train, test, data_hash = create_train_test(
         args.root_dir, train_scenarios=train_scenarios,
         test_scenarios=test_scenarios, frequency=args.frequency
