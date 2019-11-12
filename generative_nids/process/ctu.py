@@ -158,7 +158,8 @@ if __name__ == '__main__':
 
     meta = {
         'data_hash': data_hash,
-        'dataset': DATASET_NAME
+        'dataset': DATASET_NAME,
+        'feature_set': 'basic'
     }
 
     create_archive('../tests/data/processed', train, test, data_hash,
