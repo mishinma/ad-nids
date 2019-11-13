@@ -37,7 +37,7 @@ def create_log_dir(log_root_dir):
 
 
 def create_model(config):
-    return ALGORITHM2WRAPPER[config['algorithm']](config['hyperparams'])
+    return ALGORITHM2WRAPPER[config['algorithm']](config['model_params'])
 
 
 def prepare_data(data):
@@ -56,26 +56,31 @@ def run(config, data_root_dir, log_root_dir):
     with open(os.path.join(log_dir, 'dataset_meta.json'), 'w') as f:
         json.dump(dataset_meta, f)
 
-    x_train, y_train = prepare_data(train)
-    x_test, y_test = prepare_data(test)
+    x_train, y_train, x_test, y_test = prepare_data(train, test, config)
 
     # create a model
     model = create_model(config)
 
     model.fit(x_train)
 
-    y_test_pred = model.predict(x_test)
-
-    #ToDo: log scores
+    y_test_scores = model.anomaly_score(x_test)
 
 
 if __name__ == '__main__':
     data_root_dir = '../tests/data/processed'
     log_root_dir = '../tests/data/logs'
 
+    # config = {
+    #     'algorithm': 'IsolationForest',
+    #     'model_params': {'n_estimators': 100, 'behaviour': 'new', 'contamination': 'auto'},
+    #     'data_hash': 'b98849baae8b39c7ca3ef19d375b278e',
+    #     'data_standardization': False
+    # }
     config = {
-        'algorithm': 'IsolationForest',
-        'hyperparams': {'n_estimators': 100, 'behaviour': 'new', 'contamination': 'auto'},
-        'data_hash': 'b98849baae8b39c7ca3ef19d375b278e'
+        'algorithm': 'NearestNeighbors',
+        'model_params': {'n_neighbors': 5, 'algorithm': 'kd_tree'},
+        'data_hash': 'b98849baae8b39c7ca3ef19d375b278e',
+        'data_standardization': True,
     }
+
     run(config, data_root_dir, log_root_dir)
