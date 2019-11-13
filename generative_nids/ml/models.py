@@ -10,7 +10,6 @@ from sklearn.neighbors import NearestNeighbors
 from joblib import dump
 
 
-
 class ModelWrapper(ABC):
 
     @abstractmethod
@@ -56,7 +55,7 @@ class IsolationForestModelWrapper(ModelWrapper):
         self.model.fit(x)
 
     def anomaly_score(self, x):
-        self.model.score_samples(x)
+        return self.model.score_samples(x)
 
     def predict(self, x):
         return self.model.predict(x)
