@@ -3,8 +3,10 @@ import os
 import zipfile
 
 from datetime import datetime
+from timeit import default_timer as timer
 from uuid import uuid4
 
+import numpy as np
 import pandas as pd
 
 from sklearn.preprocessing import StandardScaler
@@ -40,9 +42,21 @@ def create_model(config):
     return ALGORITHM2WRAPPER[config['algorithm']](config['model_params'])
 
 
-def prepare_data(data):
-    x, y = data.iloc[:, 2:-1], data.iloc[:, -1]
-    return x, y
+def prepare_data(train, test, config):
+    x_train, y_train = train.iloc[:, 2:-1], train.iloc[:, -1]
+    x_test, y_test = test.iloc[:, 2:-1], test.iloc[:, -1]
+
+    train_idx_anom = y_train == 1
+    x_train_norm = x_train[~train_idx_anom]
+    x_train_anom = x_train[train_idx_anom]
+
+    if config['data_standardization']:
+        sc = StandardScaler()
+        x_train_norm = sc.fit_transform(x_train_norm)
+        x_train_anom = sc.transform(x_train_anom)
+        x_test = sc.transform(x_test)
+
+    return x_train_norm, x_train_anom, x_test, y_test
 
 
 def run(config, data_root_dir, log_root_dir):
@@ -50,20 +64,50 @@ def run(config, data_root_dir, log_root_dir):
     train, test, dataset_meta = load_data(config, data_root_dir)
     log_dir = create_log_dir(log_root_dir)
 
-    # dump config and dataset meta
+    # Preprocess data
+    x_train_norm, x_train_anom, x_test, y_test = prepare_data(train, test, config)
+
+    # Train and fit the model
+    model = create_model(config)
+    se = timer()
+    model.fit(x_train_norm)
+    time_fit = timer() - se
+
+    # Compute anomaly scores
+    se = timer()
+    score_test = model.anomaly_score(x_test).tolist()
+    time_test = timer() - se
+
+    # Compute anomaly scores
+    se = timer()
+    score_train_norm = model.anomaly_score(x_train_norm)
+    score_train_anom = model.anomaly_score(x_train_anom)
+    time_train = timer() - se
+
+    score_train = np.concatenate([score_train_norm, score_train_anom]).tolist()
+    y_train = np.concatenate([np.zeros_like(score_train_norm), np.ones_like(score_train_anom)]).tolist()
+
+    # Log everything
+
     with open(os.path.join(log_dir, 'config.json'), 'w') as f:
         json.dump(config, f)
+
     with open(os.path.join(log_dir, 'dataset_meta.json'), 'w') as f:
         json.dump(dataset_meta, f)
 
-    x_train, y_train, x_test, y_test = prepare_data(train, test, config)
+    model.save(log_dir)
 
-    # create a model
-    model = create_model(config)
-
-    model.fit(x_train)
-
-    y_test_scores = model.anomaly_score(x_test)
+    eval_results = {
+        'score_test': score_test,
+        'score_train': score_train,
+        'y_test': y_test,
+        'y_train': y_train,
+        'time_train': time_train,
+        'time_test': time_test,
+        'time_fit': time_fit
+    }
+    with open(os.path.join(log_dir, 'eval_results.json'), 'w') as f:
+        json.dump(eval_results, f)
 
 
 if __name__ == '__main__':
@@ -73,14 +117,15 @@ if __name__ == '__main__':
     # config = {
     #     'algorithm': 'IsolationForest',
     #     'model_params': {'n_estimators': 100, 'behaviour': 'new', 'contamination': 'auto'},
-    #     'data_hash': 'b98849baae8b39c7ca3ef19d375b278e',
+    #     'data_hash': '84fe61fbea33055bcee2df618c5a9089',
     #     'data_standardization': False
     # }
+
     config = {
         'algorithm': 'NearestNeighbors',
         'model_params': {'n_neighbors': 5, 'algorithm': 'kd_tree'},
-        'data_hash': 'b98849baae8b39c7ca3ef19d375b278e',
-        'data_standardization': True,
+        'data_hash': '84fe61fbea33055bcee2df618c5a9089',
+        'data_standardization': True
     }
 
     run(config, data_root_dir, log_root_dir)

@@ -10,6 +10,7 @@ from sklearn.neighbors import NearestNeighbors
 from joblib import dump
 
 
+
 class ModelWrapper(ABC):
 
     @abstractmethod
