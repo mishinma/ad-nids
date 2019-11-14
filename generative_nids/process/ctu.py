@@ -150,7 +150,7 @@ if __name__ == '__main__':
     train_scenarios = ['2', '9']
     test_scenarios = ['3']
 
-    process_dataset(args.root_dir, args.out_dir, args.processes, args.frequency)
+    # process_dataset(args.root_dir, args.out_dir, args.processes, args.frequency)
     train, test, data_hash = create_train_test(
         args.root_dir, train_scenarios=train_scenarios,
         test_scenarios=test_scenarios, frequency=args.frequency
