@@ -23,9 +23,9 @@ FLOW_COLUMNS = [
 ]
 
 
-def split_flows(all_flows_path, root_path):
+def split_ugr_flows(all_flows_path, split_root_path):
 
-    root_path = Path(root_path)
+    split_root_path = Path(split_root_path)
     all_flows = pd.read_csv(all_flows_path, header=None,
                         names=FLOW_COLUMNS, chunksize=1000000)
 
@@ -34,10 +34,13 @@ def split_flows(all_flows_path, root_path):
 
         for tstmp, grp in chunk.resample('H', on='te'):
 
+            if grp.empty:
+                continue
+
             grp_date = tstmp.strftime('%Y-%m-%d')
             grp_hour = tstmp.strftime('%H')
 
-            grp_path = root_path/grp_date/grp_hour
+            grp_path = split_root_path / grp_date / grp_hour
             grp_path.mkdir(parents=True, exist_ok=True)
 
             grp_name = f'{grp.index[0]}_{grp.index[-1]}.csv'
@@ -46,13 +49,13 @@ def split_flows(all_flows_path, root_path):
     # Combine chunks
     date_hour2chunk_paths = defaultdict(list)
 
-    for chunk_path in root_path.glob('**/*.csv'):
+    for chunk_path in split_root_path.glob('**/*.csv'):
         date_hour = tuple(str(chunk_path).split('/')[-3: -1])
         date_hour2chunk_paths[date_hour].append(chunk_path)
 
     for date_hour, chunk_paths in date_hour2chunk_paths.items():
         date, hour = date_hour
-        date_hour_flows_path = root_path/date/f'{hour}.csv'
+        date_hour_flows_path = split_root_path / date / f'{hour}.csv'
 
         date_hour_flows = pd.concat(
             [pd.read_csv(chunk_path)
@@ -65,7 +68,7 @@ def split_flows(all_flows_path, root_path):
         except Exception as e:
             raise e
         else:
-            shutil.rmtree(root_path/date/hour)
+            shutil.rmtree(split_root_path / date / hour)
 
 
 if __name__ == '__main__':
