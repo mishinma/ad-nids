@@ -55,7 +55,8 @@ def convert_ranges(date_ranges):
     return date_ranges
 
 
-def sample_normal_attack(attack_flows_path, all_flows_path):
+def sample_normal_attack(attack_flows_path, all_flows_path,
+                         date_ranges, chunksize, num_chunks_to_read):
 
     attack_flows = []
 
@@ -76,10 +77,8 @@ def sample_normal_attack(attack_flows_path, all_flows_path):
 
     # Now sample normal flows
     all_flows = pd.read_csv(all_flows_path, header=None,
-                            names=FLOW_COLUMNS, chunksize=100000)
+                            names=FLOW_COLUMNS, chunksize=chunksize)
     normal_flows = []
-
-    num_chunks_to_read = 10
 
     for i, chunk in enumerate(all_flows):
         chunk_normal_flows = chunk[chunk['lbl'] == 'background']
@@ -126,9 +125,12 @@ if __name__ == '__main__':
             ('2016-07-30', ('04', '06')),
             ('2016-07-31', ('18', '20'))
         ])
+        chunksize = 10000
+        num_chunks_to_read = 10
 
         try:
-            flows = sample_normal_attack(attack_flows_path, all_flows_path)
+            flows = sample_normal_attack(attack_flows_path, all_flows_path,
+                                         date_ranges, chunksize, num_chunks_to_read)
             flows.to_csv(mock_all_flows_path, header=False, index=False)
         except Exception as e:
             mock_dir.rmdir()
