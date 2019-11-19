@@ -11,3 +11,4 @@ def timing(f):
         elapsed = te - ts
         return result, elapsed
     return wrap
+

@@ -48,3 +48,4 @@ geckodriver.log
 *.binetflow
 data/
 logs/
+notebooks/

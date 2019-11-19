@@ -11,36 +11,27 @@ import multiprocessing as mp
 import numpy as np
 import pandas as pd
 
-from generative_nids.process.aggregate import aggregate_extract_features, FLOW_COLUMNS
+from generative_nids.process.aggregate import aggregate_extract_features
+from generative_nids.process.columns import CTU2FLOW_COLUMNS, FLOW_COLUMNS
+from generative_nids.process.argparser import get_argparser
 
 DATASET_NAME = 'ctu13'
 
-FLOW2CTU_COLUMNS = {
-    'ts': 'StartTime',
-    'td': 'Dur',
-    'sa': 'SrcAddr',
-    'da': 'DstAddr',
-    'sp': 'Sport',
-    'dp': 'Dport',
-    'pr': 'Proto',
-    'pkt': 'TotPkts',
-    'byt': 'TotBytes',
-    'lbl': 'Label'
-}
-CTU2FLOW_COLUMNS = {v: k for k, v in FLOW2CTU_COLUMNS.items()}
 
 ORIG_TRAIN_SCENARIOS = [3, 4, 5, 7, 10, 11, 12, 13]
 ORIG_TEST_SCENARIOS = [1, 2, 6, 8, 9]
 ALL_SCENARIOS = list(range(1, 14))
 
 
-def format_flows(flows):
-    formtd = flows.rename(columns=CTU2FLOW_COLUMNS)[FLOW_COLUMNS]
-    formtd['lbl'] = formtd['lbl'].str.contains('From-Botnet').astype(np.int)
-    return formtd
+def format_ctu_flows(flows):
+    flows['StartTime'] = pd.to_datetime(flows['StartTime'], format='%Y/%m/%d %H:%M:%S.%f')
+    flows = flows.sort_values(by='StartTime').reset_index(drop=True)
+    flows = flows.rename(columns=CTU2FLOW_COLUMNS)[FLOW_COLUMNS]
+    flows['lbl'] = flows['lbl'].str.contains('From-Botnet').astype(np.int)
+    return flows
 
 
-def process_dataset(root_dir, out_dir=None, processes=-1, frequency='T'):
+def process_ctu_data(root_dir, out_dir=None, processes=-1, frequency='T'):
 
     if out_dir is None:
         out_dir = root_dir
@@ -62,9 +53,7 @@ def process_dataset(root_dir, out_dir=None, processes=-1, frequency='T'):
         start_time = time.time()
 
         flows = pd.read_csv(os.path.join(scenario_dir, flow_file))
-        flows['StartTime'] = pd.to_datetime(flows['StartTime'], format='%Y/%m/%d %H:%M:%S.%f')
-        flows = flows.sort_values(by='StartTime').reset_index(drop=True)
-        flows = format_flows(flows)
+        flows = format_ctu_flows(flows)
 
         aggr_flows = aggregate_extract_features(flows, frequency, processes)
         out_fname = "{}_aggr_{}.csv".format(flow_file, frequency)
@@ -131,26 +120,19 @@ def create_archive(root_dir, train, test, data_hash, meta=None):
     shutil.rmtree(dataset_dir)
 
 
+#ToDo change for real data
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("root_dir", type=str,
-                        help="dataset directory")
-    parser.add_argument("-o", "--out_dir", type=str, default=None,
-                        help="output directory")
-    parser.add_argument("-p", "--processes", type=int, default=1,
-                        help="number of processes")
-    parser.add_argument("-f", "--frequency", type=str, default='T',
-                        help="time window scale")
-    parser.add_argument("-v", "--verbose", action="store_true",
-                        help="increase output verbosity")
-
+    parser = get_argparser()
     args = parser.parse_args()
+
+    loglevel = getattr(logging, args.logging.upper(), None)
+    logging.basicConfig(level=loglevel)
 
     train_scenarios = ['2', '9']
     test_scenarios = ['3']
 
-    # process_dataset(args.root_dir, args.out_dir, args.processes, args.frequency)
+    process_ctu_data(args.root_dir, args.out_dir, args.processes, args.frequency)
     train, test, data_hash = create_train_test(
         args.root_dir, train_scenarios=train_scenarios,
         test_scenarios=test_scenarios, frequency=args.frequency
@@ -162,5 +144,4 @@ if __name__ == '__main__':
         'feature_set': 'basic'
     }
 
-    create_archive('../tests/data/processed', train, test, data_hash,
-                   meta=meta)
+    create_archive('../tests/data/processed', train, test, data_hash, meta=meta)

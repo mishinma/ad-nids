@@ -8,18 +8,6 @@ import pandas as pd
 from scipy.stats import entropy
 from tqdm import tqdm
 
-FLOW_COLUMNS = [
-    'ts',   # timestamp of the start of a flow
-    'td',   # duration of flow
-    'sa',   # src addr
-    'da',   # dst addr
-    'sp',   # src port
-    'dp',   # dst port
-    'pr',   # proto
-    'pkt',  # num packets exchanged in the flow
-    'byt',  # their corresponding num of bytes
-    'lbl',  # 0 norm, 1 anomaly
-]
 
 # Baseline Feature Set
 # ToDo: move to another module and unit test

@@ -7,22 +7,8 @@ import numpy as np
 import pandas as pd
 
 from generative_nids.process.ugr import split_ugr_flows
+from generative_nids.process.columns import UGR_COLUMNS
 
-FLOW_COLUMNS = [
-    'te',   # timestamp of the end of a flow
-    'td',   # duration of flow
-    'sa',   # src addr
-    'da',   # dst addr
-    'sp',   # src port
-    'dp',   # dst port
-    'pr',   # proto
-    'flg',  # flags
-    'fwd',  # forwarding status
-    'stos', # type of service
-    'pkt',  # packets exchanged in the flow
-    'byt',  # their corresponding num of bytes
-    'lbl'
-]
 RANDOM_SEED = 42
 np.random.seed(RANDOM_SEED)
 
@@ -77,7 +63,7 @@ def sample_normal_attack(attack_flows_path, all_flows_path,
 
     # Now sample normal flows
     all_flows = pd.read_csv(all_flows_path, header=None,
-                            names=FLOW_COLUMNS, chunksize=chunksize)
+                            names=UGR_COLUMNS, chunksize=chunksize)
     normal_flows = []
 
     for i, chunk in enumerate(all_flows):

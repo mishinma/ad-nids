@@ -1,33 +1,40 @@
 
+import os
+import time
 import shutil
+import logging
+import multiprocessing as mp
 
+from datetime import datetime
 from pathlib import Path
 from collections import defaultdict
 
+import numpy as np
 import pandas as pd
 
-FLOW_COLUMNS = [
-    'te',   # timestamp of the end of a flow
-    'td',   # duration of flow
-    'sa',   # src addr
-    'da',   # dst addr
-    'sp',   # src port
-    'dp',   # dst port
-    'pr',   # proto
-    'flg',  # flags
-    'fwd',  # forwarding status
-    'stos', # type of service
-    'pkt',  # packets exchanged in the flow
-    'byt',  # their corresponding num of bytes
-    'lbl'
-]
+from generative_nids.process.aggregate import aggregate_extract_features
+from generative_nids.process.columns import UGR_COLUMNS, FLOW_COLUMNS
+from generative_nids.process.argparser import get_argparser
+
+DATASET_NAME = 'ugr16'
+
+
+def parse_hour_path(p):
+
+    date_hour_str = '_'.join(str(p).split('/')[-2:])
+    try:
+        dt = datetime.strptime(date_hour_str, '%Y-%m-%d_%H.csv')
+    except ValueError as e:
+        return None
+
+    return dt
 
 
 def split_ugr_flows(all_flows_path, split_root_path):
 
     split_root_path = Path(split_root_path)
     all_flows = pd.read_csv(all_flows_path, header=None,
-                        names=FLOW_COLUMNS, chunksize=1000000)
+                            names=UGR_COLUMNS, chunksize=1000000)
 
     for i, chunk in enumerate(all_flows):
         chunk['te'] = pd.to_datetime(chunk['te'], format='%Y-%m-%d %H:%M:%S')
@@ -71,8 +78,65 @@ def split_ugr_flows(all_flows_path, split_root_path):
             shutil.rmtree(split_root_path / date / hour)
 
 
+def format_ugr_flows(flows):
+
+    flows['te'] = pd.to_datetime(flows['te'], format='%Y/%m/%d %H:%M:%S')
+    flows.sort_values(by='te').reset_index(drop=True)
+    flows['ts'] = flows['te'] - pd.to_timedelta(flows['td'], unit='ms')
+    flows['lbl'] = ~(flows['lbl'] == 'background')
+    flows['lbl'] = flows['lbl'].astype(np.int)
+    flows = flows[FLOW_COLUMNS]
+    return flows
+
+
+def process_ugr_data(split_root_path, out_dir=None, processes=-1, frequency='T'):
+
+    if out_dir is None:
+        out_dir = split_root_path
+
+    split_root_path = Path(split_root_path).resolve()
+    out_dir = Path(out_dir).resolve()
+
+    if processes == -1:
+        processes = mp.cpu_count() - 1
+
+    date2paths = defaultdict(list)
+    for path in split_root_path.glob('**/*.csv'):
+        dt = parse_hour_path(path)
+        if dt is not None:
+            date2paths[dt.strftime('%Y-%m-%d')].append(path)
+
+    for date, flow_paths in date2paths.items():
+
+        logging.info("Processing date {}...".format(date))
+        start_time = time.time()
+
+        for flow_path in flow_paths:
+
+            flows = pd.read_csv(flow_path)
+            flows = format_ugr_flows(flows)
+
+            aggr_flows = aggregate_extract_features(flows, frequency, processes)
+            path_basename = os.path.splitext(os.path.basename(flow_path))[0]
+            out_name = "{}_aggr_{}.csv".format(path_basename, frequency)
+
+            aggr_flows.to_csv(out_dir/date/out_name, index=False)
+
+        logging.info("Done {0:.2f}".format(time.time() - start_time))
+
+
 if __name__ == '__main__':
-    root_path = Path('/home/emikmis/data/UGR16/')
-    flow_path = root_path/'uniq'/'july.week5.csv.uniqblacklistremoved'
-    new_root_path = Path('/home/emikmis/data/UGR16_Split/')
-    split_flows(flow_path, root_path)
+
+    parser = get_argparser()
+    args = parser.parse_args()
+
+    loglevel = getattr(logging, args.logging.upper(), None)
+    logging.basicConfig(level=loglevel)
+
+    # root_path = Path('/home/emikmis/data/UGR16/')
+    # flow_path = root_path/'uniq'/'july.week5.csv.uniqblacklistremoved'
+    # new_root_path = Path('/home/emikmis/data/UGR16_Split/')
+    # split_ugr_flows(flow_path, root_path)
+    split_root_path = '../tests/data/ugr_mock_split'
+    process_ugr_data(split_root_path, processes=1)
+
