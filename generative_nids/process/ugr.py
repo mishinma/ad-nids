@@ -17,6 +17,7 @@ from generative_nids.process.aggregate import aggregate_extract_features, \
     create_meta, create_archive
 from generative_nids.process.columns import UGR_COLUMNS, FLOW_COLUMNS
 from generative_nids.process.argparser import get_argparser
+from generative_nids.utils import yyyy_mm_dd2mmdd
 
 DATASET_NAME = 'UGR_16'
 FEATURES = 'BASIC'
@@ -175,7 +176,17 @@ if __name__ == '__main__':
         test_dates=test_dates, frequency=args.frequency
     )
 
-    meta = create_meta(DATASET_NAME, train_dates, test_dates, args.frequency, FEATURES)
+    name = '{}_TRAIN_{}_TEST_{}_{}_{}'.format(
+        DATASET_NAME,
+        '-'.join(yyyy_mm_dd2mmdd(train_dates)),
+        '-'.join(yyyy_mm_dd2mmdd(test_dates)),
+        args.frequency, FEATURES
+    )
+
+    meta = create_meta(DATASET_NAME, train_dates, test_dates,
+                       args.frequency, FEATURES, name)
+
     create_archive('../tests/data/processed', train, test, meta)
+
 
 

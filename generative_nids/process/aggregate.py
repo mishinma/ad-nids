@@ -80,10 +80,15 @@ def extract_features_wkr(arg):
 
 
 def create_meta(dataset_name, train_split, test_split, frequency,
-                features, notes=None):
+                features, name=None, notes=None):
 
     if notes is None:
         notes = ''
+
+    if name is None:
+        name = '{}_TRAIN_{}_TEST_{}_{}_{}'.format(
+            dataset_name, '-'.join(train_split), '-'.join(test_split), frequency, features
+        )
 
     meta = {
         'data_hash': None,
@@ -92,14 +97,9 @@ def create_meta(dataset_name, train_split, test_split, frequency,
         'test_split': test_split,
         'frequency': frequency,
         'features': features,
-        'notes': notes
+        'notes': notes,
+        'name': name
     }
-
-    name = '{}_TRAIN_{}_TEST_{}_{}_{}'.format(
-        dataset_name, '-'.join(train_split), '-'.join(test_split), frequency, features
-    )
-
-    meta['name'] = name
 
     return meta
 
