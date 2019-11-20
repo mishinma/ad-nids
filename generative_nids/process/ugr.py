@@ -123,7 +123,8 @@ def create_train_test(root_path, train_dates=None, test_dates=None, frequency='T
     return train, test
 
 
-def process_ugr_data(split_root_path, out_dir=None, processes=-1, frequency='T'):
+def process_ugr_data(split_root_path, out_dir=None, processes=-1,
+                     frequency='T', exists_ok=True):
 
     if out_dir is None:
         out_dir = split_root_path
@@ -147,14 +148,17 @@ def process_ugr_data(split_root_path, out_dir=None, processes=-1, frequency='T')
 
         for flow_path in flow_paths:
 
+            path_basename = os.path.splitext(os.path.basename(flow_path))[0]
+            out_name = "{}_aggr_{}.csv".format(path_basename, frequency)
+            out_path = out_dir/date/out_name
+            if out_path.exists() and exists_ok:
+                continue
+
             flows = pd.read_csv(flow_path)
             flows = format_ugr_flows(flows)
 
             aggr_flows = aggregate_extract_features(flows, frequency, processes)
-            path_basename = os.path.splitext(os.path.basename(flow_path))[0]
-            out_name = "{}_aggr_{}.csv".format(path_basename, frequency)
-
-            aggr_flows.to_csv(out_dir/date/out_name, index=False)
+            aggr_flows.to_csv(out_path, index=False)
 
         logging.info("Done {0:.2f}".format(time.time() - start_time))
 
