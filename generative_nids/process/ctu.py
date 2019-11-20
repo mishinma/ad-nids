@@ -4,15 +4,18 @@ import time
 import logging
 import multiprocessing as mp
 
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 
-from generative_nids.process.aggregate import aggregate_extract_features, create_archive, compute_hash
+from generative_nids.process.aggregate import aggregate_extract_features, \
+    create_archive, create_meta
 from generative_nids.process.columns import CTU2FLOW_COLUMNS, FLOW_COLUMNS
 from generative_nids.process.argparser import get_argparser
 
 DATASET_NAME = 'CTU_13'
-
+FEATURES = 'BASIC'
 
 ORIG_TRAIN_SCENARIOS = [3, 4, 5, 7, 10, 11, 12, 13]
 ORIG_TEST_SCENARIOS = [1, 2, 6, 8, 9]
@@ -59,10 +62,9 @@ def process_ctu_data(root_dir, out_dir=None, processes=-1, frequency='T'):
         logging.info("Done {0:.2f}".format(time.time() - start_time))
 
 
-def create_train_test(root_dir,
-                      train_scenarios=None,
-                      test_scenarios=None,
-                      frequency='T'):
+def create_train_test(root_path, train_scenarios=None, test_scenarios=None, frequency='T'):
+
+    root_path = Path(root_path).resolve()
 
     if train_scenarios is None:
         train_scenarios = ORIG_TRAIN_SCENARIOS
@@ -70,26 +72,19 @@ def create_train_test(root_dir,
     if test_scenarios is None:
         test_scenarios = ORIG_TEST_SCENARIOS
 
-    train_scenarios = list(map(int, train_scenarios))
-    test_scenarios = list(map(int, test_scenarios))
+    train_paths = []
+    for sc in train_scenarios:
+        train_paths.extend((root_path/str(sc)).glob(f'*aggr_{frequency}.csv'))
 
-    train_paths = glob.glob(
-        os.path.abspath(f'{root_dir}/{train_scenarios}/*aggr_{frequency}.csv')
-    )
-
-    test_paths = glob.glob(
-        os.path.abspath(f'{root_dir}/{test_scenarios}/*aggr_{frequency}.csv')
-    )
-
-    # ToDo: inefficient, reading twice
-    # Compute hash
-    data_hash = compute_hash(list(train_paths) + (test_paths))
+    test_paths = []
+    for sc in test_scenarios:
+        test_paths.extend((root_path / str(sc)).glob(f'*aggr_{frequency}.csv'))
 
     # Naive concat
     train = pd.concat([pd.read_csv(p) for p in train_paths])
     test = pd.concat([pd.read_csv(p) for p in test_paths])
 
-    return train, test, data_hash
+    return train, test
 
 
 #ToDo change for real data
@@ -105,15 +100,10 @@ if __name__ == '__main__':
     test_scenarios = ['3']
 
     process_ctu_data(args.root_dir, args.out_dir, args.processes, args.frequency)
-    train, test, data_hash = create_train_test(
+    train, test = create_train_test(
         args.root_dir, train_scenarios=train_scenarios,
         test_scenarios=test_scenarios, frequency=args.frequency
     )
 
-    meta = {
-        'data_hash': data_hash,
-        'dataset': DATASET_NAME,
-        'feature_set': 'basic'
-    }
-
-    create_archive('../tests/data/processed', train, test, data_hash, meta=meta)
+    meta = create_meta(DATASET_NAME, train_scenarios, test_scenarios, args.frequency, FEATURES)
+    create_archive('../tests/data/processed', train, test, meta)

@@ -6,6 +6,7 @@ import hashlib
 import multiprocessing as mp
 
 from collections import OrderedDict
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -54,7 +55,6 @@ def aggregate_extract_features(flows, freq='5T', processes=1):
         pool.close()
         pool.join()
     else:
-        # for name, grp in grouped.groups.items():
         for name, grp in grouped:
             res = extract_features_wkr((name, grp))
             log_progress(res)
@@ -79,26 +79,52 @@ def extract_features_wkr(arg):
     return record
 
 
-def create_archive(root_dir, train, test, data_hash, meta=None):
+def create_meta(dataset_name, train_split, test_split, frequency,
+                features, notes=None):
 
-    root_dir = os.path.abspath(root_dir)
-    dataset_dir = os.path.join(root_dir, data_hash)
+    if notes is None:
+        notes = ''
 
-    if os.path.exists(dataset_dir) or os.path.exists(f'{dataset_dir}.zip'):
-        raise FileExistsError(f'Dataset {data_hash} exists!')
-    os.makedirs(dataset_dir)
+    meta = {
+        'data_hash': None,
+        'dataset_name': dataset_name,
+        'train_split': train_split,
+        'test_split': test_split,
+        'frequency': frequency,
+        'features': features,
+        'notes': notes
+    }
 
-    train.to_csv(os.path.join(dataset_dir, 'train.csv'), index=None)
-    test.to_csv(os.path.join(dataset_dir, 'test.csv'), index=None)
-    if meta is None:
-        meta = {}
+    name = '{}_TRAIN_{}_TEST_{}_{}_{}'.format(
+        dataset_name, '-'.join(train_split), '-'.join(test_split), frequency, features
+    )
+
+    meta['name'] = name
+
+    return meta
+
+
+def create_archive(root_path, train, test, meta):
+
+    root_path = Path(root_path).resolve()
+    dataset_path = root_path/meta['name']
+    dataset_path.mkdir(parents=True)
+
+    train_path = dataset_path/'train.csv'
+    test_path = dataset_path/'test.csv'
+
+    train.to_csv(train_path, index=None)
+    test.to_csv(test_path, index=None)
+
+    data_hash = compute_hash([train_path, test_path])
+
     meta['data_hash'] = data_hash
 
-    with open(os.path.join(dataset_dir, 'meta.json'), 'w') as f:
+    with open(dataset_path/'meta.json', 'w') as f:
         json.dump(meta, f)
 
-    shutil.make_archive(dataset_dir, 'zip', root_dir, data_hash)
-    shutil.rmtree(dataset_dir)
+    shutil.make_archive(dataset_path, 'zip', root_path, meta['name'])
+    shutil.rmtree(dataset_path)
 
 
 def compute_hash(paths):
@@ -107,5 +133,7 @@ def compute_hash(paths):
     # create hash
     data_hash = hashlib.md5()
     for path in paths:
-        data_hash.update(pd.read_csv(path).to_csv(index=None).encode('utf-8'))
-    return  data_hash.hexdigest()
+        with open(path, 'rb') as f:
+            data_hash.update(f.read())
+
+    return data_hash.hexdigest()

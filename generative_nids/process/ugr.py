@@ -14,11 +14,12 @@ import numpy as np
 import pandas as pd
 
 from generative_nids.process.aggregate import aggregate_extract_features, \
-    compute_hash, create_archive
+    create_meta, create_archive
 from generative_nids.process.columns import UGR_COLUMNS, FLOW_COLUMNS
 from generative_nids.process.argparser import get_argparser
 
 DATASET_NAME = 'UGR_16'
+FEATURES = 'BASIC'
 
 #ToDo: change from mock dates to real
 TRAIN_DATES = ['2016-07-27', '2016-07-30']
@@ -96,10 +97,9 @@ def format_ugr_flows(flows):
     return flows
 
 
-def create_train_test(root_dir,
-                      train_dates=None,
-                      test_dates=None,
-                      frequency='T'):
+def create_train_test(root_path, train_dates=None, test_dates=None, frequency='T'):
+
+    root_path = Path(root_path).resolve()
 
     if train_dates is None:
         train_dates = TRAIN_DATES
@@ -107,23 +107,19 @@ def create_train_test(root_dir,
     if test_dates is None:
         test_dates = TEST_DATES
 
-    train_paths = glob.glob(
-        os.path.abspath(f'{root_dir}/{train_dates}/*aggr_{frequency}.csv')
-    )
+    train_paths = []
+    for dt in train_dates:
+        train_paths.extend((root_path / str(dt)).glob(f'*aggr_{frequency}.csv'))
 
-    test_paths = glob.glob(
-        os.path.abspath(f'{root_dir}/{test_dates}/*aggr_{frequency}.csv')
-    )
-
-    # ToDo: inefficient, reading twice
-    # Compute hash
-    data_hash = compute_hash(list(train_paths) + (test_paths))
+    test_paths = []
+    for dt in test_dates:
+        test_paths.extend((root_path / str(dt)).glob(f'*aggr_{frequency}.csv'))
 
     # Naive concat
     train = pd.concat([pd.read_csv(p) for p in train_paths])
     test = pd.concat([pd.read_csv(p) for p in test_paths])
 
-    return train, test, data_hash
+    return train, test
 
 
 def process_ugr_data(split_root_path, out_dir=None, processes=-1, frequency='T'):
@@ -170,22 +166,16 @@ if __name__ == '__main__':
     loglevel = getattr(logging, args.logging.upper(), None)
     logging.basicConfig(level=loglevel)
 
-    # root_path = Path('/home/emikmis/data/UGR16/')
-    # flow_path = root_path/'uniq'/'july.week5.csv.uniqblacklistremoved'
-    # new_root_path = Path('/home/emikmis/data/UGR16_Split/')
-    # split_ugr_flows(flow_path, root_path)
-    split_root_path = '../tests/data/ugr_mock_split'
-    process_ugr_data(args.root_dir, processes=1, frequency=args.frequency)
+    train_dates = TRAIN_DATES
+    test_dates = TEST_DATES
 
-    train, test, data_hash = create_train_test(
-        args.root_dir, frequency=args.frequency
+    process_ugr_data(args.root_dir, processes=args.processes, frequency=args.frequency)
+    train, test = create_train_test(
+        args.root_dir, train_dates=train_dates,
+        test_dates=test_dates, frequency=args.frequency
     )
 
-    meta = {
-        'data_hash': data_hash,
-        'dataset': DATASET_NAME,
-        'feature_set': 'basic'
-    }
+    meta = create_meta(DATASET_NAME, train_dates, test_dates, args.frequency, FEATURES)
+    create_archive('../tests/data/processed', train, test, meta)
 
-    create_archive('../tests/data/processed', train, test, data_hash, meta=meta)
 
