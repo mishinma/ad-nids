@@ -1,4 +1,8 @@
 
+import os
+import json
+import shutil
+import hashlib
 import multiprocessing as mp
 
 from collections import OrderedDict
@@ -73,3 +77,35 @@ def extract_features_wkr(arg):
     )
 
     return record
+
+
+def create_archive(root_dir, train, test, data_hash, meta=None):
+
+    root_dir = os.path.abspath(root_dir)
+    dataset_dir = os.path.join(root_dir, data_hash)
+
+    if os.path.exists(dataset_dir) or os.path.exists(f'{dataset_dir}.zip'):
+        raise FileExistsError(f'Dataset {data_hash} exists!')
+    os.makedirs(dataset_dir)
+
+    train.to_csv(os.path.join(dataset_dir, 'train.csv'), index=None)
+    test.to_csv(os.path.join(dataset_dir, 'test.csv'), index=None)
+    if meta is None:
+        meta = {}
+    meta['data_hash'] = data_hash
+
+    with open(os.path.join(dataset_dir, 'meta.json'), 'w') as f:
+        json.dump(meta, f)
+
+    shutil.make_archive(dataset_dir, 'zip', root_dir, data_hash)
+    shutil.rmtree(dataset_dir)
+
+
+def compute_hash(paths):
+    """ Naive concat """
+
+    # create hash
+    data_hash = hashlib.md5()
+    for path in paths:
+        data_hash.update(pd.read_csv(path).to_csv(index=None).encode('utf-8'))
+    return  data_hash.hexdigest()

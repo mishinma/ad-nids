@@ -1,8 +1,4 @@
-import argparse
 import os
-import json
-import shutil
-import hashlib
 import glob
 import time
 import logging
@@ -11,16 +7,16 @@ import multiprocessing as mp
 import numpy as np
 import pandas as pd
 
-from generative_nids.process.aggregate import aggregate_extract_features
+from generative_nids.process.aggregate import aggregate_extract_features, create_archive, compute_hash
 from generative_nids.process.columns import CTU2FLOW_COLUMNS, FLOW_COLUMNS
 from generative_nids.process.argparser import get_argparser
 
-DATASET_NAME = 'ctu13'
+DATASET_NAME = 'CTU_13'
 
 
 ORIG_TRAIN_SCENARIOS = [3, 4, 5, 7, 10, 11, 12, 13]
 ORIG_TEST_SCENARIOS = [1, 2, 6, 8, 9]
-ALL_SCENARIOS = list(range(1, 14))
+ALL_SCENARIOS = sorted(ORIG_TEST_SCENARIOS + ORIG_TRAIN_SCENARIOS)
 
 
 def format_ctu_flows(flows):
@@ -85,39 +81,15 @@ def create_train_test(root_dir,
         os.path.abspath(f'{root_dir}/{test_scenarios}/*aggr_{frequency}.csv')
     )
 
+    # ToDo: inefficient, reading twice
+    # Compute hash
+    data_hash = compute_hash(list(train_paths) + (test_paths))
+
     # Naive concat
     train = pd.concat([pd.read_csv(p) for p in train_paths])
     test = pd.concat([pd.read_csv(p) for p in test_paths])
 
-    # create hash
-    data_hash = hashlib.md5()
-    data_hash.update(train.to_csv(index=None).encode('utf-8'))
-    data_hash.update(train.to_csv(index=None).encode('utf-8'))
-    data_hash = data_hash.hexdigest()
-
     return train, test, data_hash
-
-
-def create_archive(root_dir, train, test, data_hash, meta=None):
-
-    root_dir = os.path.abspath(root_dir)
-    dataset_dir = os.path.join(root_dir, data_hash)
-
-    if os.path.exists(dataset_dir) or os.path.exists(f'{dataset_dir}.zip'):
-        raise FileExistsError(f'Dataset {data_hash} exists!')
-    os.makedirs(dataset_dir)
-
-    train.to_csv(os.path.join(dataset_dir, 'train.csv'), index=None)
-    test.to_csv(os.path.join(dataset_dir, 'test.csv'), index=None)
-    if meta is None:
-        meta = {}
-    meta['data_hash'] = data_hash
-
-    with open(os.path.join(dataset_dir, 'meta.json'), 'w') as f:
-        json.dump(meta, f)
-
-    shutil.make_archive(dataset_dir, 'zip', root_dir, data_hash)
-    shutil.rmtree(dataset_dir)
 
 
 #ToDo change for real data

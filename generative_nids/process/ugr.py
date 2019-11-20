@@ -1,5 +1,6 @@
 
 import os
+import glob
 import time
 import shutil
 import logging
@@ -12,11 +13,17 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 
-from generative_nids.process.aggregate import aggregate_extract_features
+from generative_nids.process.aggregate import aggregate_extract_features, \
+    compute_hash, create_archive
 from generative_nids.process.columns import UGR_COLUMNS, FLOW_COLUMNS
 from generative_nids.process.argparser import get_argparser
 
-DATASET_NAME = 'ugr16'
+DATASET_NAME = 'UGR_16'
+
+#ToDo: change from mock dates to real
+TRAIN_DATES = ['2016-07-27', '2016-07-30']
+TEST_DATES = ['2016-07-31']
+ALL_DATES = TRAIN_DATES + TEST_DATES
 
 
 def parse_hour_path(p):
@@ -89,6 +96,36 @@ def format_ugr_flows(flows):
     return flows
 
 
+def create_train_test(root_dir,
+                      train_dates=None,
+                      test_dates=None,
+                      frequency='T'):
+
+    if train_dates is None:
+        train_dates = TRAIN_DATES
+
+    if test_dates is None:
+        test_dates = TEST_DATES
+
+    train_paths = glob.glob(
+        os.path.abspath(f'{root_dir}/{train_dates}/*aggr_{frequency}.csv')
+    )
+
+    test_paths = glob.glob(
+        os.path.abspath(f'{root_dir}/{test_dates}/*aggr_{frequency}.csv')
+    )
+
+    # ToDo: inefficient, reading twice
+    # Compute hash
+    data_hash = compute_hash(list(train_paths) + (test_paths))
+
+    # Naive concat
+    train = pd.concat([pd.read_csv(p) for p in train_paths])
+    test = pd.concat([pd.read_csv(p) for p in test_paths])
+
+    return train, test, data_hash
+
+
 def process_ugr_data(split_root_path, out_dir=None, processes=-1, frequency='T'):
 
     if out_dir is None:
@@ -138,5 +175,17 @@ if __name__ == '__main__':
     # new_root_path = Path('/home/emikmis/data/UGR16_Split/')
     # split_ugr_flows(flow_path, root_path)
     split_root_path = '../tests/data/ugr_mock_split'
-    process_ugr_data(split_root_path, processes=1)
+    process_ugr_data(args.root_dir, processes=1, frequency=args.frequency)
+
+    train, test, data_hash = create_train_test(
+        args.root_dir, frequency=args.frequency
+    )
+
+    meta = {
+        'data_hash': data_hash,
+        'dataset': DATASET_NAME,
+        'feature_set': 'basic'
+    }
+
+    create_archive('../tests/data/processed', train, test, data_hash, meta=meta)
 
