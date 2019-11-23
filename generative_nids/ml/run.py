@@ -1,6 +1,5 @@
 import json
 import os
-import zipfile
 import shutil
 import argparse
 import logging
@@ -8,7 +7,6 @@ import logging
 from pathlib import Path
 from datetime import datetime
 from timeit import default_timer as timer
-from uuid import uuid4
 
 import numpy as np
 import pandas as pd

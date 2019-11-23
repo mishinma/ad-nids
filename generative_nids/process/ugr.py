@@ -1,6 +1,5 @@
 
 import os
-import glob
 import time
 import shutil
 import logging
@@ -13,8 +12,8 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 
-from generative_nids.process.aggregate import aggregate_extract_features, \
-    create_meta, create_archive
+from generative_nids.ml.dataset import Dataset, create_meta
+from generative_nids.process.aggregate import aggregate_extract_features
 from generative_nids.process.columns import UGR_COLUMNS, FLOW_COLUMNS
 from generative_nids.process.argparser import get_argparser
 from generative_nids.utils import yyyy_mm_dd2mmdd
@@ -98,7 +97,7 @@ def format_ugr_flows(flows):
     return flows
 
 
-def create_train_test(root_path, train_dates=None, test_dates=None, frequency='T'):
+def create_ugr_dataset(root_path, train_dates=None, test_dates=None, frequency='T'):
 
     root_path = Path(root_path).resolve()
 
@@ -120,7 +119,17 @@ def create_train_test(root_path, train_dates=None, test_dates=None, frequency='T
     train = pd.concat([pd.read_csv(p) for p in train_paths])
     test = pd.concat([pd.read_csv(p) for p in test_paths])
 
-    return train, test
+    dataset_name = '{}_TRAIN_{}_TEST_{}_{}_{}'.format(
+        DATASET_NAME,
+        '-'.join(yyyy_mm_dd2mmdd(train_dates)),
+        '-'.join(yyyy_mm_dd2mmdd(test_dates)),
+        args.frequency, FEATURES
+    )
+
+    meta = create_meta(DATASET_NAME, train_dates,
+                       test_dates, args.frequency, FEATURES, name=dataset_name)
+
+    return Dataset(train, test, meta)
 
 
 def process_ugr_data(split_root_path, out_dir=None, processes=-1,
@@ -175,22 +184,12 @@ if __name__ == '__main__':
     test_dates = TEST_DATES
 
     process_ugr_data(args.root_dir, processes=args.processes, frequency=args.frequency)
-    train, test = create_train_test(
+    dataset = create_ugr_dataset(
         args.root_dir, train_dates=train_dates,
         test_dates=test_dates, frequency=args.frequency
     )
 
-    name = '{}_TRAIN_{}_TEST_{}_{}_{}'.format(
-        DATASET_NAME,
-        '-'.join(yyyy_mm_dd2mmdd(train_dates)),
-        '-'.join(yyyy_mm_dd2mmdd(test_dates)),
-        args.frequency, FEATURES
-    )
-
-    meta = create_meta(DATASET_NAME, train_dates, test_dates,
-                       args.frequency, FEATURES, name)
-
-    create_archive('../tests/data/processed', train, test, meta)
+    dataset.write_to('../tests/data/processed')
 
 
 

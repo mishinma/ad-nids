@@ -1,12 +1,7 @@
 
-import os
-import json
-import shutil
-import hashlib
 import multiprocessing as mp
 
 from collections import OrderedDict
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -78,62 +73,3 @@ def extract_features_wkr(arg):
 
     return record
 
-
-def create_meta(dataset_name, train_split, test_split, frequency,
-                features, name=None, notes=None):
-
-    if notes is None:
-        notes = ''
-
-    if name is None:
-        name = '{}_TRAIN_{}_TEST_{}_{}_{}'.format(
-            dataset_name, '-'.join(train_split), '-'.join(test_split), frequency, features
-        )
-
-    meta = {
-        'data_hash': None,
-        'dataset_name': dataset_name,
-        'train_split': train_split,
-        'test_split': test_split,
-        'frequency': frequency,
-        'features': features,
-        'notes': notes,
-        'name': name
-    }
-
-    return meta
-
-
-def create_archive(root_path, train, test, meta):
-
-    root_path = Path(root_path).resolve()
-    dataset_path = root_path/meta['name']
-    dataset_path.mkdir(parents=True)
-
-    train_path = dataset_path/'train.csv'
-    test_path = dataset_path/'test.csv'
-
-    train.to_csv(train_path, index=None)
-    test.to_csv(test_path, index=None)
-
-    data_hash = compute_hash([train_path, test_path])
-
-    meta['data_hash'] = data_hash
-
-    with open(dataset_path/'meta.json', 'w') as f:
-        json.dump(meta, f)
-
-    shutil.make_archive(dataset_path, 'zip', root_path, meta['name'])
-    shutil.rmtree(dataset_path)
-
-
-def compute_hash(paths):
-    """ Naive concat """
-
-    # create hash
-    data_hash = hashlib.md5()
-    for path in paths:
-        with open(path, 'rb') as f:
-            data_hash.update(f.read())
-
-    return data_hash.hexdigest()
