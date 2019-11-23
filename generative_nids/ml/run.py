@@ -68,19 +68,19 @@ def run(config, log_root_dir):
     se = timer()
     score_test = model.anomaly_score(x_test)
     time_test = timer() - se
-    logging.info(f'Done test: {time_test}')
+    logging.info(f'Done (test): {time_test}')
 
     # Compute anomaly scores
     se = timer()
     score_train_norm = model.anomaly_score(x_train_norm)
     score_train_anom = model.anomaly_score(x_train_anom)
     time_train = timer() - se
-    logging.info(f'Done train: {time_test}')
+    logging.info(f'Done (train): {time_test}')
 
     score_train = np.concatenate([score_train_norm, score_train_anom])
     y_train = np.concatenate([np.zeros_like(score_train_norm), np.ones_like(score_train_anom)])
 
-    logging.info(f'Logging the results')
+    logging.info(f'Logging the results\n')
     # Log everything
     os.makedirs(log_dir)
     try:
@@ -134,6 +134,5 @@ if __name__ == '__main__':
     for config_path in config_paths:
         with open(config_path, 'r') as f:
             config = json.load(f)
-        import pdb; pdb.set_trace()
         run(config, args.log_root_path)
 
