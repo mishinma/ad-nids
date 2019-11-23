@@ -1,3 +1,4 @@
+import json
 import shutil
 import zipfile
 import hashlib
@@ -47,7 +48,7 @@ def hash_from_frames(frames):
     # create hash
     data_hash = hashlib.md5()
     for frame in frames:
-        data_hash.update(frame.to_csv())
+        data_hash.update(frame.to_csv().encode('utf-8'))
 
     return data_hash.hexdigest()
 
@@ -87,9 +88,13 @@ class Dataset:
 
         train_path = dataset_path / 'train.csv'
         test_path = dataset_path / 'test.csv'
+        meta_path = dataset_path / 'meta.json'
 
         self.train.to_csv(train_path, index=None)
         self.test.to_csv(test_path, index=None)
+
+        with open(meta_path, 'w') as f:
+            json.dump(self.meta, f)
 
         if archive:
             shutil.make_archive(dataset_path, 'zip', root_path, self.meta['name'])

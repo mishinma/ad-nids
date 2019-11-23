@@ -100,9 +100,9 @@ if __name__ == '__main__':
     train_scenarios = ['2', '9']
     test_scenarios = ['3']
 
-    process_ctu_data(args.root_dir, args.out_dir, args.processes, args.frequency)
+    # process_ctu_data(args.root_dir, args.out_dir, args.processes, args.frequency)
     dataset = create_ctu_dataset(
         args.root_dir, train_scenarios=train_scenarios,
         test_scenarios=test_scenarios, frequency=args.frequency
     )
-    dataset.archive('../tests/data/processed')
+    dataset.write_to('../tests/data/processed')

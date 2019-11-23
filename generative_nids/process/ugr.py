@@ -183,7 +183,7 @@ if __name__ == '__main__':
     train_dates = TRAIN_DATES
     test_dates = TEST_DATES
 
-    process_ugr_data(args.root_dir, processes=args.processes, frequency=args.frequency)
+    # process_ugr_data(args.root_dir, processes=args.processes, frequency=args.frequency)
     dataset = create_ugr_dataset(
         args.root_dir, train_dates=train_dates,
         test_dates=test_dates, frequency=args.frequency
