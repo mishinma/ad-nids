@@ -5,6 +5,8 @@ import hashlib
 
 from pathlib import Path
 
+import pandas as pd
+
 
 def create_meta(dataset_name, train_split, test_split, frequency,
                 features, name=None, notes=None):
@@ -74,6 +76,24 @@ class Dataset:
 
         if update_hash:
             self._update_hash()
+
+    @classmethod
+    def from_path(cls, dataset_path):
+
+        dataset_path = Path(dataset_path)
+
+        try:
+            assert dataset_path.exists()
+        except AssertionError as e:
+            raise ValueError(f'Dataset {dataset_path} does not exist')
+
+        train = pd.read_csv(dataset_path / 'train.csv')
+        test = pd.read_csv(dataset_path / 'test.csv')
+
+        with open(dataset_path / 'meta.json', 'r') as f:
+           meta = json.load(f)
+
+        return Dataset(train, test, meta, update_hash=False)
 
     def _update_hash(self):
         data_hash = hash_from_frames([self.train, self.test])

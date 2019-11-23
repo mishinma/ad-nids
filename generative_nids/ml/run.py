@@ -9,28 +9,11 @@ from datetime import datetime
 from timeit import default_timer as timer
 
 import numpy as np
-import pandas as pd
 
 from sklearn.preprocessing import StandardScaler
 
 from generative_nids.ml.models import ALGORITHM2WRAPPER
-
-
-def load_data(config):
-    dataset_path = Path(config['dataset_path'])
-
-    try:
-        assert dataset_path.exists()
-    except AssertionError as e:
-        raise ValueError(f'Dataset {dataset_path} does not exist')
-
-    train = pd.read_csv(dataset_path/'train.csv')
-    test = pd.read_csv(dataset_path/'test.csv')
-
-    with open(dataset_path/'meta.json', 'r') as f:
-        dataset_meta = json.load(f)
-
-    return train, test, dataset_meta
+from generative_nids.ml.dataset import Dataset
 
 
 def get_log_dir(config, log_root_dir):
@@ -65,11 +48,12 @@ def run(config, log_root_dir):
     logging.info(f'Starting {config["config_name"]}...')
 
     logging.info('Loading the dataset...')
-    train, test, dataset_meta = load_data(config)
+    dataset = Dataset.from_path(config['dataset_path'])
+
     log_dir = get_log_dir(config, log_root_dir)
 
     # Preprocess data
-    x_train_norm, x_train_anom, x_test, y_test = prepare_data(train, test, config)
+    x_train_norm, x_train_anom, x_test, y_test = prepare_data(dataset.train, dataset.test, config)
 
     logging.info('Training the model...')
     # Train and fit the model
@@ -104,7 +88,7 @@ def run(config, log_root_dir):
             json.dump(config, f)
 
         with open(os.path.join(log_dir, 'dataset_meta.json'), 'w') as f:
-            json.dump(dataset_meta, f)
+            json.dump(dataset.meta, f)
 
         model.save(log_dir)
 
