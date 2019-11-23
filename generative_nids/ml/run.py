@@ -2,7 +2,10 @@ import json
 import os
 import zipfile
 import shutil
+import argparse
+import logging
 
+from pathlib import Path
 from datetime import datetime
 from timeit import default_timer as timer
 from uuid import uuid4
@@ -15,31 +18,31 @@ from sklearn.preprocessing import StandardScaler
 from generative_nids.ml.models import ALGORITHM2WRAPPER
 
 
-def load_data(config, data_root_dir):
-    dataset_path = os.path.join(data_root_dir, config['data_hash'])
+def load_data(config):
+    dataset_path = Path(config['dataset_path'])
 
-    if not os.path.exists(dataset_path):
-        arc_path = dataset_path + '.zip'
-        with zipfile.ZipFile(arc_path) as ziph:
-            ziph.extractall(data_root_dir)
+    try:
+        assert dataset_path.exists()
+    except AssertionError as e:
+        raise ValueError(f'Dataset {dataset_path} does not exist')
 
-    train = pd.read_csv(os.path.join(dataset_path, 'train.csv'))
-    test = pd.read_csv(os.path.join(dataset_path, 'test.csv'))
+    train = pd.read_csv(dataset_path/'train.csv')
+    test = pd.read_csv(dataset_path/'test.csv')
 
-    with open(os.path.join(dataset_path, 'meta.json')) as f:
+    with open(dataset_path/'meta.json', 'r') as f:
         dataset_meta = json.load(f)
 
     return train, test, dataset_meta
 
 
-def get_log_dir(log_root_dir):
-    uniq_name = datetime.now().strftime('%Y-%m-%d_%H-%M-%S-%f') + '_' + str(uuid4())[:5]
+def get_log_dir(config, log_root_dir):
+    uniq_name = datetime.now().strftime('%Y-%m-%d_%H-%M-%S-%f') + '_' + config['config_name']
     log_dir = os.path.join(log_root_dir, uniq_name)
     return log_dir
 
 
 def create_model(config):
-    return ALGORITHM2WRAPPER[config['algorithm']](config['model_params'])
+    return ALGORITHM2WRAPPER[config['algorithm']](config['model_parameters'])
 
 
 def prepare_data(train, test, config):
@@ -59,34 +62,43 @@ def prepare_data(train, test, config):
     return x_train_norm, x_train_anom, x_test, y_test
 
 
-def run(config, data_root_dir, log_root_dir):
+def run(config, log_root_dir):
 
-    train, test, dataset_meta = load_data(config, data_root_dir)
-    log_dir = get_log_dir(log_root_dir)
+    logging.info(f'Starting {config["config_name"]}...')
+
+    logging.info('Loading the dataset...')
+    train, test, dataset_meta = load_data(config)
+    log_dir = get_log_dir(config, log_root_dir)
 
     # Preprocess data
     x_train_norm, x_train_anom, x_test, y_test = prepare_data(train, test, config)
 
+    logging.info('Training the model...')
     # Train and fit the model
     model = create_model(config)
     se = timer()
     model.fit(x_train_norm)
     time_fit = timer() - se
+    logging.info(f'Done: {time_fit}')
 
+    logging.info('Computing anomaly scores...')
     # Compute anomaly scores
     se = timer()
     score_test = model.anomaly_score(x_test)
     time_test = timer() - se
+    logging.info(f'Done test: {time_test}')
 
     # Compute anomaly scores
     se = timer()
     score_train_norm = model.anomaly_score(x_train_norm)
     score_train_anom = model.anomaly_score(x_train_anom)
     time_train = timer() - se
+    logging.info(f'Done train: {time_test}')
 
     score_train = np.concatenate([score_train_norm, score_train_anom])
     y_train = np.concatenate([np.zeros_like(score_train_norm), np.ones_like(score_train_anom)])
 
+    logging.info(f'Logging the results')
     # Log everything
     os.makedirs(log_dir)
     try:
@@ -116,22 +128,30 @@ def run(config, data_root_dir, log_root_dir):
 
 
 if __name__ == '__main__':
-    data_root_dir = '../tests/data/processed'
-    log_root_dir = '../tests/data/logs'
 
-    config1 = {
-        'algorithm': 'IsolationForest',
-        'model_params': {'n_estimators': 100, 'behaviour': 'new', 'contamination': 'auto'},
-        'data_hash': 'b98849baae8b39c7ca3ef19d375b278e',
-        'data_standardization': False
-    }
+    parser = argparse.ArgumentParser()
+    parser.add_argument("config_path", type=str,
+                        help="directory with config files")
+    parser.add_argument("log_root_path", type=str,
+                        help="log directory")
+    parser.add_argument("-l", "--logging", type=str, default='INFO',
+                        help="logging level")
 
-    config2 = {
-        'algorithm': 'NearestNeighbors',
-        'model_params': {'n_neighbors': 5, 'algorithm': 'kd_tree'},
-        'data_hash': 'b98849baae8b39c7ca3ef19d375b278e',
-        'data_standardization': True
-    }
+    args = parser.parse_args()
 
-    run(config1, data_root_dir, log_root_dir)
-    run(config2, data_root_dir, log_root_dir)
+    loglevel = getattr(logging, args.logging.upper(), None)
+    logging.basicConfig(level=loglevel)
+
+    config_root_path = Path(args.config_path).resolve()
+
+    if config_root_path.is_dir():
+        config_paths = list(config_root_path.iterdir())
+    else:
+        config_paths = [config_root_path]
+
+    for config_path in config_paths:
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+        import pdb; pdb.set_trace()
+        run(config, args.log_root_path)
+

@@ -1,6 +1,6 @@
+import os
 import argparse
 import logging
-import copy
 import json
 
 from pathlib import Path
@@ -14,47 +14,52 @@ def read_model_params_from_csv(params_path):
     params_frame = pd.read_csv(params_path, index_col=0)
     model_params = []
 
-    for idx, exp in params_frame.iterrows():
-        exp = exp.to_dict()
-        alg = exp.pop('algorithm')
-        model_params.append((alg, exp))
+    for idx, params in params_frame.iterrows():
+        params = params.to_dict()
+        alg = params.pop('algorithm')
+        data_std = params.pop('data_standardization')
+        model_params.append((alg, (params, data_std)))
 
     return model_params
 
 
-def create_configs(data_path, config_out_path, model_params_path):
+def create_configs(data_root_path, config_out_path, model_params_path):
 
     config_out_path = Path(config_out_path)
     config_out_path.mkdir(exist_ok=True)
 
-    data_path = Path(data_path).resolve()
-    if data_path.is_dir():
-        data_path = list(data_path.iterdir())
+    data_root_path = Path(data_root_path).resolve()
+    if data_root_path.is_dir():
+        data_paths = list(data_root_path.iterdir())
     else:
-        data_path = [data_path]
+        data_paths = [data_root_path]
 
-    data_names_paths = [(dp.name[:-len(dp.suffix)], dp) for dp in data_path]
     model_params = read_model_params_from_csv(model_params_path)
 
     uniq_str = str(uuid4())[:5]
 
     idx = 0
-    for alg, mp in model_params:
-        for name, path in data_names_paths:
+    for alg, params in model_params:
+        for data_path in data_paths:
+            
+            model_params, data_std = params
 
             conf = dict()
-            conf['dataset_name'] = name
-            conf['dataset_path'] = str(path)
+            conf['dataset_name'] = str(data_path.name)
+            conf['dataset_path'] = str(data_path)
             conf['algorithm'] = alg
-            conf['model_parameters'] = mp
+            conf['model_parameters'] = model_params
+            conf['data_standardization'] = data_std
 
             logging.debug(
-                'DATASET {}; ALGORITHM {}; MODEL_PARAMETERS {}'.format(
-                    conf['dataset_name'], conf['algorithm'], conf['model_parameters'])
+                'DATASET {}; ALGORITHM {}; MODEL_PARAMETERS {} {}'.format(
+                    conf['dataset_name'], conf['algorithm'],
+                    conf['model_parameters'], conf['data_standardization'])
             )
 
-            conf_name = 'conf_{:03d}_{}.json'.format(idx, uniq_str)
-            conf_full_path = config_out_path / conf_name
+            conf_name = 'conf_{:03d}_{}'.format(idx, uniq_str)
+            conf['config_name'] = conf_name
+            conf_full_path = (config_out_path / conf_name).with_suffix('.json')
             with open(conf_full_path, 'w') as f:
                 json.dump(conf, f)
 
