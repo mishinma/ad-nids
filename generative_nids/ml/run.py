@@ -12,7 +12,7 @@ import numpy as np
 
 from sklearn.preprocessing import StandardScaler
 
-from generative_nids.ml.models import ALGORITHM2WRAPPER
+from generative_nids.ml.modelwrapper import ALGORITHM2WRAPPER
 from generative_nids.ml.dataset import Dataset
 
 

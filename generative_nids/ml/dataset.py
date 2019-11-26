@@ -91,7 +91,7 @@ class Dataset:
         test = pd.read_csv(dataset_path / 'test.csv')
 
         with open(dataset_path / 'meta.json', 'r') as f:
-           meta = json.load(f)
+            meta = json.load(f)
 
         return Dataset(train, test, meta, update_hash=False)
 
@@ -119,3 +119,11 @@ class Dataset:
         if archive:
             shutil.make_archive(dataset_path, 'zip', root_path, self.meta['name'])
             shutil.rmtree(dataset_path)
+
+
+# ToDo: Dataloader class?
+# Inspiration:
+# trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
+#                                         download=True, transform=transform)
+# trainloader = torch.utils.data.DataLoader(trainset, batch_size=4,
+#                                           shuffle=True, num_workers=2)
