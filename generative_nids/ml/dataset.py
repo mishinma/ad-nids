@@ -2,9 +2,11 @@ import json
 import shutil
 import zipfile
 import hashlib
+import logging
 
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 
@@ -68,14 +70,16 @@ def hash_from_paths(paths):
 
 
 class Dataset:
+    def __init__(self, train, test, meta, create_hash=True, scaler=None):
 
-    def __init__(self, train, test, meta, update_hash=True):
         self.train = train
         self.test = test
-        self.meta = meta
 
-        if update_hash:
-            self._update_hash()
+        self.meta = meta
+        if create_hash:
+            self._create_hash()
+
+        self.scaler = scaler
 
     @classmethod
     def from_path(cls, dataset_path):
@@ -93,11 +97,30 @@ class Dataset:
         with open(dataset_path / 'meta.json', 'r') as f:
             meta = json.load(f)
 
-        return Dataset(train, test, meta, update_hash=False)
+        return Dataset(train, test, meta, create_hash=False)
 
-    def _update_hash(self):
+    def loader(self, train=True, contamination=True, batch_size=None, shuffle=True):
+
+        if train:
+            x = self.train.iloc[:, 2:-1].to_numpy()
+            y = self.train.iloc[:, -1].to_numpy()
+        else:
+            x = self.test.iloc[:, 2:-1].to_numpy()
+            y = self.test.iloc[:, -1].to_numpy()
+
+        if not contamination:
+            x = x[y == 0]
+            y = np.zeros_like(y)
+
+        # ToDo: is it the right way to do it? keep for now
+        if self.scaler is not None:
+            x = self.scaler.transform(x)
+
+        return Dataloader(x, y, batch_size, shuffle)
+
+    def _create_hash(self):
         data_hash = hash_from_frames([self.train, self.test])
-        self.meta['data_hast'] = data_hash
+        self.meta['data_hash'] = data_hash
 
     def write_to(self, root_path, archive=False):
 
@@ -127,3 +150,12 @@ class Dataset:
 #                                         download=True, transform=transform)
 # trainloader = torch.utils.data.DataLoader(trainset, batch_size=4,
 #                                           shuffle=True, num_workers=2)
+
+
+class Dataloader:
+
+    def __init__(self, x, y, batch_size=None, shuffle=True):
+        self.x = x
+        self.y = y  # if None no batches
+        self.batch_size = None
+        self.shuffle = shuffle

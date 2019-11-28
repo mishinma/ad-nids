@@ -17,3 +17,4 @@ def timing(f):
 
 def yyyy_mm_dd2mmdd(dates):
     return [datetime.strptime(d, '%Y-%m-%d').strftime('%m%d') for d in dates]
+

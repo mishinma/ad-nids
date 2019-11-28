@@ -7,13 +7,13 @@ import logging
 from pathlib import Path
 from datetime import datetime
 from timeit import default_timer as timer
-
-import numpy as np
-
 from sklearn.preprocessing import StandardScaler
 
-from generative_nids.ml.modelwrapper import ALGORITHM2WRAPPER
+from generative_nids.ml.modelwrapper import create_model, is_param_required, FIT_PARAMS
 from generative_nids.ml.dataset import Dataset
+
+LOG_SHOW_PARAMS = ['dataset_name', 'algorithm', 'model_parameters',
+                   'data_standardization', 'lr', 'num_epochs', 'optimizer']
 
 
 def get_log_dir(config, log_root_dir):
@@ -22,66 +22,56 @@ def get_log_dir(config, log_root_dir):
     return log_dir
 
 
-def create_model(config):
-    return ALGORITHM2WRAPPER[config['algorithm']](config['model_parameters'])
-
-
-def prepare_data(train, test, config):
-    x_train, y_train = train.iloc[:, 2:-1], train.iloc[:, -1].to_numpy()
-    x_test, y_test = test.iloc[:, 2:-1], test.iloc[:, -1].to_numpy()
-
-    train_idx_anom = y_train == 1
-    x_train_norm = x_train[~train_idx_anom]
-    x_train_anom = x_train[train_idx_anom]
-
-    if config['data_standardization']:
-        sc = StandardScaler()
-        x_train_norm = sc.fit_transform(x_train_norm)
-        x_train_anom = sc.transform(x_train_anom)
-        x_test = sc.transform(x_test)
-
-    return x_train_norm, x_train_anom, x_test, y_test
-
-
 def run(config, log_root_dir):
 
     logging.info(f'Starting {config["config_name"]}...')
+    log_config = {k: v for k, v in config.items() if k in LOG_SHOW_PARAMS}
+    logging.info(json.dumps(log_config, indent=2))
 
+    # Create dataset and loaders
     logging.info('Loading the dataset...')
     dataset = Dataset.from_path(config['dataset_path'])
 
+    if config['data_standardization']:
+        x_train_norm = dataset.loader(train=True, contamination=False).x
+        dataset.scaler = StandardScaler().fit(x_train_norm)
+
     log_dir = get_log_dir(config, log_root_dir)
+    train_norm_loader = dataset.loader(train=True, contamination=False)
+    train_anom_loader = dataset.loader(train=True, contamination=True)
+    test_loader = dataset.loader(train=False, contamination=True)
 
-    # Preprocess data
-    x_train_norm, x_train_anom, x_test, y_test = prepare_data(dataset.train, dataset.test, config)
+    # Create a model
+    algorithm = config['algorithm']
+    model_params = config['model_parameters']
+    if is_param_required('input_dim', algorithm):
+        model_params['input_dim'] = test_loader.x.shape[1]
+    model = create_model(algorithm, model_params)
 
+    # Train the model on normal data
     logging.info('Training the model...')
-    # Train and fit the model
-    model = create_model(config)
     se = timer()
-    model.fit(x_train_norm)
+    fit_params = {k: v for k, v in config.items() if k in FIT_PARAMS}
+    model.fit(train_norm_loader, **fit_params)
+
     time_fit = timer() - se
     logging.info(f'Done: {time_fit}')
 
+    # Compute anomaly scores for test
     logging.info('Computing anomaly scores...')
-    # Compute anomaly scores
     se = timer()
-    score_test = model.anomaly_score(x_test)
+    score_test = model.anomaly_score(test_loader)
     time_test = timer() - se
     logging.info(f'Done (test): {time_test}')
 
-    # Compute anomaly scores
+    # Compute anomaly scores for train with anomalies
     se = timer()
-    score_train_norm = model.anomaly_score(x_train_norm)
-    score_train_anom = model.anomaly_score(x_train_anom)
+    score_train = model.anomaly_score(train_anom_loader)
     time_train = timer() - se
-    logging.info(f'Done (train): {time_test}')
+    logging.info(f'Done (train): {time_train}')
 
-    score_train = np.concatenate([score_train_norm, score_train_anom])
-    y_train = np.concatenate([np.zeros_like(score_train_norm), np.ones_like(score_train_anom)])
-
-    logging.info(f'Logging the results\n')
     # Log everything
+    logging.info(f'Logging the results\n')
     os.makedirs(log_dir)
     try:
         with open(os.path.join(log_dir, 'config.json'), 'w') as f:
@@ -95,8 +85,8 @@ def run(config, log_root_dir):
         eval_results = {
             'score_test': score_test.tolist(),
             'score_train': score_train.tolist(),
-            'y_test': y_test.tolist(),
-            'y_train': y_train.tolist(),
+            'y_test': test_loader.y.tolist(),
+            'y_train': train_anom_loader.y.tolist(),
             'time_train': time_train,
             'time_test': time_test,
             'time_fit': time_fit
@@ -130,6 +120,8 @@ if __name__ == '__main__':
         config_paths = list(config_root_path.iterdir())
     else:
         config_paths = [config_root_path]
+
+    config_paths = sorted(config_paths)
 
     for config_path in config_paths:
         with open(config_path, 'r') as f:

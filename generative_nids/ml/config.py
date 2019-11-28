@@ -8,19 +8,23 @@ from uuid import uuid4
 
 import pandas as pd
 
+from generative_nids.ml.modelwrapper import filter_model_params
+
 
 def read_model_params_from_csv(params_path):
 
-    params_frame = pd.read_csv(params_path, index_col=0)
-    model_params = []
+    with open(params_path, 'r') as f:
+        alg = f.readline().strip()
+
+    params_frame = pd.read_csv(params_path, index_col=0, skiprows=1)
+    exp_params = []
 
     for idx, params in params_frame.iterrows():
         params = params.to_dict()
-        alg = params.pop('algorithm')
-        data_std = params.pop('data_standardization')
-        model_params.append((alg, (params, data_std)))
+        model_params, other_params = filter_model_params(params, alg)
+        exp_params.append((alg, (model_params, other_params)))
 
-    return model_params
+    return exp_params
 
 
 def create_configs(data_root_path, config_out_path, model_params_path):
@@ -34,30 +38,26 @@ def create_configs(data_root_path, config_out_path, model_params_path):
     else:
         data_paths = [data_root_path]
 
-    model_params = read_model_params_from_csv(model_params_path)
+    exp_params = read_model_params_from_csv(model_params_path)
 
     uniq_str = str(uuid4())[:5]
 
     idx = 0
-    for alg, params in model_params:
-        for data_path in data_paths:
-            
-            model_params, data_std = params
+    for alg, params in exp_params:
 
+        model_params, other_params = params
+
+        for data_path in data_paths:
             conf = dict()
             conf['dataset_name'] = str(data_path.name)
             conf['dataset_path'] = str(data_path)
             conf['algorithm'] = alg
             conf['model_parameters'] = model_params
-            conf['data_standardization'] = data_std
+            conf.update(other_params)
 
-            logging.debug(
-                'DATASET {}; ALGORITHM {}; MODEL_PARAMETERS {} {}'.format(
-                    conf['dataset_name'], conf['algorithm'],
-                    conf['model_parameters'], conf['data_standardization'])
-            )
+            logging.debug(json.dumps(conf, indent=4) + '\n')
 
-            conf_name = 'conf_{:03d}_{}'.format(idx, uniq_str)
+            conf_name = 'conf_{}_{:03d}'.format(uniq_str, idx)
             conf['config_name'] = conf_name
             conf_full_path = (config_out_path / conf_name).with_suffix('.json')
             with open(conf_full_path, 'w') as f:

@@ -2,15 +2,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class Autoencoder(nn.Module):
+class AE(nn.Module):
 
-    def __init__(self, input_dim, hidden_dim, latent_dim, num_hidden, learning_eps):
+    def __init__(self, input_dim, hidden_dim, latent_dim, num_hidden):
 
-        super(Autoencoder, self).__init__()
+        super(AE, self).__init__()
 
         self.input_dim = input_dim
         self.encoding_dim = latent_dim
-        self.learning_eps = learning_eps
         self.num_hidden = num_hidden
 
         self.encoder = nn.ModuleList()
@@ -24,15 +23,14 @@ class Autoencoder(nn.Module):
             self.decoder.append(nn.Linear(decoder_dims[i], decoder_dims[i + 1]))
 
     def forward(self, x):
-
         # encoder
         for i in range(self.num_hidden):
             x = F.relu(self.encoder[i](x))
-        x = self.encoder[self.num_hidden + 1](x)  # ToDo ReLu or Identity?
+        x = self.encoder[self.num_hidden](x)  # ToDo ReLu or Identity?
 
         # decoder
         for i in range(self.num_hidden):
             x = F.relu(self.decoder[i](x))
-        x = self.decoder[self.num_hidden + 1](x)
+        x = self.decoder[self.num_hidden](x)
 
         return x
