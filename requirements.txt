@@ -1,3 +1,4 @@
+json2html
 torch
 scikit-learn
 scipy

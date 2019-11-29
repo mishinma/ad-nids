@@ -14,12 +14,25 @@ from sklearn.neighbors import NearestNeighbors
 from joblib import dump
 
 from generative_nids.ml.model import AE
-from generative_nids.ml.utils import get_threshold
 
 FIT_PARAMS = {"lr", "num_epochs", "optimizer", "device"}
 
 
 class ModelWrapper(ABC):
+
+    def __init__(self, model=None, threshold=None):
+        self.model = model
+        self._threshold = threshold
+
+    @property
+    def threshold(self):
+        if self._threshold is None:
+            raise ValueError('Need to set threshold first')
+        return self._threshold
+
+    @threshold.setter
+    def threshold(self, value):
+        self._threshold = value
 
     def fit(self, x, *args, **kwargs):
         pass
@@ -27,8 +40,8 @@ class ModelWrapper(ABC):
     def anomaly_score(self, x):
         pass
 
-    def predict(self, x):
-        pass
+    def predict(self, scores):
+        return (scores >= self.threshold).astype(np.int)
 
     def save(self, save_dir):
         pass
@@ -55,17 +68,15 @@ class IsolationForestModelWrapper(ModelWrapper):
 
     model_params = {"n_estimators", "behaviour", "contamination"}
 
-    def __init__(self, model_params):
-        self.model = IsolationForest(**model_params)
+    def __init__(self, model_params, threshold=None):
+        model = IsolationForest(**model_params)
+        super().__init__(model, threshold=threshold)
 
     def fit(self, loader, *args, **kwargs):
         self.model.fit(loader.x)
 
     def anomaly_score(self, loader, *args, **kwargs):
         return self.model.score_samples(loader.x)
-
-    def predict(self, loader):
-        return self.model.predict(loader.x)
 
     def save(self, save_dir):
         dump(self.model, os.path.join(save_dir, 'model.joblib'))
@@ -75,15 +86,9 @@ class NearestNeighborsModelWrapper(ModelWrapper):
 
     model_params = {"n_neighbors", "algorithm"}
 
-    def __init__(self, model_params):
-        self.model = NearestNeighbors(**model_params)
-        self._threshold = None
-
-    @property
-    def threshold(self):
-        if self._threshold is None:
-            raise ValueError('Need to set threshold first')
-        return self._threshold
+    def __init__(self, model_params, threshold=None):
+        model = NearestNeighbors(**model_params)
+        super().__init__(model, threshold=threshold)
 
     def fit(self, loader, *args, **kwargs):
         # ToDo: set threshold
@@ -92,11 +97,6 @@ class NearestNeighborsModelWrapper(ModelWrapper):
     def anomaly_score(self, loader):
         distances, _ = self.model.kneighbors(loader.x)
         return np.mean(distances, axis=1)
-
-    def predict(self, loader):
-        # compute anomaly scores
-        # threshold
-        pass
 
     def save(self, save_dir):
         dump(self.model, os.path.join(save_dir, 'model.joblib'))
@@ -107,10 +107,10 @@ class AutoEncoderModelWrapper(ModelWrapper):
     criterion = nn.MSELoss()
     model_params = {"input_dim", "hidden_dim", "latent_dim", "num_hidden"}
 
-    def __init__(self, model_params):
-        self.model = AE(**model_params)
-        self._threshold = None
+    def __init__(self, model_params, threshold=None):
+        model = AE(**model_params)
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        super().__init__(model, threshold=threshold)
 
     def fit(self, loader, *args, **kwargs):
 

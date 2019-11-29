@@ -8,9 +8,11 @@ from pathlib import Path
 from datetime import datetime
 from timeit import default_timer as timer
 from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
 
 from generative_nids.ml.modelwrapper import create_model, is_param_required, FIT_PARAMS
 from generative_nids.ml.dataset import Dataset
+from generative_nids.ml.utils import precision_recall_curve_scores, select_threshold
 
 LOG_SHOW_PARAMS = ['dataset_name', 'algorithm', 'model_parameters',
                    'data_standardization', 'lr', 'num_epochs', 'optimizer']
@@ -53,22 +55,33 @@ def run(config, log_root_dir):
     se = timer()
     fit_params = {k: v for k, v in config.items() if k in FIT_PARAMS}
     model.fit(train_norm_loader, **fit_params)
-
     time_fit = timer() - se
     logging.info(f'Done: {time_fit}')
+
+    # Compute anomaly scores for train with anomalies
+    # and select threshold
+    se = timer()
+    train_score = model.anomaly_score(train_anom_loader)
+    train_prf1_curve = precision_recall_curve_scores(train_anom_loader.y, train_score)
+    model.threshold = select_threshold(train_prf1_curve['thresholds'],
+                                       train_prf1_curve['f1scores'])
+    y_train_pred = model.predict(train_score)
+    train_cm = confusion_matrix(train_anom_loader.y, y_train_pred)
+    train_prf1s = precision_recall_fscore_support(train_anom_loader.y,
+                                                  y_train_pred, average='binary')
+    time_train = timer() - se
+    logging.info(f'Done (train): {time_train}')
 
     # Compute anomaly scores for test
     logging.info('Computing anomaly scores...')
     se = timer()
-    score_test = model.anomaly_score(test_loader)
+    test_score = model.anomaly_score(test_loader)
+    y_test_pred = model.predict(test_score)
+    test_cm = confusion_matrix(test_loader.y, y_test_pred)
+    test_prf1s = precision_recall_fscore_support(test_loader.y,
+                                                 y_test_pred, average='binary')
     time_test = timer() - se
     logging.info(f'Done (test): {time_test}')
-
-    # Compute anomaly scores for train with anomalies
-    se = timer()
-    score_train = model.anomaly_score(train_anom_loader)
-    time_train = timer() - se
-    logging.info(f'Done (train): {time_train}')
 
     # Log everything
     logging.info(f'Logging the results\n')
@@ -81,12 +94,19 @@ def run(config, log_root_dir):
             json.dump(dataset.meta, f)
 
         model.save(log_dir)
-
         eval_results = {
-            'score_test': score_test.tolist(),
-            'score_train': score_train.tolist(),
+            'test_score': test_score.tolist(),
+            'train_score': train_score.tolist(),
+            'y_test_pred': y_test_pred.tolist(),
+            'y_train_pred': y_train_pred.tolist(),
             'y_test': test_loader.y.tolist(),
             'y_train': train_anom_loader.y.tolist(),
+            'threshold': model.threshold,
+            'train_prf1_curve': train_prf1_curve,
+            'train_prf1s': train_prf1s,
+            'train_cm': train_cm.tolist(),
+            'test_prf1s': test_prf1s,
+            'test_cm': test_cm.tolist(),
             'time_train': time_train,
             'time_test': time_test,
             'time_fit': time_fit
