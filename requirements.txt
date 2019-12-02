@@ -1,7 +1,7 @@
+pandas
+numpy
 json2html
-torch
 scikit-learn
 scipy
 tqdm
-pandas
-numpy
+torch
