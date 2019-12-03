@@ -5,6 +5,7 @@ import hashlib
 import logging
 
 from pathlib import Path
+from uuid import uuid4
 
 import numpy as np
 import pandas as pd
@@ -70,12 +71,20 @@ def hash_from_paths(paths):
 
 
 class Dataset:
-    def __init__(self, train, test, meta, create_hash=True, scaler=None):
+    def __init__(self, train, test, train_meta=None, test_meta=None,
+                 meta=None, create_hash=True, scaler=None):
 
         self.train = train
         self.test = test
-
+        self.train_meta = train_meta
+        self.test_meta = test_meta
         self.meta = meta
+
+        if self.meta is not None and self.meta.get('name'):
+            self.name = self.meta['name']
+        else:
+            self.name = 'noname_{}'.format(str(uuid4())[:5])
+
         if create_hash:
             self._create_hash()
 
@@ -94,18 +103,33 @@ class Dataset:
         train = pd.read_csv(dataset_path / 'train.csv')
         test = pd.read_csv(dataset_path / 'test.csv')
 
-        with open(dataset_path / 'meta.json', 'r') as f:
-            meta = json.load(f)
+        train_meta_path = dataset_path / 'train-meta.json'
+        train_meta = None
+        if train_meta_path.exists():
+            with open(train_meta_path, 'r') as f:
+                train_meta = json.load(f)
 
-        return Dataset(train, test, meta, create_hash=False)
+        test_meta_path = dataset_path / 'test-meta.json'
+        test_meta = None
+        if test_meta_path.exists():
+            with open(test_meta_path, 'r') as f:
+                test_meta = json.load(f)
+
+        meta_path = dataset_path / 'meta.json'
+        meta = None
+        if meta_path.exists():
+            with open(meta_path, 'r') as f:
+                meta = json.load(f)
+
+        return Dataset(train, test, train_meta, test_meta, meta, create_hash=False)
 
     def loader(self, train=True, contamination=True, batch_size=None, shuffle=True):
 
         if train:
-            x = self.train.iloc[:, 2:-1].to_numpy()
+            x = self.train.iloc[:, :-1].to_numpy()
             y = self.train.iloc[:, -1].to_numpy()
         else:
-            x = self.test.iloc[:, 2:-1].to_numpy()
+            x = self.test.iloc[:, :-1].to_numpy()
             y = self.test.iloc[:, -1].to_numpy()
 
         if not contamination:
@@ -122,25 +146,34 @@ class Dataset:
         data_hash = hash_from_frames([self.train, self.test])
         self.meta['data_hash'] = data_hash
 
-    def write_to(self, root_path, archive=False):
+    def write_to(self, root_path, archive=False, overwrite=False):
 
         root_path = Path(root_path).resolve()
 
-        dataset_path = root_path / self.meta['name']
-        dataset_path.mkdir(parents=True)
+        dataset_path = root_path / self.name
+        dataset_path.mkdir(parents=True, exist_ok=overwrite)
 
         train_path = dataset_path / 'train.csv'
         test_path = dataset_path / 'test.csv'
+        train_meta_path = dataset_path / 'train-meta.csv'
+        test_meta_path = dataset_path / 'test-meta.csv'
         meta_path = dataset_path / 'meta.json'
 
         self.train.to_csv(train_path, index=None)
         self.test.to_csv(test_path, index=None)
 
-        with open(meta_path, 'w') as f:
-            json.dump(self.meta, f)
+        if self.train_meta is not None:
+            self.train_meta.to_csv(train_meta_path, index=None)
+
+        if self.test_meta is not None:
+            self.test_meta.to_csv(test_meta_path, index=None)
+
+        if self.meta is not None:
+            with open(meta_path, 'w') as f:
+                json.dump(self.meta, f)
 
         if archive:
-            shutil.make_archive(dataset_path, 'zip', root_path, self.meta['name'])
+            shutil.make_archive(dataset_path, 'zip', root_path, self.name)
             shutil.rmtree(dataset_path)
 
 

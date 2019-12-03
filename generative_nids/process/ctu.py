@@ -10,7 +10,7 @@ import pandas as pd
 
 from generative_nids.ml.dataset import Dataset, create_meta
 from generative_nids.process.aggregate import aggregate_extract_features
-from generative_nids.process.columns import CTU2FLOW_COLUMNS, FLOW_COLUMNS
+from generative_nids.process.columns import CTU2FLOW_COLUMNS, FLOW_COLUMNS, FLOW_STATS
 from generative_nids.process.argparser import get_argparser
 
 DATASET_NAME = 'CTU_13'
@@ -81,11 +81,16 @@ def create_ctu_dataset(root_path, train_scenarios=None, test_scenarios=None, fre
 
     # Naive concat
     train = pd.concat([pd.read_csv(p) for p in train_paths])
+    train_meta = train.loc[:, ['sa', 'tws']]
+    train = train.loc[:, FLOW_STATS.keys()]
+
     test = pd.concat([pd.read_csv(p) for p in test_paths])
+    test_meta = test.loc[:, ['sa', 'tws']]
+    test = test.loc[:, FLOW_STATS.keys()]
 
     meta = create_meta(DATASET_NAME, train_scenarios, test_scenarios, args.frequency, FEATURES)
 
-    return Dataset(train, test, meta)
+    return Dataset(train, test, train_meta, test_meta, meta)
 
 
 #ToDo change for real data

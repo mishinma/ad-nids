@@ -14,7 +14,7 @@ import pandas as pd
 
 from generative_nids.ml.dataset import Dataset, create_meta
 from generative_nids.process.aggregate import aggregate_extract_features
-from generative_nids.process.columns import UGR_COLUMNS, FLOW_COLUMNS
+from generative_nids.process.columns import UGR_COLUMNS, FLOW_COLUMNS, FLOW_STATS
 from generative_nids.process.argparser import get_argparser
 from generative_nids.utils import yyyy_mm_dd2mmdd
 
@@ -117,7 +117,12 @@ def create_ugr_dataset(root_path, train_dates=None, test_dates=None, frequency='
 
     # Naive concat
     train = pd.concat([pd.read_csv(p) for p in train_paths])
+    train_meta = train.loc[:, ['sa', 'tws']]
+    train = train.loc[:, FLOW_STATS.keys()]
+
     test = pd.concat([pd.read_csv(p) for p in test_paths])
+    test_meta = test.loc[:, ['sa', 'tws']]
+    test = test.loc[:, FLOW_STATS.keys()]
 
     dataset_name = '{}_TRAIN_{}_TEST_{}_{}_{}'.format(
         DATASET_NAME,
@@ -129,7 +134,7 @@ def create_ugr_dataset(root_path, train_dates=None, test_dates=None, frequency='
     meta = create_meta(DATASET_NAME, train_dates,
                        test_dates, args.frequency, FEATURES, name=dataset_name)
 
-    return Dataset(train, test, meta)
+    return Dataset(train, test, train_meta, test_meta, meta)
 
 
 def process_ugr_data(split_root_path, out_dir=None, processes=-1,

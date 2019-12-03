@@ -12,13 +12,15 @@ import matplotlib.pyplot as plt
 
 from generative_nids.ml.utils import plot_precision_recall
 
-with open('templates/base.html', 'r') as f:
+templates_path = Path(__file__).parent/'templates'
+
+with open(templates_path/'base.html', 'r') as f:
     BASE = f.read()
 
-with open('templates/experiment.html', 'r') as f:
+with open(templates_path/'experiment.html', 'r') as f:
     EXPERIMENT = f.read()
 
-with open('templates/dataset.html', 'r') as f:
+with open(templates_path/'dataset.html', 'r') as f:
     DATASET = f.read()
 
 
@@ -60,6 +62,7 @@ def create_report(results, config, static_path):
 
     report = EXPERIMENT
     report = report.replace('{{ALGORITHM}}', config['algorithm'])
+    import pdb; pdb.set_trace()
     report = report.replace('{{DATASET}}', config['dataset_name'])
     config_report = {k: v for k, v in config.items() if k in CONFIG_REPORT_FIELDS}
     report = report.replace('{{CONFIG_PARAMS}}', json2html.convert(config_report))
@@ -180,18 +183,15 @@ if __name__ == '__main__':
 
     log_root_path = Path(args.log_root_path).resolve()
 
-    if log_root_path.is_dir():
-        log_paths = list([p for p in log_root_path.iterdir() if p.is_dir()])
-    else:
-        log_paths = [log_root_path]
-
+    log_paths = list([p for p in log_root_path.iterdir() if p.is_dir()])
     log_paths = sorted(log_paths)
 
     dataset2logs = {}
 
     for log_path in log_paths:
 
-        logging.info(f"Creating report {log_path/'report.html'}")
+        report_path = (log_path/'report.html').resolve()
+        logging.info(f"Creating report {report_path}")
 
         with open(log_path/'eval_results.json', 'r') as f:
             results = json.load(f)
@@ -200,12 +200,13 @@ if __name__ == '__main__':
             config = json.load(f)
 
         report = create_report(results, config, log_path)
-        with open(log_path/'report.html', 'w') as f:
+        with open(report_path, 'w') as f:
             f.write(report)
 
         dataset2logs.setdefault(config['dataset_name'], []).append((log_path, results, config))
 
-    logging.info(f"Creating datasets report {log_root_path / 'report.html'}")
+    datasets_report_path = (log_root_path / 'report.html').resolve()
+    logging.info(f"Creating datasets report {datasets_report_path}")
     report = create_report_datasets(dataset2logs)
-    with open(log_root_path / 'report.html', 'w') as f:
+    with open(datasets_report_path, 'w') as f:
         f.write(report)
