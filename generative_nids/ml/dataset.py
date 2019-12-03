@@ -9,6 +9,9 @@ from uuid import uuid4
 
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+
+from generative_nids.ml.utils import plot_data_2d
 
 
 def create_meta(dataset_name, train_split, test_split, frequency,
@@ -123,7 +126,8 @@ class Dataset:
 
         return Dataset(train, test, train_meta, test_meta, meta, create_hash=False)
 
-    def loader(self, train=True, contamination=True, batch_size=None, shuffle=True):
+    def loader(self, train=True, contamination=True, batch_size=None,
+               shuffle=True, standardize=True):
 
         if train:
             x = self.train.iloc[:, :-1].to_numpy()
@@ -137,7 +141,7 @@ class Dataset:
             y = np.zeros_like(y)
 
         # ToDo: is it the right way to do it? keep for now
-        if self.scaler is not None:
+        if self.scaler is not None and standardize:
             x = self.scaler.transform(x)
 
         return Dataloader(x, y, batch_size, shuffle)
@@ -146,7 +150,7 @@ class Dataset:
         data_hash = hash_from_frames([self.train, self.test])
         self.meta['data_hash'] = data_hash
 
-    def write_to(self, root_path, archive=False, overwrite=False):
+    def write_to(self, root_path, archive=False, overwrite=False, plot=False):
 
         root_path = Path(root_path).resolve()
 
@@ -172,9 +176,22 @@ class Dataset:
             with open(meta_path, 'w') as f:
                 json.dump(self.meta, f)
 
+        if plot:
+            train_loader = self.loader(train=True, contamination=True, standardize=False)
+            test_loader = self.loader(train=False, contamination=True, standardize=False)
+            fig, ax = plt.subplots(1, 2)
+            plot_data_2d(ax[0], train_loader.x_norm, train_loader.x_anom)
+            ax[0].set_title('Train data')
+            plot_data_2d(ax[1], test_loader.x_norm, test_loader.x_anom)
+            ax[1].set_title('Test data')
+            fig.savefig(dataset_path / 'data.png')
+            plt.close()
+
         if archive:
             shutil.make_archive(dataset_path, 'zip', root_path, self.name)
             shutil.rmtree(dataset_path)
+
+
 
 
 # ToDo: Dataloader class?
@@ -192,3 +209,11 @@ class Dataloader:
         self.y = y  # if None no batches
         self.batch_size = None
         self.shuffle = shuffle
+
+    @property
+    def x_norm(self):
+        return self.x[self.y == 0]
+
+    @property
+    def x_anom(self):
+        return self.x[self.y == 1]

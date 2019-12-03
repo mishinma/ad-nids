@@ -55,4 +55,4 @@ for name in train_datasets:
     test = test_datasets[name]
     meta = {'name': name}
     dataset = Dataset(train, test, meta=meta, create_hash=True)
-    dataset.write_to(data_path, overwrite=True)
+    dataset.write_to(data_path, overwrite=True, plot=True)

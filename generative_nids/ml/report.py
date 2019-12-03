@@ -8,9 +8,6 @@ import numpy as np
 import pandas as pd
 from json2html import json2html
 
-import matplotlib.pyplot as plt
-
-from generative_nids.ml.utils import plot_precision_recall
 
 templates_path = Path(__file__).parent/'templates'
 
@@ -57,12 +54,11 @@ def performance_asdict(y_true, cm, prf1s):
     return perf
 
 
-def create_report(results, config, static_path):
+def create_report(results, config, log_path):
     """ Create a simple HTML doc with summary. """
 
     report = EXPERIMENT
     report = report.replace('{{ALGORITHM}}', config['algorithm'])
-    import pdb; pdb.set_trace()
     report = report.replace('{{DATASET}}', config['dataset_name'])
     config_report = {k: v for k, v in config.items() if k in CONFIG_REPORT_FIELDS}
     report = report.replace('{{CONFIG_PARAMS}}', json2html.convert(config_report))
@@ -71,19 +67,17 @@ def create_report(results, config, static_path):
     train_perf = performance_asdict(results['y_train'], results['train_cm'], results['train_prf1s'])
     report = report.replace('{{TRAIN_PERFORMANCE}}', json2html.convert(train_perf))
 
+    # plot train frontier
+    report = report.replace('{{TRAIN_FRONTIER}}', str(log_path / 'train_frontier.png'))
+
     # plot train precision recall curve
-    train_precisions = results['train_prf1_curve']['precisions']
-    train_recalls = results['train_prf1_curve']['recalls']
-    train_f1scores = results['train_prf1_curve']['f1scores']
-    fig, ax = plt.subplots(1, 1)
-    plot_precision_recall(ax, train_precisions, train_recalls)
-    fig.savefig(static_path/'train_pr_curve.png')
-    plt.close()
-    report = report.replace('{{TRAIN_PR_CURVE}}', str(static_path/'train_pr_curve.png'))
+    report = report.replace('{{TRAIN_PR_CURVE}}', str(log_path/'train_pr_curve.png'))
 
     # test performance
     test_perf = performance_asdict(results['y_test'], results['test_cm'], results['test_prf1s'])
     report = report.replace('{{TEST_PERFORMANCE}}', json2html.convert(test_perf))
+    # plot test frontier
+    report = report.replace('{{TEST_FRONTIER}}', str(log_path / 'test_frontier.png'))
 
     report = BASE.replace('{{STUFF}}', report)
 
@@ -100,6 +94,7 @@ def create_report_datasets(dataset2logs):
         dataset_report = dataset_report.replace('{{DATASET_NAME}}', dataset_name)
 
         dataset_info = None
+        dataset_img = None
 
         experiments = []
         for logs in dataset2logs[dataset_name]:
@@ -109,6 +104,9 @@ def create_report_datasets(dataset2logs):
                 with open(os.path.join(log_path, 'dataset_meta.json'), 'r') as f:
                     dataset_info = json.load(f)
                 del dataset_info['name']  # is already the header
+
+                # Path to dataset visualization
+                dataset_img = str(Path(config['dataset_path'])/'data.png')
 
             config_name = config['config_name']
             algorithm = config['algorithm']
@@ -160,8 +158,8 @@ def create_report_datasets(dataset2logs):
         rows = '\n'.join(rows)
         dataset_report = dataset_report.replace('{{EXPERIMENT_ROWS}}', rows)
         dataset_report = dataset_report.replace('{{DATASET_INFO}}', json2html.convert(dataset_info))
+        dataset_report = dataset_report.replace('{{DATASET_IMG}}', dataset_img)
         dataset_reports.append(dataset_report)
-
 
     dataset_reports = '<br><br>'.join(dataset_reports)
     report = BASE.replace('{{STUFF}}', dataset_reports)

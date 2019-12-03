@@ -22,10 +22,10 @@ else:
 
 config_paths = sorted(config_paths)
 
-for config_path in config_paths:
-    with open(config_path, 'r') as f:
-        config = json.load(f)
-    run(config, log_root_path)
+# for config_path in config_paths:
+#     with open(config_path, 'r') as f:
+#         config = json.load(f)
+#     run(config, log_root_path, frontier=True)
 
 log_paths = list([p for p in log_root_path.iterdir() if p.is_dir()])
 log_paths = sorted(log_paths)

@@ -72,11 +72,11 @@ class IsolationForestModelWrapper(ModelWrapper):
         model = IsolationForest(**model_params)
         super().__init__(model, threshold=threshold)
 
-    def fit(self, loader, *args, **kwargs):
-        self.model.fit(loader.x)
+    def fit(self, x, *args, **kwargs):
+        self.model.fit(x)
 
-    def anomaly_score(self, loader, *args, **kwargs):
-        return self.model.score_samples(loader.x)
+    def anomaly_score(self, x, *args, **kwargs):
+        return self.model.score_samples(x)
 
     def save(self, save_dir):
         dump(self.model, os.path.join(save_dir, 'model.joblib'))
@@ -90,12 +90,12 @@ class NearestNeighborsModelWrapper(ModelWrapper):
         model = NearestNeighbors(**model_params)
         super().__init__(model, threshold=threshold)
 
-    def fit(self, loader, *args, **kwargs):
+    def fit(self, x, *args, **kwargs):
         # ToDo: set threshold
-        self.model.fit(loader.x)
+        self.model.fit(x)
 
-    def anomaly_score(self, loader):
-        distances, _ = self.model.kneighbors(loader.x)
+    def anomaly_score(self, x):
+        distances, _ = self.model.kneighbors(x)
         return np.mean(distances, axis=1)
 
     def save(self, save_dir):
@@ -112,7 +112,7 @@ class AutoEncoderModelWrapper(ModelWrapper):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         super().__init__(model, threshold=threshold)
 
-    def fit(self, loader, *args, **kwargs):
+    def fit(self, x, *args, **kwargs):
 
         lr = kwargs['lr']
         num_epochs = kwargs['num_epochs']
@@ -120,7 +120,7 @@ class AutoEncoderModelWrapper(ModelWrapper):
         optim_name = kwargs.get('optimizer', 'Adam')
         optimizer = getattr(optim, optim_name)(self.model.parameters(), lr=lr)
 
-        x = torch.tensor(loader.x.astype(np.float32))
+        x = torch.tensor(x.astype(np.float32))
         x = x.to(self.device)
 
         for i in range(num_epochs):
@@ -133,8 +133,8 @@ class AutoEncoderModelWrapper(ModelWrapper):
                 loss.backward()
                 optimizer.step()
 
-    def anomaly_score(self, loader):
-        x = torch.tensor(loader.x.astype(np.float32))
+    def anomaly_score(self, x):
+        x = torch.tensor(x.astype(np.float32))
         x = x.to(self.device)
         with torch.no_grad():
             rec_x = self.model(x)

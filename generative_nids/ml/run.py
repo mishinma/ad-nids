@@ -4,6 +4,8 @@ import shutil
 import argparse
 import logging
 
+import matplotlib.pyplot as plt
+
 from pathlib import Path
 from datetime import datetime
 from timeit import default_timer as timer
@@ -12,7 +14,8 @@ from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
 
 from generative_nids.ml.modelwrapper import create_model, is_param_required, FIT_PARAMS
 from generative_nids.ml.dataset import Dataset
-from generative_nids.ml.utils import precision_recall_curve_scores, select_threshold
+from generative_nids.ml.utils import precision_recall_curve_scores, select_threshold,\
+    get_frontier, plot_precision_recall, plot_data_2d, plot_frontier
 
 LOG_SHOW_PARAMS = ['dataset_name', 'algorithm', 'model_parameters',
                    'data_standardization', 'lr', 'num_epochs', 'optimizer']
@@ -20,11 +23,12 @@ LOG_SHOW_PARAMS = ['dataset_name', 'algorithm', 'model_parameters',
 
 def get_log_dir(config, log_root_dir):
     uniq_name = datetime.now().strftime('%Y-%m-%d_%H-%M-%S-%f') + '_' + config['config_name']
-    log_dir = os.path.join(log_root_dir, uniq_name)
+    log_dir = Path(log_root_dir) / uniq_name
+    log_dir = log_dir.resolve()
     return log_dir
 
 
-def run(config, log_root_dir):
+def run(config, log_root_dir, frontier=False):
 
     logging.info(f'Starting {config["config_name"]}...')
     log_config = {k: v for k, v in config.items() if k in LOG_SHOW_PARAMS}
@@ -54,14 +58,14 @@ def run(config, log_root_dir):
     logging.info('Training the model...')
     se = timer()
     fit_params = {k: v for k, v in config.items() if k in FIT_PARAMS}
-    model.fit(train_norm_loader, **fit_params)
+    model.fit(train_norm_loader.x, **fit_params)
     time_fit = timer() - se
     logging.info(f'Done: {time_fit}')
 
     # Compute anomaly scores for train with anomalies
     # and select threshold
     se = timer()
-    train_score = model.anomaly_score(train_anom_loader)
+    train_score = model.anomaly_score(train_anom_loader.x)
     train_prf1_curve = precision_recall_curve_scores(train_anom_loader.y, train_score)
     model.threshold = select_threshold(train_prf1_curve['thresholds'],
                                        train_prf1_curve['f1scores'])
@@ -75,7 +79,7 @@ def run(config, log_root_dir):
     # Compute anomaly scores for test
     logging.info('Computing anomaly scores...')
     se = timer()
-    test_score = model.anomaly_score(test_loader)
+    test_score = model.anomaly_score(test_loader.x)
     y_test_pred = model.predict(test_score)
     test_cm = confusion_matrix(test_loader.y, y_test_pred)
     test_prf1s = precision_recall_fscore_support(test_loader.y,
@@ -85,8 +89,10 @@ def run(config, log_root_dir):
 
     # Log everything
     logging.info(f'Logging the results\n')
-    os.makedirs(log_dir)
+    log_dir.mkdir(parents=True)
+    logging.info(f'{log_dir}\n')
     try:
+
         with open(os.path.join(log_dir, 'config.json'), 'w') as f:
             json.dump(config, f)
 
@@ -94,6 +100,31 @@ def run(config, log_root_dir):
             json.dump(dataset.meta, f)
 
         model.save(log_dir)
+
+        # plot train precision recall curve
+        fig, ax = plt.subplots(1, 1)
+        plot_precision_recall(ax, train_prf1_curve['precisions'], train_prf1_curve['recalls'])
+        fig.savefig(log_dir/'train_pr_curve.png')
+        plt.close()
+
+        # ToDo: only works for 2 dim data
+        if frontier and test_loader.x.shape[1] == 2:
+
+            fig, ax = plt.subplots(1, 1)
+            xx, yy, Z = get_frontier(model)
+            plot_frontier(ax, xx, yy, Z)
+            plot_data_2d(ax, train_anom_loader.x_norm, train_anom_loader.x_anom)
+            ax.set_title('Training frontier')
+            fig.savefig(log_dir / 'train_frontier.png')
+            plt.close()
+
+            fig, ax = plt.subplots(1, 1)
+            plot_frontier(ax, xx, yy, Z)
+            plot_data_2d(ax, test_loader.x_norm, test_loader.x_anom)
+            ax.set_title('Testing frontier')
+            fig.savefig(log_dir / 'test_frontier.png')
+            plt.close()
+
         eval_results = {
             'test_score': test_score.tolist(),
             'train_score': train_score.tolist(),
