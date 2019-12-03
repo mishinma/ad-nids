@@ -8,6 +8,8 @@ import numpy as np
 import pandas as pd
 from json2html import json2html
 
+from generative_nids.utils import int_to_roman
+
 
 templates_path = Path(__file__).parent/'templates'
 
@@ -58,8 +60,9 @@ def create_report(results, config, log_path):
     """ Create a simple HTML doc with summary. """
 
     report = EXPERIMENT
-    report = report.replace('{{ALGORITHM}}', config['algorithm'])
-    report = report.replace('{{DATASET}}', config['dataset_name'])
+    report = report.replace('{{ALGORITHM}}', config['algorithm'].upper())
+    report = report.replace('{{DATASET_NAME}}', config['dataset_name'])
+    report = report.replace('{{CONFIG_NAME}}', config['config_name'])
     config_report = {k: v for k, v in config.items() if k in CONFIG_REPORT_FIELDS}
     report = report.replace('{{CONFIG_PARAMS}}', json2html.convert(config_report))
 
@@ -84,7 +87,15 @@ def create_report(results, config, log_path):
     return report
 
 
-def create_report_datasets(dataset2logs):
+def create_datasets_report(log_paths):
+
+    dataset2logs = {}
+    for log_path in log_paths:
+        with open(log_path / 'eval_results.json', 'r') as f:
+            results = json.load(f)
+        with open(log_path / 'config.json', 'r') as f:
+            config = json.load(f)
+        dataset2logs.setdefault(config['dataset_name'], []).append((log_path, results, config))
 
     dataset_names_sorted = sorted(dataset2logs.keys())
     dataset_reports = []
@@ -166,6 +177,25 @@ def create_report_datasets(dataset2logs):
     return report
 
 
+def create_experiments_report(log_paths):
+
+    reports = ''
+
+    for i, log_path in enumerate(log_paths):
+
+        report_path = log_path/'report.html'
+        with open(report_path, 'r') as f:
+            report = f.read()
+
+        exp_report = report.split('<body>')[1].split('</body>')[0]
+
+        reports += f'<h1> EXPERIMENT {int_to_roman(i + 1)} </h1>\n'
+        reports += exp_report + '\n<br><br>\n'
+
+    report = BASE.replace('{{STUFF}}', reports)
+    return report
+
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
@@ -184,27 +214,20 @@ if __name__ == '__main__':
     log_paths = list([p for p in log_root_path.iterdir() if p.is_dir()])
     log_paths = sorted(log_paths)
 
-    dataset2logs = {}
-
     for log_path in log_paths:
 
         report_path = (log_path/'report.html').resolve()
         logging.info(f"Creating report {report_path}")
-
         with open(log_path/'eval_results.json', 'r') as f:
             results = json.load(f)
-
         with open(log_path/'config.json', 'r') as f:
             config = json.load(f)
-
         report = create_report(results, config, log_path)
         with open(report_path, 'w') as f:
             f.write(report)
 
-        dataset2logs.setdefault(config['dataset_name'], []).append((log_path, results, config))
-
-    datasets_report_path = (log_root_path / 'report.html').resolve()
+    datasets_report_path = (log_root_path / 'datasets_report.html').resolve()
     logging.info(f"Creating datasets report {datasets_report_path}")
-    report = create_report_datasets(dataset2logs)
+    report = create_datasets_report(log_paths)
     with open(datasets_report_path, 'w') as f:
         f.write(report)

@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 from generative_nids.ml.run import run
-from generative_nids.ml.report import create_report, create_report_datasets
+from generative_nids.ml.report import create_report, create_datasets_report, create_experiments_report
 
 
 loglevel = 'INFO'
@@ -22,33 +22,32 @@ else:
 
 config_paths = sorted(config_paths)
 
-# for config_path in config_paths:
-#     with open(config_path, 'r') as f:
-#         config = json.load(f)
-#     run(config, log_root_path, frontier=True)
+for config_path in config_paths:
+    with open(config_path, 'r') as f:
+        config = json.load(f)
+    run(config, log_root_path, frontier=True)
 
 log_paths = list([p for p in log_root_path.iterdir() if p.is_dir()])
 log_paths = sorted(log_paths)
 
-dataset2logs = {}
-
 for log_path in log_paths:
-
     logging.info(f"Creating report {log_path/'report.html'}")
-
     with open(log_path/'eval_results.json', 'r') as f:
         results = json.load(f)
-
     with open(log_path/'config.json', 'r') as f:
         config = json.load(f)
-
     report = create_report(results, config, log_path)
     with open(log_path/'report.html', 'w') as f:
         f.write(report)
 
-    dataset2logs.setdefault(config['dataset_name'], []).append((log_path, results, config))
+datasets_report_path = log_root_path / 'datasets_report.html'
+logging.info(f"Creating all datasets report {datasets_report_path}")
+datasets_report = create_datasets_report(log_paths)
+with open(datasets_report_path, 'w') as f:
+    f.write(datasets_report)
 
-logging.info(f"Creating datasets report {log_root_path / 'report.html'}")
-report = create_report_datasets(dataset2logs)
-with open(log_root_path / 'report.html', 'w') as f:
-    f.write(report)
+experiments_report_path = log_root_path / 'experiments_report.html'
+logging.info(f"Creating all experiments report {experiments_report_path}")
+experiments_report = create_experiments_report(log_paths)
+with open(experiments_report_path, 'w') as f:
+    f.write(experiments_report)

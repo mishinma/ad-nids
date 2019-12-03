@@ -41,7 +41,7 @@ class ModelWrapper(ABC):
         pass
 
     def predict(self, scores):
-        return (scores >= self.threshold).astype(np.int)
+        return (scores <= self.threshold).astype(np.int)
 
     def save(self, save_dir):
         pass

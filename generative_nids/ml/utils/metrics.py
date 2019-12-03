@@ -40,7 +40,7 @@ def precision_recall_curve_scores(y_true, scores, thresholds=None):
     for p in thresholds:
         n_anom = floor(p*0.01*n)
         thresh = scores[-n_anom]
-        y_pred = (scores >= thresh).astype(np.int)
+        y_pred = (scores <= thresh).astype(np.int)
         precision, recall, f1score, _ = precision_recall_fscore_support(y_true, y_pred, average='binary')
         precisions.append(float(precision))
         recalls.append(float(recall))
