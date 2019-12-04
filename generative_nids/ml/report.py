@@ -219,8 +219,15 @@ if __name__ == '__main__':
         with open(report_path, 'w') as f:
             f.write(report)
 
-    datasets_report_path = (log_root_path / 'datasets_report.html').resolve()
-    logging.info(f"Creating datasets report {datasets_report_path}")
-    report = create_datasets_report(log_paths)
+    datasets_report_path = log_root_path / 'datasets_report.html'
+    logging.info(f"Creating all datasets report {datasets_report_path}")
+    datasets_report = create_datasets_report(log_paths)
     with open(datasets_report_path, 'w') as f:
-        f.write(report)
+        f.write(datasets_report)
+
+    experiments_report_path = log_root_path / 'experiments_report.html'
+    logging.info(f"Creating all experiments report {experiments_report_path}")
+    experiments_report = create_experiments_report(log_paths)
+    with open(experiments_report_path, 'w') as f:
+        f.write(experiments_report)
+

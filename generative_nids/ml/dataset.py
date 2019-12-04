@@ -6,6 +6,7 @@ import logging
 
 from pathlib import Path
 from uuid import uuid4
+from sklearn.manifold import TSNE
 
 import numpy as np
 import pandas as pd
@@ -150,6 +151,19 @@ class Dataset:
         data_hash = hash_from_frames([self.train, self.test])
         self.meta['data_hash'] = data_hash
 
+    def visualize(self, ax, train=True):
+
+        loader = self.loader(train=train, contamination=True, standardize=False)
+
+        num_dims = loader.x.shape[1]
+        if num_dims > 2:
+            loader.x = TSNE(n_components=2).fit_transform(loader.x)
+
+        plot_data_2d(ax, loader.x_norm, loader.x_anom)
+
+        title = 'Train data' if train else 'Test data'
+        ax.set_title(title)
+
     def write_to(self, root_path, archive=False, overwrite=False, plot=False):
 
         root_path = Path(root_path).resolve()
@@ -177,21 +191,15 @@ class Dataset:
                 json.dump(self.meta, f)
 
         if plot:
-            train_loader = self.loader(train=True, contamination=True, standardize=False)
-            test_loader = self.loader(train=False, contamination=True, standardize=False)
             fig, ax = plt.subplots(1, 2)
-            plot_data_2d(ax[0], train_loader.x_norm, train_loader.x_anom)
-            ax[0].set_title('Train data')
-            plot_data_2d(ax[1], test_loader.x_norm, test_loader.x_anom)
-            ax[1].set_title('Test data')
+            self.visualize(ax[0], train=True)
+            self.visualize(ax[1], train=False)
             fig.savefig(dataset_path / 'data.png')
             plt.close()
 
         if archive:
             shutil.make_archive(dataset_path, 'zip', root_path, self.name)
             shutil.rmtree(dataset_path)
-
-
 
 
 # ToDo: Dataloader class?

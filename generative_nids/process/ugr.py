@@ -194,7 +194,7 @@ if __name__ == '__main__':
         test_dates=test_dates, frequency=args.frequency
     )
 
-    dataset.write_to('../tests/data/processed')
+    dataset.write_to('../tests/data/processed', plot=True)
 
 
 

@@ -110,4 +110,4 @@ if __name__ == '__main__':
         args.root_dir, train_scenarios=train_scenarios,
         test_scenarios=test_scenarios, frequency=args.frequency
     )
-    dataset.write_to('../tests/data/processed')
+    dataset.write_to('../tests/data/processed', plot=True)
