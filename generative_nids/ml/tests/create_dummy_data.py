@@ -9,21 +9,23 @@ from sklearn.datasets import make_moons, make_blobs
 from generative_nids.ml.dataset import Dataset
 
 RANDOM_STATE = 42
-rng = np.random.RandomState(RANDOM_STATE)
+RANDOM_STATE_TEST = 24
 
 
-def create_dummy_datasets(n_samples=300, outliers_fraction=0.15,):
+def create_dummy_datasets(n_samples=300, outliers_fraction=0.15, random_state=RANDOM_STATE):
     n_outliers = int(outliers_fraction * n_samples)
     n_inliers = n_samples - n_outliers
 
+    rng = np.random.RandomState(random_state)
+
     # Define datasets
-    blobs_params = dict(random_state=RANDOM_STATE, n_samples=n_inliers, n_features=2)
+    blobs_params = dict(random_state=random_state, n_samples=n_inliers, n_features=2)
     datasets = {
         "blobs_1":  make_blobs(centers=[[0, 0], [0, 0]], cluster_std=0.5, **blobs_params)[0],
         "blobs_2": make_blobs(centers=[[2, 2], [-2, -2]], cluster_std=[0.5, 0.5], **blobs_params)[0],
         "blobs_3": make_blobs(centers=[[2, 2], [-2, -2]], cluster_std=[1.5, .3], **blobs_params)[0],
         "moons_1": 4. * (make_moons(n_samples=n_inliers, noise=.05,
-                                    random_state=RANDOM_STATE)[0] - np.array([0.5, 0.25])),
+                                    random_state=random_state)[0] - np.array([0.5, 0.25])),
         "random_1": 14. * (rng.rand(n_inliers, 2) - 0.5)
     }
 
@@ -46,7 +48,7 @@ train_datasets = create_dummy_datasets(n_samples_train, outliers_fraction_train)
 
 n_samples_test = 100
 outliers_fraction_test = .20
-test_datasets = create_dummy_datasets(n_samples_test, outliers_fraction_test)
+test_datasets = create_dummy_datasets(n_samples_test, outliers_fraction_test, random_state=RANDOM_STATE_TEST)
 
 data_path = Path('data/processed')
 

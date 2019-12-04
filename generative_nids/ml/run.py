@@ -103,27 +103,32 @@ def run(config, log_root_dir, frontier=False):
 
         # plot train precision recall curve
         fig, ax = plt.subplots(1, 1)
-        plot_precision_recall(ax, train_prf1_curve['precisions'], train_prf1_curve['recalls'])
+        plot_precision_recall(
+            ax,
+            train_prf1_curve['precisions'], train_prf1_curve['recalls'], train_prf1_curve['thresholds']
+        )
         fig.savefig(log_dir/'train_pr_curve.png')
         plt.close()
 
-        # ToDo: only works for 2 dim data
-        if frontier and test_loader.x.shape[1] == 2:
+        # ToDo: move to another module
+        if frontier:
 
-            fig, ax = plt.subplots(1, 1)
-            xx, yy, Z = get_frontier(model)
-            plot_frontier(ax, xx, yy, Z)
-            plot_data_2d(ax, train_anom_loader.x_norm, train_anom_loader.x_anom)
-            ax.set_title('Training frontier')
-            fig.savefig(log_dir / 'train_frontier.png')
-            plt.close()
+            if test_loader.x.shape[1] == 2:
 
-            fig, ax = plt.subplots(1, 1)
-            plot_frontier(ax, xx, yy, Z)
-            plot_data_2d(ax, test_loader.x_norm, test_loader.x_anom)
-            ax.set_title('Testing frontier')
-            fig.savefig(log_dir / 'test_frontier.png')
-            plt.close()
+                fig, ax = plt.subplots(1, 1)
+                xx, yy, Z = get_frontier(model, train_anom_loader.x)
+                plot_frontier(ax, xx, yy, Z)
+                plot_data_2d(ax, train_anom_loader.x_norm, train_anom_loader.x_anom)
+                ax.set_title('Training frontier')
+                fig.savefig(log_dir / 'train_frontier.png')
+                plt.close()
+
+                fig, ax = plt.subplots(1, 1)
+                plot_frontier(ax, xx, yy, Z)
+                plot_data_2d(ax, test_loader.x_norm, test_loader.x_anom)
+                ax.set_title('Testing frontier')
+                fig.savefig(log_dir / 'test_frontier.png')
+                plt.close()
 
         eval_results = {
             'test_score': test_score.tolist(),
@@ -140,8 +145,10 @@ def run(config, log_root_dir, frontier=False):
             'test_cm': test_cm.tolist(),
             'time_train': time_train,
             'time_test': time_test,
-            'time_fit': time_fit
+            'time_fit': time_fit,
+            'model_name': str(model)
         }
+
         with open(os.path.join(log_dir, 'eval_results.json'), 'w') as f:
             json.dump(eval_results, f)
 

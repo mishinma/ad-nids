@@ -60,10 +60,10 @@ def precision_recall_curve_scores(y_true, scores, thresholds=None):
     return prf1
 
 
-def get_frontier(model):
-    xx, yy = np.meshgrid(np.linspace(-10, 10, 500), np.linspace(-10, 10, 500))
-    # ToDo: this should be a method on the model, decision_function
-    # if < 0 then anomaly
+def get_frontier(model, x):
+    lower, upper = x.min(axis=0), x.max(axis=0)
+    xx, yy = np.meshgrid(np.linspace(lower[0], upper[0], 500),
+                         np.linspace(lower[1], upper[1], 500))
     Z = model.decision_function(np.c_[xx.ravel(), yy.ravel()])
     Z = Z.reshape(xx.shape)
     return xx, yy, Z

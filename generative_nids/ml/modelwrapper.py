@@ -10,7 +10,7 @@ import torch.optim as optim
 
 from sklearn.base import BaseEstimator
 from sklearn.ensemble import IsolationForest
-from sklearn.neighbors import NearestNeighbors
+from sklearn.neighbors import NearestNeighbors, LocalOutlierFactor
 from joblib import dump
 
 from generative_nids.ml.model import AE
@@ -20,8 +20,9 @@ FIT_PARAMS = {"lr", "num_epochs", "optimizer", "device"}
 
 class ModelWrapper(ABC):
 
-    def __init__(self, model=None, threshold=None):
+    def __init__(self, model=None, model_params=None, threshold=None):
         self.model = model
+        self.model_params = model_params
         self._threshold = threshold
 
     @property
@@ -69,11 +70,14 @@ class ModelWrapper(ABC):
 
 class IsolationForestModelWrapper(ModelWrapper):
 
-    model_params = {"n_estimators", "behaviour", "contamination"}
+    INIT_MODEL_PARAMS = {"n_estimators", "behaviour", "contamination"}
 
     def __init__(self, model_params, threshold=None):
         model = IsolationForest(**model_params)
-        super().__init__(model, threshold=threshold)
+        super().__init__(model, model_params, threshold=threshold)
+
+    def __str__(self):
+        return 'IF (n_t: {})'.format(self.model_params['n_estimators'])
 
     def fit(self, x, *args, **kwargs):
         self.model.fit(x)
@@ -87,14 +91,16 @@ class IsolationForestModelWrapper(ModelWrapper):
 
 class NearestNeighborsModelWrapper(ModelWrapper):
 
-    model_params = {"n_neighbors", "algorithm"}
+    INIT_MODEL_PARAMS = {"n_neighbors", "algorithm"}
 
     def __init__(self, model_params, threshold=None):
         model = NearestNeighbors(**model_params)
-        super().__init__(model, threshold=threshold)
+        super().__init__(model, model_params, threshold=threshold)
+
+    def __str__(self):
+        return 'kNN (n_n: {})'.format(self.model_params['n_neighbors'])
 
     def fit(self, x, *args, **kwargs):
-        # ToDo: set threshold
         self.model.fit(x)
 
     def score(self, x):
@@ -105,15 +111,44 @@ class NearestNeighborsModelWrapper(ModelWrapper):
         dump(self.model, os.path.join(save_dir, 'model.joblib'))
 
 
+class LocalOutlierFactorModelWrapper(ModelWrapper):
+
+    INIT_MODEL_PARAMS = {"n_neighbors", "algorithm"}
+
+    def __init__(self, model_params, threshold=None):
+        model = LocalOutlierFactor(**model_params, novelty=True)
+        super().__init__(model, model_params, threshold=threshold)
+
+    def __str__(self):
+        return 'LOF (n_n: {})'.format(self.model_params['n_neighbors'])
+
+    def fit(self, x, *args, **kwargs):
+        self.model.fit(x)
+
+    def score(self, x):
+        return self.model.score_samples(x)
+
+    def save(self, save_dir):
+        dump(self.model, os.path.join(save_dir, 'model.joblib'))
+
+
+
 class AutoEncoderModelWrapper(ModelWrapper):
 
     criterion = nn.MSELoss()
-    model_params = {"input_dim", "hidden_dim", "latent_dim", "num_hidden"}
+    INIT_MODEL_PARAMS = {"input_dim", "hidden_dim", "latent_dim", "num_hidden"}
 
     def __init__(self, model_params, threshold=None):
         model = AE(**model_params)
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        super().__init__(model, threshold=threshold)
+        super().__init__(model, model_params, threshold=threshold)
+
+    def __str__(self):
+        return 'AE (h_d: {}, l_d: {}, n_h: {})'.format(
+            self.model_params['hidden_dim'],
+            self.model_params['latent_dim'],
+            self.model_params['num_hidden']
+        )
 
     def fit(self, x, *args, **kwargs):
 
@@ -168,7 +203,7 @@ def create_model(algorithm, model_parameters):
 
 
 def is_param_required(param, algorithm):
-    model_params = ALGORITHM2WRAPPER[algorithm].model_params
+    model_params = ALGORITHM2WRAPPER[algorithm].INIT_MODEL_PARAMS
     return param in model_params
 
 
@@ -179,7 +214,7 @@ def filter_model_params(params, algorithm):
     else:
         params_keys = set(params)
 
-    algorithm_model_params = ALGORITHM2WRAPPER[algorithm].model_params
+    algorithm_model_params = ALGORITHM2WRAPPER[algorithm].INIT_MODEL_PARAMS
     model_keys = params_keys.intersection(algorithm_model_params)
     other_keys = params_keys - model_keys
 
