@@ -132,7 +132,6 @@ class LocalOutlierFactorModelWrapper(ModelWrapper):
         dump(self.model, os.path.join(save_dir, 'model.joblib'))
 
 
-
 class AutoEncoderModelWrapper(ModelWrapper):
 
     criterion = nn.MSELoss()
