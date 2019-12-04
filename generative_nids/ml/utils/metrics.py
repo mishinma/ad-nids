@@ -27,7 +27,7 @@ def precision_recall_curve_scores(y_true, scores, thresholds=None):
     y_true = np.array(y_true)
     scores = np.array(scores)
 
-    sort_idx = np.argsort(scores)
+    sort_idx = np.argsort(scores)[::-1]  # Reverse; the lower the more abnormal
     scores = scores[sort_idx]
     y_true = y_true[sort_idx]
 
@@ -37,30 +37,34 @@ def precision_recall_curve_scores(y_true, scores, thresholds=None):
     recalls = []
     f1scores = []
 
+    thresholds_val = []
+
+    # Look at first p frac anomalies
     for p in thresholds:
         n_anom = floor(p*0.01*n)
         thresh = scores[-n_anom]
-        y_pred = (scores <= thresh).astype(np.int)
+        y_pred = (scores < thresh).astype(np.int)
         precision, recall, f1score, _ = precision_recall_fscore_support(y_true, y_pred, average='binary')
         precisions.append(float(precision))
         recalls.append(float(recall))
         f1scores.append(float(f1score))
+        thresholds_val.append(float(thresh))
 
     prf1 = dict(
         precisions=precisions,
         recalls=recalls,
         f1scores=f1scores,
-        thresholds=thresholds
+        thresholds=thresholds_val
     )
 
     return prf1
 
 
 def get_frontier(model):
-    xx, yy = np.meshgrid(np.linspace(-5, 5, 500), np.linspace(-5, 5, 500))
+    xx, yy = np.meshgrid(np.linspace(-10, 10, 500), np.linspace(-10, 10, 500))
     # ToDo: this should be a method on the model, decision_function
     # if < 0 then anomaly
-    Z = model.anomaly_score(np.c_[xx.ravel(), yy.ravel()]) - model.threshold
+    Z = model.decision_function(np.c_[xx.ravel(), yy.ravel()])
     Z = Z.reshape(xx.shape)
     return xx, yy, Z
 

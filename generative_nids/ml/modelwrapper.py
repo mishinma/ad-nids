@@ -37,11 +37,14 @@ class ModelWrapper(ABC):
     def fit(self, x, *args, **kwargs):
         pass
 
-    def anomaly_score(self, x):
+    def score(self, x):
         pass
 
+    def decision_function(self, x):
+        return self.score(x) - self.threshold
+
     def predict(self, scores):
-        return (scores <= self.threshold).astype(np.int)
+        return (scores < self.threshold).astype(np.int)
 
     def save(self, save_dir):
         pass
@@ -75,7 +78,7 @@ class IsolationForestModelWrapper(ModelWrapper):
     def fit(self, x, *args, **kwargs):
         self.model.fit(x)
 
-    def anomaly_score(self, x, *args, **kwargs):
+    def score(self, x, *args, **kwargs):
         return self.model.score_samples(x)
 
     def save(self, save_dir):
@@ -94,9 +97,9 @@ class NearestNeighborsModelWrapper(ModelWrapper):
         # ToDo: set threshold
         self.model.fit(x)
 
-    def anomaly_score(self, x):
+    def score(self, x):
         distances, _ = self.model.kneighbors(x)
-        return np.mean(distances, axis=1)
+        return 1 - np.mean(distances, axis=1)
 
     def save(self, save_dir):
         dump(self.model, os.path.join(save_dir, 'model.joblib'))
@@ -133,14 +136,14 @@ class AutoEncoderModelWrapper(ModelWrapper):
                 loss.backward()
                 optimizer.step()
 
-    def anomaly_score(self, x):
+    def score(self, x):
         x = torch.tensor(x.astype(np.float32))
         x = x.to(self.device)
         with torch.no_grad():
             rec_x = self.model(x)
 
         x, rec_x = x.numpy(), rec_x.numpy()
-        scores = (np.square(x - rec_x)).mean(axis=1)
+        scores = 1 - (np.square(x - rec_x)).mean(axis=1)
         return scores
 
     def save(self, save_dir):

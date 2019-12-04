@@ -22,7 +22,7 @@ def plot_data_2d(ax, x_normal, x_anomaly):
 def plot_frontier(ax, xx, yy, Z):
     upper = min(0, Z.max())
     ax.contourf(xx, yy, Z, levels=np.linspace(Z.min(), upper, 7), cmap=plt.cm.PuBu)
-    if upper > 0:
+    if Z.max() > 0:
         ax.contour(xx, yy, Z, levels=[0], linewidths=2, colors='darkred')
         ax.contourf(xx, yy, Z, levels=[0, Z.max()], colors='palevioletred')
 

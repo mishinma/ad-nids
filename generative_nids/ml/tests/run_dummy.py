@@ -39,7 +39,7 @@ for log_path in log_paths:
     report = create_report(results, config, log_path)
     with open(log_path/'report.html', 'w') as f:
         f.write(report)
-
+#
 datasets_report_path = log_root_path / 'datasets_report.html'
 logging.info(f"Creating all datasets report {datasets_report_path}")
 datasets_report = create_datasets_report(log_paths)

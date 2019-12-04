@@ -65,7 +65,7 @@ def run(config, log_root_dir, frontier=False):
     # Compute anomaly scores for train with anomalies
     # and select threshold
     se = timer()
-    train_score = model.anomaly_score(train_anom_loader.x)
+    train_score = model.score(train_anom_loader.x)
     train_prf1_curve = precision_recall_curve_scores(train_anom_loader.y, train_score)
     model.threshold = select_threshold(train_prf1_curve['thresholds'],
                                        train_prf1_curve['f1scores'])
@@ -79,7 +79,7 @@ def run(config, log_root_dir, frontier=False):
     # Compute anomaly scores for test
     logging.info('Computing anomaly scores...')
     se = timer()
-    test_score = model.anomaly_score(test_loader.x)
+    test_score = model.score(test_loader.x)
     y_test_pred = model.predict(test_score)
     test_cm = confusion_matrix(test_loader.y, y_test_pred)
     test_prf1s = precision_recall_fscore_support(test_loader.y,
