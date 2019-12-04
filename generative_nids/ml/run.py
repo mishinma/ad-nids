@@ -15,7 +15,7 @@ from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
 from generative_nids.ml.modelwrapper import create_model, is_param_required, FIT_PARAMS
 from generative_nids.ml.dataset import Dataset
 from generative_nids.ml.utils import precision_recall_curve_scores, select_threshold,\
-    get_frontier, plot_precision_recall, plot_data_2d, plot_frontier
+    get_frontier, plot_precision_recall, plot_f1score, plot_data_2d, plot_frontier
 
 LOG_SHOW_PARAMS = ['dataset_name', 'algorithm', 'model_parameters',
                    'data_standardization', 'lr', 'num_epochs', 'optimizer']
@@ -108,6 +108,15 @@ def run(config, log_root_dir, frontier=False):
             train_prf1_curve['precisions'], train_prf1_curve['recalls'], train_prf1_curve['thresholds']
         )
         fig.savefig(log_dir/'train_pr_curve.png')
+        plt.close()
+
+        # plot train f1 score curve
+        fig, ax = plt.subplots(1, 1)
+        plot_f1score(
+            ax,
+            train_prf1_curve['f1scores'], train_prf1_curve['thresholds']
+        )
+        fig.savefig(log_dir / 'train_f1_curve.png')
         plt.close()
 
         # ToDo: move to another module

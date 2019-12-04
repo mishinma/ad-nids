@@ -65,11 +65,10 @@ def create_report(results, config, log_path):
     train_perf = performance_asdict(results['y_train'], results['train_cm'], results['train_prf1s'])
     report = report.replace('{{TRAIN_PERFORMANCE}}', json2html.convert(train_perf))
 
-    # plot train frontier
+    # plot
     report = report.replace('{{TRAIN_FRONTIER}}', str(log_path / 'train_frontier.png'))
-
-    # plot train precision recall curve
     report = report.replace('{{TRAIN_PR_CURVE}}', str(log_path/'train_pr_curve.png'))
+    report = report.replace('{{TRAIN_F1_CURVE}}', str(log_path / 'train_f1_curve.png'))
 
     # test performance
     test_perf = performance_asdict(results['y_test'], results['test_cm'], results['test_prf1s'])

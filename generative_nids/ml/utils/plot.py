@@ -18,6 +18,19 @@ def plot_precision_recall(ax, precisions, recalls, thresholds=None):
     ax.set_title('Precision-Recall curve')
 
 
+def plot_f1score(ax, f1scores, thresholds):
+    ax.step(thresholds, f1scores, color='b', alpha=0.2, where='post')
+    ax.fill_between(thresholds, f1scores, alpha=0.2, color='b', step='post')
+
+    for f1, t in zip(f1scores, thresholds):
+        ax.annotate('t={0:.2f}'.format(t), xy=(t, f1))
+
+    ax.set_xlabel('Threshold')
+    ax.set_ylabel('F1 Score')
+    ax.set_ylim([0.0, 1.05])
+    ax.set_title('F1 Score')
+
+
 def plot_data_2d(ax, x_normal, x_anomaly):
     ax.scatter(x_normal[:, 0], x_normal[:, 1], c='white', s=20, edgecolor='k')
     ax.scatter(x_anomaly[:, 0], x_anomaly[:, 1], c='red', s=20, edgecolor='k')
