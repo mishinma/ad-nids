@@ -1,4 +1,4 @@
-import os
+
 import time
 import logging
 import multiprocessing as mp
@@ -8,6 +8,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from generative_nids.process.argparser import get_argparser
 from generative_nids.ml.dataset import Dataset, create_meta
 from generative_nids.process.aggregate import aggregate_extract_features
 from generative_nids.process.columns import CTU2FLOW_COLUMNS, FLOW_COLUMNS, FLOW_STATS
@@ -28,55 +29,61 @@ def format_ctu_flows(flows):
     return flows
 
 
-def process_ctu_data(root_dir, aggr_dir=None, processes=-1, frequency='T'):
-
-    if aggr_dir is None:
-        aggr_dir = root_dir
+def process_ctu_data(root_path, aggr_path, processes=-1,
+                     frequency='T', exist_ok=True):
 
     if processes == -1:
         processes = mp.cpu_count() - 1
 
-    scenarios = [s for s in os.listdir(root_dir) if s in map(str, ALL_SCENARIOS)]
+    root_path = Path(root_path).resolve()
+    aggr_path = Path(aggr_path).resolve()
+
+    scenarios = [s.name for s in root_path.iterdir()
+                 if s.name in map(str, ALL_SCENARIOS)]
+
     for scenario in scenarios:
-        scenario_dir = os.path.join(root_dir, scenario)
-        scenario_out_dir = os.path.join(aggr_dir, scenario)
-
-        if not os.path.exists(scenario_out_dir):
-            os.makedirs(scenario_out_dir)
-
-        flow_file = [f for f in os.listdir(scenario_dir) if os.path.splitext(f)[1] == '.binetflow'][0]
+        scenario_path = root_path/scenario
+        scenario_out_path = aggr_path/scenario
+        scenario_out_path.mkdir(parents=True, exist_ok=True)
 
         logging.info("Processing scenario {}...".format(scenario))
         start_time = time.time()
 
-        flows = pd.read_csv(os.path.join(scenario_dir, flow_file))
+        flow_file = [f for f in scenario_path.iterdir()
+                     if f.suffix == '.binetflow'][0]
+
+        out_name = "{}_aggr_{}.csv".format(flow_file, frequency)
+        out_path = scenario_out_path/out_name
+
+        # Don't overwrite if exist_ok is set
+        if out_path.exists() and exist_ok:
+            logging.info("Found existing; no overwrite")
+            continue
+
+        flows = pd.read_csv(scenario_path/flow_file)
         flows = format_ctu_flows(flows)
 
         aggr_flows = aggregate_extract_features(flows, frequency, processes)
-        out_fname = "{}_aggr_{}.csv".format(flow_file, frequency)
-
-        aggr_flows.to_csv(os.path.join(scenario_out_dir, out_fname), index=False)
+        aggr_flows.to_csv(out_path, index=False)
 
         logging.info("Done {0:.2f}".format(time.time() - start_time))
 
 
-def create_ctu_dataset(root_path, train_scenarios=None, test_scenarios=None, frequency='T'):
+def create_ctu_dataset(aggr_path, train_scenarios, test_scenarios, frequency='T'):
 
-    root_path = Path(root_path).resolve()
+    aggr_path = Path(aggr_path).resolve()
 
-    if train_scenarios is None:
-        train_scenarios = ORIG_TRAIN_SCENARIOS
-
-    if test_scenarios is None:
-        test_scenarios = ORIG_TEST_SCENARIOS
+    meta = create_meta(DATASET_NAME, train_scenarios,
+                       test_scenarios, frequency, FEATURES)  # no hash created
+    logging.info("Creating dataset {}...".format(meta['name']))
 
     train_paths = []
     for sc in train_scenarios:
-        train_paths.extend((root_path/str(sc)).glob(f'*aggr_{frequency}.csv'))
+        train_paths.extend((aggr_path / str(sc)).glob(f'*aggr_{frequency}.csv'))
 
     test_paths = []
     for sc in test_scenarios:
-        test_paths.extend((root_path / str(sc)).glob(f'*aggr_{frequency}.csv'))
+        test_paths.extend((aggr_path / str(sc)).glob(f'*aggr_{frequency}.csv'))
 
     # Naive concat
     train = pd.concat([pd.read_csv(p) for p in train_paths])
@@ -87,6 +94,31 @@ def create_ctu_dataset(root_path, train_scenarios=None, test_scenarios=None, fre
     test_meta = test.loc[:, ['sa', 'tws']]
     test = test.loc[:, FLOW_STATS.keys()]
 
-    meta = create_meta(DATASET_NAME, train_scenarios, test_scenarios, frequency, FEATURES)
+    logging.info("Done")
 
     return Dataset(train, test, train_meta, test_meta, meta)
+
+
+if __name__ == '__main__':
+
+    # Example command
+    # python ctu.py ../tests/data/ctu_mock/ ../tests/data/processed/ -p -1 -f T --overwrite --plot
+
+    parser = get_argparser()
+    args = parser.parse_args()
+
+    loglevel = getattr(logging, args.logging.upper(), None)
+    logging.basicConfig(level=loglevel)
+
+    train_scenarios = ['2', '9']
+    test_scenarios = ['3']
+
+    aggr_dir = args.aggr_dir if args.aggr_dir else args.root_dir
+    process_ctu_data(args.root_dir, aggr_dir,
+                     args.processes, args.frequency)
+    dataset = create_ctu_dataset(
+        args.root_dir, train_scenarios=train_scenarios,
+        test_scenarios=test_scenarios, frequency=args.frequency
+    )
+    dataset.write_to(args.out_dir, plot=args.plot,
+                     overwrite=args.overwrite, archive=args.archive)

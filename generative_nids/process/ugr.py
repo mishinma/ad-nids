@@ -18,10 +18,11 @@ from generative_nids.process.columns import UGR_COLUMNS, FLOW_COLUMNS, FLOW_STAT
 from generative_nids.process.argparser import get_argparser
 from generative_nids.utils import yyyy_mm_dd2mmdd
 
+
 DATASET_NAME = 'UGR_16'
 FEATURES = 'BASIC'
 
-#ToDo: change from mock dates to real
+# ToDo: change from mock dates to real
 TRAIN_DATES = ['2016-07-27', '2016-07-30']
 TEST_DATES = ['2016-07-31']
 ALL_DATES = TRAIN_DATES + TEST_DATES
@@ -48,7 +49,6 @@ def split_ugr_flows(all_flows_path, split_root_path):
         chunk['te'] = pd.to_datetime(chunk['te'], format='%Y-%m-%d %H:%M:%S')
 
         for tstmp, grp in chunk.resample('H', on='te'):
-
             if grp.empty:
                 continue
 
@@ -101,6 +101,17 @@ def create_ugr_dataset(aggr_path, train_dates, test_dates, frequency='T'):
 
     aggr_path = Path(aggr_path).resolve()
 
+    dataset_name = '{}_TRAIN_{}_TEST_{}_{}_{}'.format(
+        DATASET_NAME,
+        '-'.join(yyyy_mm_dd2mmdd(train_dates)),
+        '-'.join(yyyy_mm_dd2mmdd(test_dates)),
+        frequency, FEATURES
+    )
+
+    meta = create_meta(DATASET_NAME, train_dates,
+                       test_dates, frequency, FEATURES, name=dataset_name)
+    logging.info("Creating dataset {}...".format(meta['name']))
+
     train_paths = []
     for dt in train_dates:
         train_paths.extend((aggr_path / str(dt)).glob(f'*aggr_{frequency}.csv'))
@@ -118,21 +129,13 @@ def create_ugr_dataset(aggr_path, train_dates, test_dates, frequency='T'):
     test_meta = test.loc[:, ['sa', 'tws']]
     test = test.loc[:, FLOW_STATS.keys()]
 
-    dataset_name = '{}_TRAIN_{}_TEST_{}_{}_{}'.format(
-        DATASET_NAME,
-        '-'.join(yyyy_mm_dd2mmdd(train_dates)),
-        '-'.join(yyyy_mm_dd2mmdd(test_dates)),
-        frequency, FEATURES
-    )
-
-    meta = create_meta(DATASET_NAME, train_dates,
-                       test_dates, frequency, FEATURES, name=dataset_name)
+    logging.info("Done")
 
     return Dataset(train, test, train_meta, test_meta, meta)
 
 
 def process_ugr_data(split_root_path, aggr_path, processes=-1,
-                     frequency='T', exists_ok=True):
+                     frequency='T', exist_ok=True):
 
     split_root_path = Path(split_root_path).resolve()
     aggr_path = Path(aggr_path).resolve()
@@ -151,12 +154,18 @@ def process_ugr_data(split_root_path, aggr_path, processes=-1,
         logging.info("Processing date {}...".format(date))
         start_time = time.time()
 
+        date_path = aggr_path / date
+        date_path.mkdir(parents=True, exist_ok=True)
+
         for flow_path in flow_paths:
 
-            path_basename = os.path.splitext(os.path.basename(flow_path))[0]
+            path_basename = flow_path.name[:-len(flow_path.suffix)]
             out_name = "{}_aggr_{}.csv".format(path_basename, frequency)
             out_path = aggr_path / date / out_name
-            if out_path.exists() and exists_ok:
+
+            # Don't overwrite if exist_ok is set
+            if out_path.exists() and exist_ok:
+                logging.info("Found existing; no overwrite")
                 continue
 
             flows = pd.read_csv(flow_path)
@@ -166,3 +175,29 @@ def process_ugr_data(split_root_path, aggr_path, processes=-1,
             aggr_flows.to_csv(out_path, index=False)
 
         logging.info("Done {0:.2f}".format(time.time() - start_time))
+
+
+if __name__ == '__main__':
+
+    # Example command
+    # python ugr.py ../tests/data/ugr_mock_split/ ../tests/data/processed/ -p -1 -f T --overwrite --plot
+
+    parser = get_argparser()
+    args = parser.parse_args()
+
+    loglevel = getattr(logging, args.logging.upper(), None)
+    logging.basicConfig(level=loglevel)
+
+    train_dates = TRAIN_DATES
+    test_dates = TEST_DATES
+
+    aggr_dir = args.aggr_dir if args.aggr_dir else args.root_dir
+    process_ugr_data(args.root_dir, aggr_dir,
+                     processes=args.processes, frequency=args.frequency)
+    dataset = create_ugr_dataset(
+        aggr_dir, train_dates=train_dates,
+        test_dates=test_dates, frequency=args.frequency
+    )
+
+    dataset.write_to(args.out_dir, plot=args.plot,
+                     overwrite=args.overwrite, archive=args.archive)

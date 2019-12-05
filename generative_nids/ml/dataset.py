@@ -166,10 +166,15 @@ class Dataset:
 
     def write_to(self, root_path, archive=False, overwrite=False, plot=False):
 
+        logging.info("Writing {} to {}".format(self.name, root_path))
+
         root_path = Path(root_path).resolve()
 
         dataset_path = root_path / self.name
-        dataset_path.mkdir(parents=True, exist_ok=overwrite)
+        if dataset_path.exists() and not overwrite:
+            logging.info("Found existing; no overwrite")
+            return
+        dataset_path.mkdir(parents=True)
 
         train_path = dataset_path / 'train.csv'
         test_path = dataset_path / 'test.csv'
@@ -191,6 +196,7 @@ class Dataset:
                 json.dump(self.meta, f)
 
         if plot:
+            logging.info('Visualizing the data')
             fig, ax = plt.subplots(1, 2)
             self.visualize(ax[0], train=True)
             self.visualize(ax[1], train=False)
@@ -198,8 +204,9 @@ class Dataset:
             plt.close()
 
         if archive:
+            logging.info('Compressing the data')
             shutil.make_archive(dataset_path, 'zip', root_path, self.name)
-            shutil.rmtree(dataset_path)
+            # shutil.rmtree(dataset_path)
 
 
 # ToDo: Dataloader class?

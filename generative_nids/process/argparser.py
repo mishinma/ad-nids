@@ -16,4 +16,10 @@ def get_argparser():
                         help="time window scale")
     parser.add_argument("-l", "--logging", type=str, default='INFO',
                         help="logging level")
+    parser.add_argument("--plot", action="store_true",
+                        help="visualize the data")
+    parser.add_argument("--overwrite", action="store_true",
+                        help="overwrite the data")
+    parser.add_argument("--archive", action="store_true",
+                        help="archive")
     return parser

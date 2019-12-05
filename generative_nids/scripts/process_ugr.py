@@ -1,3 +1,12 @@
+"""
+Process UGR 16 flow data and create a dataset
+
+Must split the data by date first (use `split_ugr.py`)!
+
+Example command
+python process_ugr.py {data_path} {out_path} -p -1 -f T --overwrite --plot
+"""
+
 
 import logging
 
@@ -26,4 +35,5 @@ dataset = create_ugr_dataset(
     test_dates=test_dates, frequency=args.frequency
 )
 
-dataset.write_to(args.out_dir, plot=False)
+dataset.write_to(args.out_dir, plot=args.plot,
+                 overwrite=args.overwrite, archive=args.archive)
