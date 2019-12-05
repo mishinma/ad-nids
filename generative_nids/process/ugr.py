@@ -97,23 +97,17 @@ def format_ugr_flows(flows):
     return flows
 
 
-def create_ugr_dataset(root_path, train_dates=None, test_dates=None, frequency='T'):
+def create_ugr_dataset(aggr_path, train_dates, test_dates, frequency='T'):
 
-    root_path = Path(root_path).resolve()
-
-    if train_dates is None:
-        train_dates = TRAIN_DATES
-
-    if test_dates is None:
-        test_dates = TEST_DATES
+    aggr_path = Path(aggr_path).resolve()
 
     train_paths = []
     for dt in train_dates:
-        train_paths.extend((root_path / str(dt)).glob(f'*aggr_{frequency}.csv'))
+        train_paths.extend((aggr_path / str(dt)).glob(f'*aggr_{frequency}.csv'))
 
     test_paths = []
     for dt in test_dates:
-        test_paths.extend((root_path / str(dt)).glob(f'*aggr_{frequency}.csv'))
+        test_paths.extend((aggr_path / str(dt)).glob(f'*aggr_{frequency}.csv'))
 
     # Naive concat
     train = pd.concat([pd.read_csv(p) for p in train_paths])
@@ -128,23 +122,20 @@ def create_ugr_dataset(root_path, train_dates=None, test_dates=None, frequency='
         DATASET_NAME,
         '-'.join(yyyy_mm_dd2mmdd(train_dates)),
         '-'.join(yyyy_mm_dd2mmdd(test_dates)),
-        args.frequency, FEATURES
+        frequency, FEATURES
     )
 
     meta = create_meta(DATASET_NAME, train_dates,
-                       test_dates, args.frequency, FEATURES, name=dataset_name)
+                       test_dates, frequency, FEATURES, name=dataset_name)
 
     return Dataset(train, test, train_meta, test_meta, meta)
 
 
-def process_ugr_data(split_root_path, out_dir=None, processes=-1,
+def process_ugr_data(split_root_path, aggr_path, processes=-1,
                      frequency='T', exists_ok=True):
 
-    if out_dir is None:
-        out_dir = split_root_path
-
     split_root_path = Path(split_root_path).resolve()
-    out_dir = Path(out_dir).resolve()
+    aggr_path = Path(aggr_path).resolve()
 
     if processes == -1:
         processes = mp.cpu_count() - 1
@@ -164,7 +155,7 @@ def process_ugr_data(split_root_path, out_dir=None, processes=-1,
 
             path_basename = os.path.splitext(os.path.basename(flow_path))[0]
             out_name = "{}_aggr_{}.csv".format(path_basename, frequency)
-            out_path = out_dir/date/out_name
+            out_path = aggr_path / date / out_name
             if out_path.exists() and exists_ok:
                 continue
 
@@ -175,26 +166,3 @@ def process_ugr_data(split_root_path, out_dir=None, processes=-1,
             aggr_flows.to_csv(out_path, index=False)
 
         logging.info("Done {0:.2f}".format(time.time() - start_time))
-
-
-if __name__ == '__main__':
-
-    parser = get_argparser()
-    args = parser.parse_args()
-
-    loglevel = getattr(logging, args.logging.upper(), None)
-    logging.basicConfig(level=loglevel)
-
-    train_dates = TRAIN_DATES
-    test_dates = TEST_DATES
-
-    # process_ugr_data(args.root_dir, processes=args.processes, frequency=args.frequency)
-    dataset = create_ugr_dataset(
-        args.root_dir, train_dates=train_dates,
-        test_dates=test_dates, frequency=args.frequency
-    )
-
-    dataset.write_to('../tests/data/processed', plot=True)
-
-
-

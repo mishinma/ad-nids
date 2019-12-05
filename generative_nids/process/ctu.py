@@ -11,7 +11,6 @@ import pandas as pd
 from generative_nids.ml.dataset import Dataset, create_meta
 from generative_nids.process.aggregate import aggregate_extract_features
 from generative_nids.process.columns import CTU2FLOW_COLUMNS, FLOW_COLUMNS, FLOW_STATS
-from generative_nids.process.argparser import get_argparser
 
 DATASET_NAME = 'CTU_13'
 FEATURES = 'BASIC'
@@ -29,10 +28,10 @@ def format_ctu_flows(flows):
     return flows
 
 
-def process_ctu_data(root_dir, out_dir=None, processes=-1, frequency='T'):
+def process_ctu_data(root_dir, aggr_dir=None, processes=-1, frequency='T'):
 
-    if out_dir is None:
-        out_dir = root_dir
+    if aggr_dir is None:
+        aggr_dir = root_dir
 
     if processes == -1:
         processes = mp.cpu_count() - 1
@@ -40,7 +39,7 @@ def process_ctu_data(root_dir, out_dir=None, processes=-1, frequency='T'):
     scenarios = [s for s in os.listdir(root_dir) if s in map(str, ALL_SCENARIOS)]
     for scenario in scenarios:
         scenario_dir = os.path.join(root_dir, scenario)
-        scenario_out_dir = os.path.join(out_dir, scenario)
+        scenario_out_dir = os.path.join(aggr_dir, scenario)
 
         if not os.path.exists(scenario_out_dir):
             os.makedirs(scenario_out_dir)
@@ -88,26 +87,6 @@ def create_ctu_dataset(root_path, train_scenarios=None, test_scenarios=None, fre
     test_meta = test.loc[:, ['sa', 'tws']]
     test = test.loc[:, FLOW_STATS.keys()]
 
-    meta = create_meta(DATASET_NAME, train_scenarios, test_scenarios, args.frequency, FEATURES)
+    meta = create_meta(DATASET_NAME, train_scenarios, test_scenarios, frequency, FEATURES)
 
     return Dataset(train, test, train_meta, test_meta, meta)
-
-
-#ToDo change for real data
-if __name__ == '__main__':
-
-    parser = get_argparser()
-    args = parser.parse_args()
-
-    loglevel = getattr(logging, args.logging.upper(), None)
-    logging.basicConfig(level=loglevel)
-
-    train_scenarios = ['2', '9']
-    test_scenarios = ['3']
-
-    # process_ctu_data(args.root_dir, args.out_dir, args.processes, args.frequency)
-    dataset = create_ctu_dataset(
-        args.root_dir, train_scenarios=train_scenarios,
-        test_scenarios=test_scenarios, frequency=args.frequency
-    )
-    dataset.write_to('../tests/data/processed', plot=True)
