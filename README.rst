@@ -5,5 +5,5 @@ Docker
 ::
 
     docker build -f docker/Dockerfile .  -t generative-nids
-    docker run -it generative-nids bash
+    docker run -di --name worker generative-nids
  
