@@ -78,6 +78,10 @@ def create_report(log_path, static_path, exp_idx=1):
     # train performance
     report = report.replace('{{THRESHOLD}}', '{:0.2f}'.format(results['threshold']))
     train_perf = performance_asdict(results['y_train'], results['train_cm'], results['train_prf1s'])
+    report = report.replace('{{TIME_FIT}}',
+                            '{:0.2f}'.format(results['time_fit']))
+    report = report.replace('{{TIME_SCORE_TRAIN}}',
+                            '{:0.2f}'.format(results['time_score_train']))
     report = report.replace('{{TRAIN_PERFORMANCE}}', json2html.convert(train_perf))
 
     # plot
@@ -95,6 +99,8 @@ def create_report(log_path, static_path, exp_idx=1):
 
     # test performance
     test_perf = performance_asdict(results['y_test'], results['test_cm'], results['test_prf1s'])
+    report = report.replace('{{TIME_SCORE_TEST}}',
+                            '{:0.2f}'.format(results['time_score_test']))
     report = report.replace('{{TEST_PERFORMANCE}}', json2html.convert(test_perf))
     # plot test frontier
     if (log_path / 'test_frontier.png').exists():
@@ -138,6 +144,9 @@ def create_datasets_report(log_paths, static_path):
 
             config_name = config['config_name']
             model_name = results['model_name']
+            time_fit = round(results['time_fit'], 2)
+            time_score_train = round(results['time_score_train'], 2)
+            time_score_test = round(results['time_score_test'], 2)
             train_perf = performance_asdict(results['y_train'],
                                             results['train_cm'],
                                             results['train_prf1s'])
@@ -145,10 +154,10 @@ def create_datasets_report(log_paths, static_path):
                                            results['test_cm'],
                                            results['test_prf1s'])
             exp = [
-                config_name, model_name,
-                train_perf['tp'], train_perf['fp'], train_perf['fn'],
+                config_name, model_name, time_fit,
+                time_score_train, train_perf['tp'], train_perf['fp'], train_perf['fn'],
                 train_perf['precision'], train_perf['recall'], train_perf['f1score'],
-                test_perf['tp'], test_perf['fp'], test_perf['fn'],
+                time_score_test, test_perf['tp'], test_perf['fp'], test_perf['fn'],
                 test_perf['precision'], test_perf['recall'], test_perf['f1score']
             ]
 
@@ -156,23 +165,27 @@ def create_datasets_report(log_paths, static_path):
 
         experiments = pd.DataFrame.from_records(
             experiments, columns=[
-                'config_name', 'model_name', 'train_tp', 'train_fp', 'train_fn',
+                'config_name', 'model_name', 'time_fit',
+                'time_score_train', 'train_tp', 'train_fp', 'train_fn',
                 'train_pre', 'train_rec', 'train_f1',
-                'test_tp', 'test_fp', 'test_fn',
-                'test_pre', 'test_rec', 'test_f1',
+                'time_score_test', 'test_tp', 'test_fp', 'test_fn',
+                'test_pre', 'test_rec', 'test_f1'
             ])
 
-        best_performance = experiments[['train_pre', 'train_rec', 'train_f1',
-                                        'test_pre', 'test_rec', 'test_f1']].max()
-        worst_performance = experiments[['train_pre', 'train_rec', 'train_f1',
-                                        'test_pre', 'test_rec', 'test_f1']].min()
-
+        best_performance = pd.concat([
+            experiments[['train_pre', 'train_rec', 'train_f1',
+                         'test_pre', 'test_rec', 'test_f1']].max(),
+            experiments[['time_fit', 'time_score_train', 'time_score_test']].min()
+        ])
+        worst_performance = pd.concat([
+            experiments[['train_pre', 'train_rec', 'train_f1',
+                         'test_pre', 'test_rec', 'test_f1']].min(),
+            experiments[['time_fit', 'time_score_train', 'time_score_test']].max()
+        ])
         rows = []
         for idx, exp in experiments.iterrows():
             row = f'<th>{idx + 1}</th>\n'
-            row += f'<th>{exp["config_name"]}</th>\n'
-            row += f'<th>{exp["model_name"]}</th>\n'
-            for met, val in exp.iloc[2:].iteritems():
+            for met, val in exp.iteritems():
                 is_best = met in best_performance and val == best_performance[met]
                 is_worst = met in worst_performance and val == worst_performance[met]
                 if is_best:

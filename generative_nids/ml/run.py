@@ -64,8 +64,10 @@ def run(config, log_root_dir, frontier=False):
 
     # Compute anomaly scores for train with anomalies
     # and select threshold
+    logging.info(f'Selecting the optimal threshold...')
     se = timer()
     train_score = model.score(train_anom_loader.x)
+    time_score_train = timer() - se
     train_prf1_curve = precision_recall_curve_scores(train_anom_loader.y, train_score)
     model.threshold = select_threshold(train_prf1_curve['thresholds'],
                                        train_prf1_curve['f1scores'])
@@ -73,19 +75,18 @@ def run(config, log_root_dir, frontier=False):
     train_cm = confusion_matrix(train_anom_loader.y, y_train_pred)
     train_prf1s = precision_recall_fscore_support(train_anom_loader.y,
                                                   y_train_pred, average='binary')
-    time_train = timer() - se
-    logging.info(f'Done (train): {time_train}')
+    logging.info(f'Done (train): {timer() - se}')
 
     # Compute anomaly scores for test
-    logging.info('Computing anomaly scores...')
+    logging.info('Computing test anomaly scores...')
     se = timer()
     test_score = model.score(test_loader.x)
+    time_score_test = timer() - se
     y_test_pred = model.predict(test_score)
     test_cm = confusion_matrix(test_loader.y, y_test_pred)
     test_prf1s = precision_recall_fscore_support(test_loader.y,
                                                  y_test_pred, average='binary')
-    time_test = timer() - se
-    logging.info(f'Done (test): {time_test}')
+    logging.info(f'Done (test): {timer() - se}')
 
     # Log everything
     logging.info(f'Logging the results\n')
@@ -152,8 +153,8 @@ def run(config, log_root_dir, frontier=False):
             'train_cm': train_cm.tolist(),
             'test_prf1s': test_prf1s,
             'test_cm': test_cm.tolist(),
-            'time_train': time_train,
-            'time_test': time_test,
+            'time_score_train': time_score_train,
+            'time_score_test': time_score_test,
             'time_fit': time_fit,
             'model_name': str(model)
         }
