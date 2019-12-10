@@ -213,7 +213,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("log_root_path", type=str,
                         help="log directory")
-    parser.add_argument("report_path", type=str, default=None,
+    parser.add_argument("--report_path", type=str, default=None,
                         help="report directory")
     parser.add_argument("-l", "--logging", type=str, default='INFO',
                         help="logging level")
