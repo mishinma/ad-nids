@@ -7,5 +7,5 @@ RUN apt-get -y install zip
 WORKDIR /home
 
 COPY . generative-nids
-RUN pip install -r generative-nids/requirements.txt
-RUN pip install -e generative-nids
+RUN pip install -r ad-nids/requirements.txt
+RUN pip install -e ad-nids
