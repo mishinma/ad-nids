@@ -1,4 +1,5 @@
 
+import logging
 from pathlib import Path
 
 import numpy as np
@@ -7,9 +8,19 @@ import pandas as pd
 from sklearn.datasets import make_moons, make_blobs
 
 from ad_nids.dataset import Dataset
+from ad_nids.config import create_configs
+
 
 RANDOM_STATE = 42
 RANDOM_STATE_TEST = 24
+DUMMY_PATH = Path(__file__).resolve().parent/'data/dummy'
+EXP_PARAMS = dict(
+    isolation_forest="""isolation_forest,,,,
+#,n_estimators,behaviour,contamination,data_standardization
+1,100,new,auto,FALSE
+2,50,new,auto,FALSE
+3,200,new,auto,FALSE""",
+)
 
 
 def create_dummy_datasets(n_samples=300, outliers_fraction=0.15, random_state=RANDOM_STATE):
@@ -48,6 +59,13 @@ def create_dummy_datasets(n_samples=300, outliers_fraction=0.15, random_state=RA
     return datasets
 
 
+""" ----------- Create dummy datasets ------------------- """
+loglevel = getattr(logging, "DEBUG", None)
+logging.basicConfig(level=loglevel)
+
+if DUMMY_PATH.exists():
+    raise ValueError('Dummy data already created')
+
 n_samples_train = 300
 outliers_fraction_train = .10
 train_datasets = create_dummy_datasets(n_samples_train, outliers_fraction_train)
@@ -56,7 +74,7 @@ n_samples_test = 100
 outliers_fraction_test = .20
 test_datasets = create_dummy_datasets(n_samples_test, outliers_fraction_test, random_state=RANDOM_STATE_TEST)
 
-data_path = Path('data/processed')
+data_path = DUMMY_PATH/"processed"
 
 for name in train_datasets:
     train = train_datasets[name]
@@ -64,3 +82,17 @@ for name in train_datasets:
     meta = {'name': name}
     dataset = Dataset(train, test, meta=meta, create_hash=True)
     dataset.write_to(data_path, overwrite=True, plot=True)
+
+
+""" ----------- Create dummy configs  ------------------- """
+exp_params_root_path = DUMMY_PATH/'exp_params'
+exp_params_root_path.mkdir(parents=True)
+for exp_name, exp_params_str in EXP_PARAMS.items():
+    with open((exp_params_root_path/exp_name).with_suffix('.csv'), 'w') as f:
+        f.write(exp_params_str)
+
+dataset_paths = list(data_path.iterdir())
+config_root_path = DUMMY_PATH/'config'
+
+for exp_params_path in exp_params_root_path.iterdir():
+    create_configs(exp_params_path, dataset_paths, config_root_path)
