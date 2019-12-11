@@ -22,7 +22,8 @@ __pycache__
 *.egg-info
 *~
 *.bak
-.ipynb_checkpoints
+*.ipynb_checkpoints
+*.ipynb
 .tox
 .DS_Store
 \#*#
@@ -48,4 +49,3 @@ geckodriver.log
 *.binetflow
 data/
 logs/
-notebooks/
