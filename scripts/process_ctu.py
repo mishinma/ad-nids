@@ -7,7 +7,7 @@ python process_ctu.py {data_path} {out_path} -p -1 -f T --overwrite --plot
 
 import logging
 
-from ad_nids.process.argparser import get_argparser
+from ad_nids.process.process_parser import get_argparser
 from ad_nids.process.ctu import create_ctu_dataset, process_ctu_data
 
 ORIG_TRAIN_SCENARIOS = [3, 4, 5, 7, 10, 11, 12, 13]

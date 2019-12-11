@@ -10,7 +10,7 @@ python process_ugr.py {data_path} {out_path} -p -1 -f T --overwrite --plot
 
 import logging
 
-from ad_nids.process.argparser import get_argparser
+from ad_nids.process.process_parser import get_argparser
 from ad_nids.process.ugr import create_ugr_dataset, process_ugr_data
 
 
