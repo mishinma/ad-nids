@@ -13,7 +13,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
 
 from ad_nids.ml.modelwrapper import create_model, is_param_required, FIT_PARAMS
-from ad_nids.ml.dataset import Dataset
+from ad_nids.dataset import Dataset
 from ad_nids.ml.utils import precision_recall_curve_scores, select_threshold,\
     get_frontier, plot_precision_recall, plot_f1score, plot_data_2d, plot_frontier
 

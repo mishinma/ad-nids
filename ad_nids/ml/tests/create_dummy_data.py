@@ -6,7 +6,7 @@ import pandas as pd
 
 from sklearn.datasets import make_moons, make_blobs
 
-from ad_nids.ml.dataset import Dataset
+from ad_nids.dataset import Dataset
 
 RANDOM_STATE = 42
 RANDOM_STATE_TEST = 24

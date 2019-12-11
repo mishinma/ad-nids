@@ -2,7 +2,7 @@
 import logging
 from pathlib import Path
 
-from ad_nids.ml.config import create_configs
+from ad_nids.config import create_configs
 
 
 loglevel = getattr(logging, "DEBUG", None)
