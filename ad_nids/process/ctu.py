@@ -8,10 +8,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from generative_nids.process.argparser import get_argparser
-from generative_nids.ml.dataset import Dataset, create_meta
-from generative_nids.process.aggregate import aggregate_extract_features
-from generative_nids.process.columns import CTU2FLOW_COLUMNS, FLOW_COLUMNS, FLOW_STATS
+from ad_nids.process.argparser import get_argparser
+from ad_nids.ml.dataset import Dataset, create_meta
+from ad_nids.process.aggregate import aggregate_extract_features
+from ad_nids.process.columns import CTU2FLOW_COLUMNS, FLOW_COLUMNS, FLOW_STATS
 
 DATASET_NAME = 'CTU_13'
 FEATURES = 'BASIC'

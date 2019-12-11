@@ -10,8 +10,8 @@ python process_ugr.py {data_path} {out_path} -p -1 -f T --overwrite --plot
 
 import logging
 
-from generative_nids.process.argparser import get_argparser
-from generative_nids.process.ugr import create_ugr_dataset, process_ugr_data
+from ad_nids.process.argparser import get_argparser
+from ad_nids.process.ugr import create_ugr_dataset, process_ugr_data
 
 
 #ToDo: change from mock dates to real

@@ -6,8 +6,8 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 
-from generative_nids.process.ugr import split_ugr_flows
-from generative_nids.process.columns import UGR_COLUMNS
+from ad_nids.process.ugr import split_ugr_flows
+from ad_nids.process.columns import UGR_COLUMNS
 
 RANDOM_SEED = 42
 np.random.seed(RANDOM_SEED)

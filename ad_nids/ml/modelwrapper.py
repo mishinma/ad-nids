@@ -13,7 +13,7 @@ from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import NearestNeighbors, LocalOutlierFactor
 from joblib import dump
 
-from generative_nids.ml.model import AE
+from ad_nids.ml.model import AE
 
 FIT_PARAMS = {"lr", "num_epochs", "optimizer", "device"}
 

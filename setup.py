@@ -10,7 +10,7 @@ with open('LICENSE') as f:
     license = f.read()
 
 setup(
-    name='generative_nids',
+    name='ad_nids',
     version='0.1.0',
     description='Are deep generative models suitable for use in anomaly-based network intrusion detection systems?',
     long_description=readme,

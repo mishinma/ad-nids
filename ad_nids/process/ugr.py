@@ -12,11 +12,11 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 
-from generative_nids.ml.dataset import Dataset, create_meta
-from generative_nids.process.aggregate import aggregate_extract_features
-from generative_nids.process.columns import UGR_COLUMNS, FLOW_COLUMNS, FLOW_STATS
-from generative_nids.process.argparser import get_argparser
-from generative_nids.utils import yyyy_mm_dd2mmdd
+from ad_nids.ml.dataset import Dataset, create_meta
+from ad_nids.process.aggregate import aggregate_extract_features
+from ad_nids.process.columns import UGR_COLUMNS, FLOW_COLUMNS, FLOW_STATS
+from ad_nids.process.argparser import get_argparser
+from ad_nids.utils import yyyy_mm_dd2mmdd
 
 
 DATASET_NAME = 'UGR_16'

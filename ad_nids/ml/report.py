@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from json2html import json2html
 
-from generative_nids.utils import int_to_roman
+from ad_nids.utils import int_to_roman
 
 
 templates_path = Path(__file__).parent/'templates'

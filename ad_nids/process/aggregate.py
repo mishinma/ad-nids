@@ -4,7 +4,7 @@ import multiprocessing as mp
 import pandas as pd
 from tqdm import tqdm
 
-from generative_nids.process.columns import FLOW_STATS, FLOW_STATS_COLUMNS
+from ad_nids.process.columns import FLOW_STATS, FLOW_STATS_COLUMNS
 
 
 def aggregate_extract_features(flows, freq='5T', processes=1):

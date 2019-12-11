@@ -8,7 +8,7 @@ from uuid import uuid4
 
 import pandas as pd
 
-from generative_nids.ml.modelwrapper import filter_model_params
+from ad_nids.ml.modelwrapper import filter_model_params
 
 
 def read_model_params_from_csv(params_path):

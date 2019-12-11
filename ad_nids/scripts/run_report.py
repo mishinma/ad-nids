@@ -4,8 +4,8 @@ import json
 
 from pathlib import Path
 
-from generative_nids.ml.report import create_datasets_report, create_experiments_report
-from generative_nids.ml.run import run
+from ad_nids.ml.report import create_datasets_report, create_experiments_report
+from ad_nids.ml.run import run
 
 
 parser = argparse.ArgumentParser()

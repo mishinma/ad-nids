@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from generative_nids.ml.utils import plot_data_2d
+from ad_nids.ml.utils import plot_data_2d
 
 
 def create_meta(dataset_name, train_split, test_split, frequency,
