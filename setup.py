@@ -16,7 +16,7 @@ setup(
     long_description=readme,
     author='Mikhail Mishin',
     author_email='mishinma1805@gmail.com',
-    url='https://github.com/mishinma/generative-nids',
+    url='https://github.com/mishinma/ad-nids',
     license=license,
     packages=find_packages(exclude=('tests', 'docs'))
 )
