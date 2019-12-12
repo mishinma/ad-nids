@@ -5,11 +5,13 @@ import logging
 
 from pathlib import Path
 from uuid import uuid4
-from sklearn.manifold import TSNE
 
 import numpy as np
 import pandas as pd
+from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
+
+from alibi_detect.utils.data import create_outlier_batch
 
 from ad_nids.utils import plot_data_2d
 
@@ -75,7 +77,7 @@ def hash_from_paths(paths):
 
 class Dataset:
     def __init__(self, train, test, train_meta=None, test_meta=None,
-                 meta=None, create_hash=True, scaler=None):
+                 meta=None, create_hash=True):
 
         self.train = train
         self.test = test
@@ -90,8 +92,6 @@ class Dataset:
 
         if create_hash:
             self._create_hash()
-
-        self.scaler = scaler
 
     @classmethod
     def from_path(cls, dataset_path):
@@ -129,6 +129,55 @@ class Dataset:
     def _create_hash(self):
         data_hash = hash_from_frames([self.train, self.test])
         self.meta['data_hash'] = data_hash
+
+    @staticmethod
+    def _contamination(data):
+        labels = data.iloc[:, -1]
+        return labels.mean()
+
+    @property
+    def train_contamination_perc(self):
+        val = self._contamination(self.train)
+        return val*100
+
+    @property
+    def test_contamination_perc(self):
+        val = self._contamination(self.test)
+        return val*100
+
+    def create_outlier_batch(self, train=True, n_samples=-1, perc_outlier=-1, scaler=None):
+        """
+
+        :param train:
+        :param n_samples: -1 infer number of samples
+        :param perc_outlier: -1 true contamination
+        :param scaler:
+        :return:
+        """
+        # ToDo: test this
+        if train:
+            data = self.train
+            true_contamination = self.train_contamination_perc
+        else:
+            data = self.test
+            true_contamination = self.test_contamination_perc
+
+        targets = data.iloc[:, -1]
+        data = data.iloc[:, :-1]
+
+        if perc_outlier == -1:
+            perc_outlier = true_contamination
+
+        if n_samples == -1:
+            # under/over sample outliers
+            # take all normal data
+            n_outlier = int(perc_outlier * .01 * data.shape[0])
+            n_normal = int((100 - true_contamination) * .01 * data.shape[0])
+            n_samples = n_outlier + n_normal
+        if scaler:
+            data = scaler.transform(data)
+
+        return create_outlier_batch(data, targets, n_samples, perc_outlier)
 
     # def visualize(self, ax, train=True):
     #

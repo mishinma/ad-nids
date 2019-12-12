@@ -20,7 +20,7 @@ def config_dumps(config):
 def read_exp_params_csv(params_path):
 
     with open(params_path, 'r') as f:
-        exp_name = f.readline().strip()
+        exp_name = f.readline().strip().strip(',')
 
     exp_params = pd.read_csv(params_path, index_col=0, skiprows=1)
 
@@ -34,13 +34,13 @@ def create_configs(exp_params_path, dataset_paths, config_root_path):
     config_root_path = Path(config_root_path).resolve()
     config_exp_path = config_root_path/exp_name
 
-    uniq_str = str(uuid4())[:5]
-
     configs = []
-    for idx, params in exp_params.iterrows():
-        for dataset_path in dataset_paths:
+    for _, params in exp_params.iterrows():
+        uniq_str = str(uuid4())[:5]
+        for idx, dataset_path in enumerate(dataset_paths):
             conf = dict(
                 config_name='conf_{}_{:03d}'.format(uniq_str, idx),
+                experiment_name=exp_name,
                 dataset_name=str(dataset_path.name),
                 dataset_path=str(dataset_path),
             )
