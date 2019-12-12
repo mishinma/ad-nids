@@ -6,6 +6,6 @@ RUN apt-get -y install zip
 
 WORKDIR /home
 
-COPY . generative-nids
+COPY . ad-nids
 RUN pip install -r ad-nids/requirements.txt
 RUN pip install -e ad-nids
