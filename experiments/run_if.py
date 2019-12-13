@@ -173,9 +173,9 @@ def run(config, log_exp_dir, do_plot_frontier=False):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("config_root_path", type=str,
+    parser.add_argument("config_exp_path", type=str,
                         help="directory with config files")
-    parser.add_argument("log_root_path", type=str,
+    parser.add_argument("log_exp_path", type=str,
                         help="log directory")
     parser.add_argument("--report_path", type=str, default=None,
                         help="report directory")
@@ -187,14 +187,11 @@ if __name__ == '__main__':
     loglevel = getattr(logging, args.logging.upper(), None)
     logging.basicConfig(level=loglevel)
 
-    config_root_path = Path(args.config_root_path).resolve()
-    config_exp_path = config_root_path / EXPERIMENT_NAME
+    config_exp_path = Path(args.config_exp_path).resolve()
     config_paths = [p for p in config_exp_path.iterdir()
                     if p.suffix == '.json']
 
-    log_root_path = Path(args.log_root_path).resolve()
-    log_exp_path = log_root_path / EXPERIMENT_NAME
-
+    log_exp_path = Path(args.log_exp_path).resolve()
     for config_path in config_paths:
         with open(config_path, 'r') as f:
             config = json.load(f)

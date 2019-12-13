@@ -83,16 +83,20 @@ for name in train_datasets:
     dataset = Dataset(train, test, meta=meta, create_hash=True)
     dataset.write_to(data_path, overwrite=True, plot=True)
 
+dataset_paths = list(data_path.iterdir())
 
 """ ----------- Create dummy configs  ------------------- """
 exp_params_root_path = DUMMY_PATH/'exp_params'
 exp_params_root_path.mkdir(parents=True)
+
+config_root_path = DUMMY_PATH/'config'
+config_root_path.mkdir(parents=True)
+
 for exp_name, exp_params_str in EXP_PARAMS.items():
-    with open((exp_params_root_path/exp_name).with_suffix('.csv'), 'w') as f:
+
+    exp_params_path = (exp_params_root_path/exp_name).with_suffix('.csv')
+    with open(exp_params_path, 'w') as f:
         f.write(exp_params_str)
 
-dataset_paths = list(data_path.iterdir())
-config_root_path = DUMMY_PATH/'config'
-
-for exp_params_path in exp_params_root_path.iterdir():
-    create_configs(exp_params_path, dataset_paths, config_root_path)
+    config_exp_path = config_root_path/exp_name
+    create_configs(exp_params_path, dataset_paths, config_exp_path)

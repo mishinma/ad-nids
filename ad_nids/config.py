@@ -27,12 +27,10 @@ def read_exp_params_csv(params_path):
     return exp_name, exp_params
 
 
-def create_configs(exp_params_path, dataset_paths, config_root_path):
+def create_configs(exp_params_path, dataset_paths, config_exp_path):
 
     exp_name, exp_params = read_exp_params_csv(exp_params_path)
-
-    config_root_path = Path(config_root_path).resolve()
-    config_exp_path = config_root_path/exp_name
+    config_exp_path = Path(config_exp_path).resolve()
 
     configs = []
     for _, params in exp_params.iterrows():
@@ -66,7 +64,7 @@ if __name__ == '__main__':
                         help="experiment parameters path")
     parser.add_argument("data_root_path", type=str,
                         help="data root path")
-    parser.add_argument("config_root_path", type=str,
+    parser.add_argument("config_exp_path", type=str,
                         help="output config directory")
     parser.add_argument("-l", "--logging", type=str, default='INFO',
                         help="logging level")
@@ -79,4 +77,4 @@ if __name__ == '__main__':
     data_root_path = Path(args.data_root_path).resolve()
     dataset_paths = list(data_root_path.iterdir())
 
-    create_configs(args.exp_params_path, dataset_paths, args.config_root_path)
+    create_configs(args.exp_params_path, dataset_paths, args.config_exp_path)
