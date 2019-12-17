@@ -19,11 +19,11 @@ from ad_nids.config import config_dumps
 from ad_nids.dataset import Dataset
 from ad_nids.report import create_experiments_report, create_datasets_report
 from ad_nids.utils.logging import get_log_dir
-from ad_nids.utils.metrics import precision_recall_curve_scores, get_frontier
+from ad_nids.utils.metrics import precision_recall_curve_scores, get_frontier, select_threshold
 from ad_nids.utils.plot import plot_precision_recall, plot_f1score, plot_data_2d, plot_frontier
 
 EXPERIMENT_NAME = 'isolation_forest'
-DEFAULT_CONTAM_PERCS = np.arange(1, 30, 5).tolist()
+DEFAULT_CONTAM_PERCS = np.array([0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.5, 1, 2, 3, 5, 10])
 
 
 def run(config, log_exp_dir, do_plot_frontier=False):
@@ -56,20 +56,22 @@ def run(config, log_exp_dir, do_plot_frontier=False):
 
     log_dir = get_log_dir(log_exp_dir, config["config_name"])
 
-    # Compute anomaly scores for train with anomalies
-    # and select threshold
+    # Compute the anomaly scores for train with anomalies
+    # Select a threshold that maximises F1 Score
     threshold_batch = dataset.create_outlier_batch(train=True, scaler=scaler)
     X_threshold, y_threshold = threshold_batch.data.astype('float'), threshold_batch.target
     logging.info(f'Selecting the optimal threshold...')
     se = timer()
-    od.infer_threshold(X_threshold, threshold_perc=100 - dataset.train_contamination_perc)
-    X_threshold_pred = od.predict(X_threshold)
-    y_threshold_pred = X_threshold_pred['data']['is_outlier']
-    score_threshold = X_threshold_pred['data']['instance_score']
-    time_score_train = timer() - se
-
+    score_threshold = od.score(X_threshold)
     train_prf1_curve = precision_recall_curve_scores(
         y_threshold, score_threshold, 100 - DEFAULT_CONTAM_PERCS)
+    best_threshold = select_threshold(
+        train_prf1_curve['thresholds'],
+        train_prf1_curve['f1scores'])
+    od.threshold = best_threshold
+    y_threshold_pred = (score_threshold > od.threshold).astype(int)
+    time_score_train = timer() - se
+
     train_cm = confusion_matrix(y_threshold, y_threshold_pred)
     train_prf1s = precision_recall_fscore_support(
         y_threshold, y_threshold_pred, average='binary')

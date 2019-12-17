@@ -246,6 +246,8 @@ if __name__ == '__main__':
     report_path = args.report_path
     if report_path is None:
         report_path = log_root_path / 'reports'
+    else:
+        report_path = Path(report_path).resolve()
 
     static_path = report_path / 'static'
     static_path.mkdir(parents=True)
