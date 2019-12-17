@@ -20,6 +20,11 @@ EXP_PARAMS = dict(
 1,100,new,auto,FALSE
 2,50,new,auto,FALSE
 3,200,new,auto,FALSE""",
+    ae="""ae,,,,,,,,
+#,hidden_dim,encoding_dim,num_hidden,data_standardization,learning_rate,num_epochs,batch_size,optimizer
+1,5,1,1,TRUE,0.001,10,1024,Adam
+2,5,1,2,TRUE,0.001,10,1024,Adam
+3,7,2,2,TRUE,0.001,10,1024,Adam"""
 )
 
 
@@ -63,40 +68,45 @@ def create_dummy_datasets(n_samples=300, outliers_fraction=0.15, random_state=RA
 loglevel = getattr(logging, "DEBUG", None)
 logging.basicConfig(level=loglevel)
 
-if DUMMY_PATH.exists():
-    raise ValueError('Dummy data already created')
-
-n_samples_train = 300
-outliers_fraction_train = .10
-train_datasets = create_dummy_datasets(n_samples_train, outliers_fraction_train)
-
-n_samples_test = 100
-outliers_fraction_test = .20
-test_datasets = create_dummy_datasets(n_samples_test, outliers_fraction_test, random_state=RANDOM_STATE_TEST)
-
 data_path = DUMMY_PATH/"processed"
 
-for name in train_datasets:
-    train = train_datasets[name]
-    test = test_datasets[name]
-    meta = {'name': name}
-    dataset = Dataset(train, test, meta=meta, create_hash=True)
-    dataset.write_to(data_path, overwrite=True, plot=True)
+if data_path.exists():
+    logging.warning('Dummy data already created')
+else:
+    n_samples_train = 300
+    outliers_fraction_train = .10
+    train_datasets = create_dummy_datasets(n_samples_train, outliers_fraction_train)
+
+    n_samples_test = 100
+    outliers_fraction_test = .20
+    test_datasets = create_dummy_datasets(n_samples_test, outliers_fraction_test, random_state=RANDOM_STATE_TEST)
+
+    for name in train_datasets:
+        train = train_datasets[name]
+        test = test_datasets[name]
+        meta = {'name': name}
+        dataset = Dataset(train, test, meta=meta, create_hash=True)
+        dataset.write_to(data_path, overwrite=True, plot=True)
 
 dataset_paths = list(data_path.iterdir())
 
 """ ----------- Create dummy configs  ------------------- """
 exp_params_root_path = DUMMY_PATH/'exp_params'
-exp_params_root_path.mkdir(parents=True)
+exp_params_root_path.mkdir(parents=True, exist_ok=True)
 
 config_root_path = DUMMY_PATH/'config'
-config_root_path.mkdir(parents=True)
+config_root_path.mkdir(parents=True, exist_ok=True)
 
 for exp_name, exp_params_str in EXP_PARAMS.items():
 
-    exp_params_path = (exp_params_root_path/exp_name).with_suffix('.csv')
+    config_exp_path = config_root_path / exp_name
+
+    if config_exp_path.exists():
+        logging.warning(f'Experiment params {exp_name} already created')
+        continue
+
+    exp_params_path = config_exp_path.with_suffix('.csv')
     with open(exp_params_path, 'w') as f:
         f.write(exp_params_str)
 
-    config_exp_path = config_root_path/exp_name
     create_configs(exp_params_path, dataset_paths, config_exp_path)
