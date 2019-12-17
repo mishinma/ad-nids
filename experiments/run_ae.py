@@ -6,15 +6,18 @@ import logging
 from pathlib import Path
 from timeit import default_timer as timer
 
+
 import numpy as np
+import tensorflow as tf
 import matplotlib.pyplot as plt
 import json_tricks as json
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
 
-from alibi_detect.od import IForest
+from alibi_detect.od import OutlierAE
 from alibi_detect.utils.saving import save_detector
 
+from ad_nids.ml import build_ae
 from ad_nids.config import config_dumps
 from ad_nids.dataset import Dataset
 from ad_nids.report import create_experiments_report, create_datasets_report
@@ -22,7 +25,7 @@ from ad_nids.utils.logging import get_log_dir
 from ad_nids.utils.metrics import precision_recall_curve_scores, get_frontier, select_threshold
 from ad_nids.utils.plot import plot_precision_recall, plot_f1score, plot_data_2d, plot_frontier
 
-EXPERIMENT_NAME = 'isolation_forest'
+EXPERIMENT_NAME = 'ae'
 DEFAULT_CONTAM_PERCS = np.array([0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.5, 1, 2, 3, 5, 10])
 
 
@@ -49,8 +52,12 @@ def run(config, log_exp_dir, do_plot_frontier=False):
     # Train the model on normal data
     logging.info('Fitting the model...')
     se = timer()
-    od = IForest(threshold=None, n_estimators=config['n_estimators'])
-    od.fit(X_train)
+    input_dim = X_train.shape[1]
+    ae = build_ae(config['hidden_dim'], config['encoding_dim'],
+                  config['num_hidden'], input_dim)
+    od = OutlierAE(threshold=0.0, ae=ae)
+    optimizer = tf.keras.optimizers.Adam(learning_rate=config['learning_rate'])
+    od.fit(X_train, optimizer=optimizer, epochs=config['num_epochs'], batch_size=config['batch_size'])
     time_fit = timer() - se
     logging.info(f'Done: {time_fit}')
 
@@ -62,14 +69,16 @@ def run(config, log_exp_dir, do_plot_frontier=False):
     X_threshold, y_threshold = threshold_batch.data.astype('float'), threshold_batch.target
     logging.info(f'Selecting the optimal threshold...')
     se = timer()
-    score_threshold = od.score(X_threshold)
+    X_threshold_pred = od.predict(X_threshold)  # feature and instance lvl
+    iscore_threshold = X_threshold_pred['data']['instance_score']
     train_prf1_curve = precision_recall_curve_scores(
-        y_threshold, score_threshold, 100 - DEFAULT_CONTAM_PERCS)
+        y_threshold, iscore_threshold, 100 - DEFAULT_CONTAM_PERCS)
     best_threshold = select_threshold(
         train_prf1_curve['thresholds'],
         train_prf1_curve['f1scores'])
     od.threshold = best_threshold
-    y_threshold_pred = (score_threshold > od.threshold).astype(int)
+    y_threshold_pred = (iscore_threshold > od.threshold).astype(int)
+    X_threshold_pred['data']['is_outlier'] = y_threshold_pred
     time_score_train = timer() - se
 
     train_cm = confusion_matrix(y_threshold, y_threshold_pred)
@@ -84,7 +93,6 @@ def run(config, log_exp_dir, do_plot_frontier=False):
     se = timer()
     X_test_pred = od.predict(X_test)
     y_test_pred = X_test_pred['data']['is_outlier']
-    score_test = X_test_pred['data']['instance_score']
     time_score_test = timer() - se
     test_cm = confusion_matrix(y_test, y_test_pred)
     test_prf1s = precision_recall_fscore_support(y_test, y_test_pred, average='binary')
@@ -146,10 +154,8 @@ def run(config, log_exp_dir, do_plot_frontier=False):
             plt.close()
 
         eval_results = {
-            'test_score': score_test,
-            'train_score': score_threshold,
-            'y_test_pred': y_test_pred,
-            'y_train_pred': y_threshold_pred,
+            'test_pred': X_test_pred,
+            'train_pred': X_threshold_pred,
             'y_test': y_test,
             'y_train': y_threshold,
             'threshold': od.threshold,

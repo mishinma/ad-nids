@@ -34,15 +34,12 @@ def precision_recall_curve_scores(y_true, score, threshold_percs):
         f1scores.append(float(f1score))
         thresholds.append(float(thresh))
 
-    if isinstance(threshold_percs, np.ndarray):
-        threshold_percs = threshold_percs.tolist()
-
     prf1 = dict(
-        precisions=precisions,
-        recalls=recalls,
-        f1scores=f1scores,
-        thresholds=thresholds,
-        threshold_percs=threshold_percs
+        precisions=np.array(precisions),
+        recalls=np.array(recalls),
+        f1scores=np.array(f1scores),
+        thresholds=np.array(thresholds),
+        threshold_percs=np.array(threshold_percs)
     )
 
     return prf1
