@@ -69,7 +69,7 @@ def create_report(log_path, static_path, exp_idx=1):
 
     report = EXPERIMENT
     report = report.replace('{{EXPERIMENT_I}}}', int_to_roman(exp_idx))
-    report = report.replace('{{ALGORITHM}}', config['algorithm'].upper())
+    report = report.replace('{{ALGORITHM}}', config['experiment_name'].upper())
     report = report.replace('{{DATASET_NAME}}', config['dataset_name'])
     report = report.replace('{{CONFIG_NAME}}', config['config_name'])
     config_report = {k: v for k, v in config.items() if k in CONFIG_REPORT_FIELDS}

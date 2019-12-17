@@ -1,18 +1,19 @@
 import json
-import shutil
 import zipfile
 import hashlib
 import logging
 
 from pathlib import Path
 from uuid import uuid4
-from sklearn.manifold import TSNE
 
 import numpy as np
 import pandas as pd
+from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 
-from ad_nids.ml.utils import plot_data_2d
+from alibi_detect.utils.data import create_outlier_batch
+
+from ad_nids.utils import plot_data_2d
 
 
 def create_meta(dataset_name, train_split, test_split, frequency,
@@ -76,7 +77,7 @@ def hash_from_paths(paths):
 
 class Dataset:
     def __init__(self, train, test, train_meta=None, test_meta=None,
-                 meta=None, create_hash=True, scaler=None):
+                 meta=None, create_hash=True):
 
         self.train = train
         self.test = test
@@ -91,8 +92,6 @@ class Dataset:
 
         if create_hash:
             self._create_hash()
-
-        self.scaler = scaler
 
     @classmethod
     def from_path(cls, dataset_path):
@@ -127,42 +126,71 @@ class Dataset:
 
         return Dataset(train, test, train_meta, test_meta, meta, create_hash=False)
 
-    def loader(self, train=True, contamination=True, batch_size=None,
-               shuffle=True, standardize=True):
-
-        if train:
-            x = self.train.iloc[:, :-1].to_numpy()
-            y = self.train.iloc[:, -1].to_numpy()
-        else:
-            x = self.test.iloc[:, :-1].to_numpy()
-            y = self.test.iloc[:, -1].to_numpy()
-
-        if not contamination:
-            x = x[y == 0]
-            y = np.zeros_like(y)
-
-        # ToDo: is it the right way to do it? keep for now
-        if self.scaler is not None and standardize:
-            x = self.scaler.transform(x)
-
-        return Dataloader(x, y, batch_size, shuffle)
-
     def _create_hash(self):
         data_hash = hash_from_frames([self.train, self.test])
         self.meta['data_hash'] = data_hash
 
-    def visualize(self, ax, train=True):
+    @staticmethod
+    def _contamination(data):
+        labels = data.iloc[:, -1]
+        return labels.mean()
 
-        loader = self.loader(train=train, contamination=True, standardize=False)
+    @property
+    def train_contamination_perc(self):
+        val = self._contamination(self.train)
+        return val*100
 
-        num_dims = loader.x.shape[1]
-        if num_dims > 2:
-            loader.x = TSNE(n_components=2).fit_transform(loader.x)
+    @property
+    def test_contamination_perc(self):
+        val = self._contamination(self.test)
+        return val*100
 
-        plot_data_2d(ax, loader.x_norm, loader.x_anom)
+    def create_outlier_batch(self, train=True, n_samples=-1, perc_outlier=-1, scaler=None):
+        """
 
-        title = 'Train data' if train else 'Test data'
-        ax.set_title(title)
+        :param train:
+        :param n_samples: -1 infer number of samples
+        :param perc_outlier: -1 true contamination
+        :param scaler:
+        :return:
+        """
+        # ToDo: test this
+        if train:
+            data = self.train
+            true_contamination = self.train_contamination_perc
+        else:
+            data = self.test
+            true_contamination = self.test_contamination_perc
+
+        targets = data.iloc[:, -1]
+        data = data.iloc[:, :-1]
+
+        if perc_outlier == -1:
+            perc_outlier = true_contamination
+
+        if n_samples == -1:
+            # under/over sample outliers
+            # take all normal data
+            n_outlier = int(perc_outlier * .01 * data.shape[0])
+            n_normal = int((100 - true_contamination) * .01 * data.shape[0])
+            n_samples = n_outlier + n_normal
+        if scaler:
+            data = scaler.transform(data)
+
+        return create_outlier_batch(data, targets, n_samples, perc_outlier)
+
+    # def visualize(self, ax, train=True):
+    #
+    #     loader = self.loader(train=train, contamination=True, standardize=False)
+    #
+    #     num_dims = loader.x.shape[1]
+    #     if num_dims > 2:
+    #         loader.x = TSNE(n_components=2).fit_transform(loader.x)
+    #
+    #     plot_data_2d(ax, loader.x_norm, loader.x_anom)
+    #
+    #     title = 'Train data' if train else 'Test data'
+    #     ax.set_title(title)
 
     def write_to(self, root_path, archive=False, overwrite=False, plot=False):
 
@@ -195,40 +223,15 @@ class Dataset:
             with open(meta_path, 'w') as f:
                 json.dump(self.meta, f)
 
-        if plot:
-            logging.info('Visualizing the data')
-            fig, ax = plt.subplots(1, 2)
-            self.visualize(ax[0], train=True)
-            self.visualize(ax[1], train=False)
-            fig.savefig(dataset_path / 'data.png')
-            plt.close()
-
-        if archive:
-            logging.info('Compressing the data')
-            shutil.make_archive(dataset_path, 'zip', root_path, self.name)
-            # shutil.rmtree(dataset_path)
-
-
-# ToDo: Dataloader class?
-# Inspiration:
-# trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
-#                                         download=True, transform=transform)
-# trainloader = torch.utils.data.DataLoader(trainset, batch_size=4,
-#                                           shuffle=True, num_workers=2)
-
-
-class Dataloader:
-
-    def __init__(self, x, y, batch_size=None, shuffle=True):
-        self.x = x
-        self.y = y  # if None no batches
-        self.batch_size = None
-        self.shuffle = shuffle
-
-    @property
-    def x_norm(self):
-        return self.x[self.y == 0]
-
-    @property
-    def x_anom(self):
-        return self.x[self.y == 1]
+        # if plot:
+        #     logging.info('Visualizing the data')
+        #     fig, ax = plt.subplots(1, 2)
+        #     self.visualize(ax[0], train=True)
+        #     self.visualize(ax[1], train=False)
+        #     fig.savefig(dataset_path / 'data.png')
+        #     plt.close()
+        #
+        # if archive:
+        #     logging.info('Compressing the data')
+        #     shutil.make_archive(dataset_path, 'zip', root_path, self.name)
+        #     # shutil.rmtree(dataset_path)
