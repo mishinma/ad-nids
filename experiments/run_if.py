@@ -23,7 +23,7 @@ from ad_nids.utils.metrics import precision_recall_curve_scores, get_frontier
 from ad_nids.utils.plot import plot_precision_recall, plot_f1score, plot_data_2d, plot_frontier
 
 EXPERIMENT_NAME = 'isolation_forest'
-DEFAULT_CONTAM_PERCS = np.arange(1, 30, 5)
+DEFAULT_CONTAM_PERCS = np.arange(1, 30, 5).tolist()
 
 
 def run(config, log_exp_dir, do_plot_frontier=False):
@@ -68,9 +68,11 @@ def run(config, log_exp_dir, do_plot_frontier=False):
     score_threshold = X_threshold_pred['data']['instance_score']
     time_score_train = timer() - se
 
-    train_prf1_curve = precision_recall_curve_scores(y_threshold, score_threshold, 100 - DEFAULT_CONTAM_PERCS)
+    train_prf1_curve = precision_recall_curve_scores(
+        y_threshold, score_threshold, 100 - DEFAULT_CONTAM_PERCS)
     train_cm = confusion_matrix(y_threshold, y_threshold_pred)
-    train_prf1s = precision_recall_fscore_support(y_threshold, y_threshold_pred, average='binary')
+    train_prf1s = precision_recall_fscore_support(
+        y_threshold, y_threshold_pred, average='binary')
     logging.info(f'Done (train): {timer() - se}')
 
     # Compute anomaly scores for test
@@ -179,6 +181,8 @@ if __name__ == '__main__':
                         help="log directory")
     parser.add_argument("--report_path", type=str, default=None,
                         help="report directory")
+    parser.add_argument("--idle", action="store_true",
+                        help="do not run the experiments")
     parser.add_argument("-l", "--logging", type=str, default='INFO',
                         help="logging level")
 
@@ -192,10 +196,11 @@ if __name__ == '__main__':
                     if p.suffix == '.json']
 
     log_exp_path = Path(args.log_exp_path).resolve()
-    for config_path in config_paths:
-        with open(config_path, 'r') as f:
-            config = json.load(f)
-        run(config, log_exp_path, do_plot_frontier=True)
+    if not args.idle:
+        for config_path in config_paths:
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+            run(config, log_exp_path, do_plot_frontier=False)
 
     log_paths = list([p for p in log_exp_path.iterdir() if p.is_dir()])
     log_paths = sorted(log_paths)

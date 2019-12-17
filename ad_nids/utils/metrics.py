@@ -39,7 +39,7 @@ def precision_recall_curve_scores(y_true, score, threshold_percs):
         recalls=recalls,
         f1scores=f1scores,
         thresholds=thresholds,
-        threshold_percs=threshold_percs.tolist()
+        threshold_percs=threshold_percs
     )
 
     return prf1
