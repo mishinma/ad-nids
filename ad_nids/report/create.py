@@ -25,11 +25,11 @@ with open(templates_path/'dataset.html', 'r') as f:
     DATASET = f.read()
 
 
-CONFIG_REPORT_FIELDS = {
-    'model_parameters',
-    'lr',
-    'num_epochs',
-    'optimizer'
+CONFIG_NOREPORT_FIELDS = {
+    'experiment_name',
+    'config_name',
+    'dataset_name',
+    'dataset_path'
 }
 
 
@@ -72,7 +72,9 @@ def create_report(log_path, static_path, exp_idx=1):
     report = report.replace('{{ALGORITHM}}', config['experiment_name'].upper())
     report = report.replace('{{DATASET_NAME}}', config['dataset_name'])
     report = report.replace('{{CONFIG_NAME}}', config['config_name'])
-    config_report = {k: v for k, v in config.items() if k in CONFIG_REPORT_FIELDS}
+
+    config_report = {k: v for k, v in config.items()
+                     if k not in CONFIG_NOREPORT_FIELDS}
     report = report.replace('{{CONFIG_PARAMS}}', json2html.convert(config_report))
 
     # train performance

@@ -204,8 +204,9 @@ if __name__ == '__main__':
     if report_path is None:
         report_path = log_exp_path / 'reports'
 
+    report_path.mkdir()
     static_path = report_path / 'static'
-    static_path.mkdir(parents=True)
+    static_path.mkdir()
 
     datasets_report_path = report_path / 'datasets_report.html'
     logging.info(f"Creating all datasets report {datasets_report_path}")
