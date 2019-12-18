@@ -22,9 +22,9 @@ EXP_PARAMS = dict(
 3,200,new,auto,FALSE""",
     ae="""ae,,,,,,,,
 #,hidden_dim,encoding_dim,num_hidden,data_standardization,learning_rate,num_epochs,batch_size,optimizer
-1,5,1,1,TRUE,0.001,10,1024,Adam
-2,5,1,2,TRUE,0.001,10,1024,Adam
-3,7,2,2,TRUE,0.001,10,1024,Adam"""
+1,5,1,1,TRUE,0.001,10,10,Adam
+2,5,1,2,TRUE,0.001,10,10,Adam
+3,7,2,2,TRUE,0.001,10,10,Adam"""
 )
 
 

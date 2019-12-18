@@ -174,7 +174,7 @@ class Dataset:
             n_outlier = int(perc_outlier * .01 * data.shape[0])
             n_normal = int((100 - true_contamination) * .01 * data.shape[0])
             n_samples = n_outlier + n_normal
-        if scaler:
+        if scaler is not None:
             data = scaler.transform(data)
 
         return create_outlier_batch(data, targets, n_samples, perc_outlier)

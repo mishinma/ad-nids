@@ -3,6 +3,7 @@ matplotlib
 pandas
 numpy
 json2html
+json-tricks
 scikit-learn
 scipy
 tqdm

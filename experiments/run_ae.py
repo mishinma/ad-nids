@@ -44,10 +44,11 @@ def run(config, log_exp_dir, do_plot_frontier=False):
     dataset = Dataset.from_path(config['dataset_path'])
 
     normal_batch = dataset.create_outlier_batch(train=True, perc_outlier=0)
-    X_train, y_train = normal_batch.data.astype('float'), normal_batch.target
+    X_train, y_train = normal_batch.data.astype(np.float32), normal_batch.target
     scaler = None
     if config['data_standardization']:
-        scaler = StandardScaler().fit_transform(X_train)
+        scaler = StandardScaler().fit(X_train)
+        X_train = scaler.transform(X_train)
 
     # Train the model on normal data
     logging.info('Fitting the model...')
@@ -57,7 +58,8 @@ def run(config, log_exp_dir, do_plot_frontier=False):
                   config['num_hidden'], input_dim)
     od = OutlierAE(threshold=0.0, ae=ae)
     optimizer = tf.keras.optimizers.Adam(learning_rate=config['learning_rate'])
-    od.fit(X_train, optimizer=optimizer, epochs=config['num_epochs'], batch_size=config['batch_size'])
+    od.fit(X_train, optimizer=optimizer,
+           epochs=config['num_epochs'], batch_size=config['batch_size'])
     time_fit = timer() - se
     logging.info(f'Done: {time_fit}')
 
@@ -66,7 +68,7 @@ def run(config, log_exp_dir, do_plot_frontier=False):
     # Compute the anomaly scores for train with anomalies
     # Select a threshold that maximises F1 Score
     threshold_batch = dataset.create_outlier_batch(train=True, scaler=scaler)
-    X_threshold, y_threshold = threshold_batch.data.astype('float'), threshold_batch.target
+    X_threshold, y_threshold = threshold_batch.data.astype(np.float32), threshold_batch.target
     logging.info(f'Selecting the optimal threshold...')
     se = timer()
     X_threshold_pred = od.predict(X_threshold)  # feature and instance lvl
@@ -89,7 +91,7 @@ def run(config, log_exp_dir, do_plot_frontier=False):
     # Compute anomaly scores for test
     logging.info('Computing test anomaly scores...')
     test_batch = dataset.create_outlier_batch(train=False, scaler=scaler)
-    X_test, y_test = test_batch.data.astype('float'), test_batch.target
+    X_test, y_test = test_batch.data.astype(np.float32), test_batch.target
     se = timer()
     X_test_pred = od.predict(X_test)
     y_test_pred = X_test_pred['data']['is_outlier']
