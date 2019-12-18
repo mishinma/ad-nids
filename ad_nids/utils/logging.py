@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import json_tricks as json
 
 from alibi_detect.utils.saving import save_detector
+from alibi_detect.utils.visualize import plot_instance_score
 from ad_nids.utils.metrics import get_frontier
 from ad_nids.utils.plot import plot_precision_recall, \
     plot_f1score, plot_data_2d, plot_frontier
@@ -74,4 +75,17 @@ def log_plot_frontier(log_dir, detector,
     plot_data_2d(ax, X_test_norm, X_test_anom)
     ax.set_title('Testing frontier')
     fig.savefig(log_dir / 'test_frontier.png')
+    plt.close()
+
+
+def log_plot_instance_score(log_dir, detector_preds, y_true,
+                            detector_threshold, train=False, labels=None):
+
+    if labels is None:
+        labels = ['normal', 'outlier']
+
+    plot_instance_score(detector_preds, y_true, labels, detector_threshold)
+    set_ = 'train_' if train else 'test_'
+    filename = set_ + 'instance_score.png'
+    plt.savefig(log_dir / filename)
     plt.close()

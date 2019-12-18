@@ -17,7 +17,7 @@ from ad_nids.ml import build_ae, run_experiments
 from ad_nids.config import config_dumps
 from ad_nids.dataset import Dataset
 from ad_nids.utils.logging import get_log_dir, log_experiment, log_plot_prf1_curve,\
-    log_plot_frontier
+    log_plot_frontier, log_plot_instance_score
 from ad_nids.utils.metrics import precision_recall_curve_scores, select_threshold
 
 EXPERIMENT_NAME = 'ae'
@@ -119,8 +119,15 @@ def run_ae(config, log_exp_dir, do_plot_frontier=False):
     try:
         log_experiment(log_dir, config, dataset.meta, od, eval_results)
         log_plot_prf1_curve(log_dir, train_prf1_curve)
-        if do_plot_frontier and X_threshold.shape[1] == 2:
-            log_plot_frontier(log_dir, od, X_threshold, y_threshold, X_test, y_test)
+        log_plot_instance_score(log_dir, X_test_pred, y_test, od.threshold,
+                                labels=test_batch.target_names)
+        if do_plot_frontier:
+            input_dim = X_threshold.shape[1]
+            if input_dim == 2:
+                log_plot_frontier(log_dir, od, X_threshold, y_threshold, X_test, y_test)
+            else:
+                logging.warning(f"Cannot plot frontier for {input_dim} dims")
+
     except Exception as e:
         shutil.rmtree(log_dir)
         raise e
