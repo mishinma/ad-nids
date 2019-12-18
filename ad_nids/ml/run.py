@@ -14,7 +14,7 @@ def run_parser():
                         help="directory with config files")
     parser.add_argument("log_exp_path", type=str,
                         help="log directory")
-    parser.add_argument("--report_path", type=str, default=None,
+    parser.add_argument("report_exp_path", type=str, default=None,
                         help="report directory")
     parser.add_argument("--idle", action="store_true",
                         help="do not run the experiments")
@@ -44,21 +44,18 @@ def run_experiments(run_fn):
     log_paths = list([p for p in log_exp_path.iterdir() if p.is_dir()])
     log_paths = sorted(log_paths)
 
-    report_path = args.report_path
-    if report_path is None:
-        report_path = log_exp_path / 'reports'
-
-    report_path.mkdir()
-    static_path = report_path / 'static'
+    report_exp_path = Path(args.report_exp_path).resolve()
+    report_exp_path.mkdir(parents=True)
+    static_path = report_exp_path / 'static'
     static_path.mkdir()
 
-    datasets_report_path = report_path / 'datasets_report.html'
+    datasets_report_path = report_exp_path / 'datasets_report.html'
     logging.info(f"Creating all datasets report {datasets_report_path}")
     datasets_report = create_datasets_report(log_paths, static_path)
     with open(datasets_report_path, 'w') as f:
         f.write(datasets_report)
 
-    experiments_report_path = report_path / 'experiments_report.html'
+    experiments_report_path = report_exp_path / 'experiments_report.html'
     logging.info(f"Creating all experiments report {experiments_report_path}")
     experiments_report = create_experiments_report(log_paths, static_path)
     with open(experiments_report_path, 'w') as f:

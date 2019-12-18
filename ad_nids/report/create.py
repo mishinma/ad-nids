@@ -59,6 +59,15 @@ def copy_to_static(loc_path, static_dir):
     return rel_new_path
 
 
+def collect_plots(plot_paths, static_path):
+    plots = ''
+    for plot_path in plot_paths:
+        static_plot_path = copy_to_static(plot_path, static_path)
+        alt_text = plot_path.name[:-len(plot_path.suffix)]
+        plots += f'<img src="{static_plot_path}" alt="{alt_text}"><br>\n'
+    return plots
+
+
 def create_report(log_path, static_path, exp_idx=1):
     """ Create a simple HTML doc with summary. """
 
@@ -86,28 +95,19 @@ def create_report(log_path, static_path, exp_idx=1):
                             '{:0.2f}'.format(results['time_score_train']))
     report = report.replace('{{TRAIN_PERFORMANCE}}', json2html.convert(train_perf))
 
-    # plot
-    if (log_path / 'train_frontier.png').exists():
-        static_img_path = copy_to_static(log_path / 'train_frontier.png', static_path)
-        report = report.replace('{{TRAIN_FRONTIER}}', str(static_img_path))
-
-    if (log_path / 'train_pr_curve.png').exists():
-        static_img_path = copy_to_static(log_path / 'train_pr_curve.png', static_path)
-        report = report.replace('{{TRAIN_PR_CURVE}}',  str(static_img_path))
-
-    if (log_path / 'train_f1_curve.png').exists():
-        static_img_path = copy_to_static(log_path / 'train_f1_curve.png', static_path)
-        report = report.replace('{{TRAIN_F1_CURVE}}', str(static_img_path))
+    # train plots
+    train_plots = collect_plots(log_path.glob('train_*.png'), static_path)
+    report = report.replace('{{TRAIN_PLOTS}}', train_plots)
 
     # test performance
     test_perf = performance_asdict(results['y_test'], results['test_cm'], results['test_prf1s'])
     report = report.replace('{{TIME_SCORE_TEST}}',
                             '{:0.2f}'.format(results['time_score_test']))
     report = report.replace('{{TEST_PERFORMANCE}}', json2html.convert(test_perf))
-    # plot test frontier
-    if (log_path / 'test_frontier.png').exists():
-        static_img_path = copy_to_static(log_path / 'test_frontier.png', static_path)
-        report = report.replace('{{TEST_FRONTIER}}', str(static_img_path))
+
+    # test plots
+    test_plots = collect_plots(log_path.glob('test_*.png'), static_path)
+    report = report.replace('{{TEST_PLOTS}}', test_plots)
 
     return report
 
