@@ -14,18 +14,20 @@ from ad_nids.config import create_configs
 RANDOM_STATE = 42
 RANDOM_STATE_TEST = 24
 DUMMY_PATH = Path(__file__).resolve().parent/'data/dummy'
-EXP_PARAMS = dict(
-    isolation_forest="""isolation_forest,,,,
+EXP_PARAMS = {
+    'if':
+"""if,,,,
 #,n_estimators,behaviour,contamination,data_standardization
 1,100,new,auto,FALSE
 2,50,new,auto,FALSE
 3,200,new,auto,FALSE""",
-    ae="""ae,,,,,,,,
+    'ae':
+"""ae,,,,,,,,
 #,hidden_dim,encoding_dim,num_hidden,data_standardization,learning_rate,num_epochs,batch_size,optimizer
 1,5,1,1,TRUE,0.001,10,10,Adam
 2,5,1,2,TRUE,0.001,10,10,Adam
 3,7,2,2,TRUE,0.001,10,10,Adam"""
-)
+}
 
 
 def create_dummy_datasets(n_samples=300, outliers_fraction=0.15, random_state=RANDOM_STATE):
@@ -100,12 +102,12 @@ config_root_path.mkdir(parents=True, exist_ok=True)
 for exp_name, exp_params_str in EXP_PARAMS.items():
 
     config_exp_path = config_root_path / exp_name
+    exp_params_path = (exp_params_root_path / exp_name).with_suffix('.csv')
 
     if config_exp_path.exists():
         logging.warning(f'Experiment params {exp_name} already created')
         continue
 
-    exp_params_path = config_exp_path.with_suffix('.csv')
     with open(exp_params_path, 'w') as f:
         f.write(exp_params_str)
 
