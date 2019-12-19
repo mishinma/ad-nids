@@ -111,6 +111,7 @@ def run_if(config, log_exp_dir, do_plot_frontier=False):
     try:
         log_experiment(log_dir, config, dataset.meta, od, eval_results)
         log_plot_prf1_curve(log_dir, train_prf1_curve)
+        # ToDo: subsample
         log_plot_instance_score(log_dir, X_test_pred, y_test, od.threshold,
                                 labels=test_batch.target_names)
         if do_plot_frontier:
