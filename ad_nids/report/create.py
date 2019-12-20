@@ -3,11 +3,12 @@ import os
 import shutil
 import uuid
 import logging
+import json
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import json_tricks as json
+
 from json2html import json2html
 
 from ad_nids.utils import int_to_roman

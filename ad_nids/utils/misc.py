@@ -3,6 +3,8 @@ from datetime import datetime
 from functools import wraps
 from timeit import default_timer as timer
 
+import numpy as np
+
 
 def timing(f):
     @wraps(f)
@@ -34,3 +36,16 @@ def int_to_roman(input):
         input -= ints[i] * count
     return ''.join(result)
 
+
+def jsonify(data):
+
+    if isinstance(data, dict):
+        json_data = {k: jsonify(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        json_data = [jsonify(v) for v in data]
+    elif isinstance(data, np.ndarray):
+        json_data = data.tolist()
+    else:
+        json_data = data
+
+    return json_data

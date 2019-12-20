@@ -1,9 +1,9 @@
 
 import argparse
 import logging
+import json
 
 from pathlib import Path
-import json_tricks as json
 
 from ad_nids.report import create_experiments_report, create_datasets_report
 

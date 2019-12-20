@@ -1,12 +1,13 @@
+import json
 from datetime import datetime
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-import json_tricks as json
 
 from alibi_detect.utils.saving import save_detector
 from alibi_detect.utils.visualize import plot_instance_score
 from ad_nids.utils.metrics import get_frontier
+from ad_nids.utils.misc import jsonify
 from ad_nids.utils.plot import plot_precision_recall, \
     plot_f1score, plot_data_2d, plot_frontier
 
@@ -30,7 +31,7 @@ def log_experiment(log_dir, config, dataset_meta, detector,
     save_detector(detector, str(log_dir/'detector'))
 
     with open(log_dir/'eval_results.json', 'w') as f:
-        json.dump(eval_results, f)
+        json.dump(jsonify(eval_results), f)
 
 
 def log_plot_prf1_curve(log_dir, prf1_curve):
