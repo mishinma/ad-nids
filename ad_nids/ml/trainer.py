@@ -8,9 +8,7 @@ from typing import Tuple
 def trainer(model: tf.keras.Model,
             loss_fn: tf.keras.losses,
             X_train: np.ndarray,
-            y_train: np.ndarray = None,
             X_val: np.ndarray = None,
-            y_val: np.ndarray = None,
             optimizer: tf.keras.optimizers = tf.keras.optimizers.Adam(learning_rate=1e-3),
             loss_fn_kwargs: dict = None,
             epochs: int = 20,
@@ -31,8 +29,6 @@ def trainer(model: tf.keras.Model,
         Loss function used for training.
     X_train
         Training batch.
-    y_train
-        Training labels.
     X_val
         Validation batch.
     y_val
@@ -56,34 +52,20 @@ def trainer(model: tf.keras.Model,
     callbacks
         Callbacks used during training.
     """
-    # create dataset
-    if y_train is None:  # unsupervised model
-        train_data = X_train
-    else:
-        train_data = (X_train, y_train)
 
-    train_data = tf.data.Dataset.from_tensor_slices(train_data)
+    train_data = tf.data.Dataset.from_tensor_slices(X_train)
     train_data = train_data.shuffle(buffer_size=buffer_size).batch(batch_size)
     n_minibatch = int(np.ceil(X_train.shape[0] / batch_size))
 
-    # validation dataset
-    do_validation = 
-    if X_val is not None:
-        if y_val is None:
-            val_data = X_val
-        else:
-            val_data = (X_val, y_val)
-    else:
-        val_data = None
+    do_validation = X_val is not None
 
     if log_dir is not None:
         train_log_dir = os.path.join(log_dir, 'train')
         train_summary_writer = tf.summary.create_file_writer(train_log_dir)
-        if val_data is not None:
+
+        if do_validation:
             val_log_dir = os.path.join(log_dir, 'val')
             val_summary_writer = tf.summary.create_file_writer(val_log_dir)
-        else:
-            val_summary_writer = None
 
     # iterate over epochs
     for epoch in range(epochs):
@@ -91,26 +73,16 @@ def trainer(model: tf.keras.Model,
             pbar = tf.keras.utils.Progbar(n_minibatch, 1)
 
         # iterate over the batches of the dataset
-        for step, train_batch in enumerate(train_data):
-
-            if y_train is None:
-                X_train_batch = train_batch
-            else:
-                X_train_batch, y_train_batch = train_batch
+        for step, X_train_batch in enumerate(train_data):
 
             with tf.GradientTape() as tape:
                 preds = model(X_train_batch)
 
-                if y_train is None:
-                    ground_truth = X_train_batch
-                else:
-                    ground_truth = y_train_batch
-
                 # compute loss
                 if tf.is_tensor(preds):
-                    args = [ground_truth, preds]
+                    args = [X_train_batch, preds]
                 else:
-                    args = [ground_truth] + list(preds)
+                    args = [X_train_batch] + list(preds)
 
                 if loss_fn_kwargs:
                     loss = loss_fn(*args, **loss_fn_kwargs)
@@ -123,21 +95,26 @@ def trainer(model: tf.keras.Model,
             grads = tape.gradient(loss, model.trainable_weights)
             optimizer.apply_gradients(zip(grads, model.trainable_weights))
 
+            loss = loss.numpy()
             if verbose:
-                loss_val = loss.numpy()
-                if loss_val.shape != (batch_size,) and loss_val.shape:
-                    add_mean = np.ones((batch_size - loss_val.shape[0],)) * loss_val.mean()
-                    loss_val = np.r_[loss_val, add_mean]
+                if loss.shape != (batch_size,) and loss.shape:
+                    add_mean = np.ones((batch_size - loss.shape[0],)) * loss.mean()
+                    loss = np.r_[loss, add_mean]
 
-                pbar_values = [('loss', loss_val)]
+                pbar_values = [('loss', loss)]
                 if log_metric is not None:
-                    log_metric[1](ground_truth, preds)
+                    log_metric[1](X_train_batch, preds)
                     pbar_values.append((log_metric[0], log_metric[1].result().numpy()))
                 pbar.add(1, values=pbar_values)
 
             if log_dir:
-                loss_val = loss.numpy()
-                assert not loss_val.shape
-                abs_step = epoch*n_minibatch + step
+                abs_step = epoch * n_minibatch + step
                 with train_summary_writer.as_default():
-                    tf.summary.scalar('loss', loss_val, step=abs_step)
+                    tf.summary.scalar('loss', loss, step=abs_step)
+
+        if do_validation:
+            val_preds = model(X_val)
+            val_loss = loss_fn(X_val, val_preds)
+            abs_step = (epoch + 1) * n_minibatch
+            with val_summary_writer.as_default():
+                tf.summary.scalar('loss', val_loss, step=abs_step)
