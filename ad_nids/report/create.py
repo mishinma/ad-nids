@@ -82,6 +82,7 @@ def create_report(log_path, static_path, exp_idx=1):
     report = report.replace('{{ALGORITHM}}', config['experiment_name'].upper())
     report = report.replace('{{DATASET_NAME}}', config['dataset_name'])
     report = report.replace('{{CONFIG_NAME}}', config['config_name'])
+    report = report.replace('{{LOG_DIR}}', log_path)
 
     config_report = {k: v for k, v in config.items()
                      if k not in CONFIG_NOREPORT_FIELDS}

@@ -9,8 +9,10 @@ import tensorflow as tf
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
+from sklearn.model_selection import train_test_split
 
 from alibi_detect.od import OutlierAE
+# from alibi_detect.models.losses import recon_loss
 
 from ad_nids.ml import build_ae, run_experiments, trainer
 from ad_nids.config import config_dumps
@@ -26,7 +28,7 @@ np.random.seed(42)
 tf.random.set_seed(42)
 
 
-def run_ae(config, log_exp_dir, do_plot_frontier=False):
+def run_ae_val(config, log_exp_dir, do_plot_frontier=False):
     logging.info(f'Starting {config["config_name"]}')
     logging.info(config_dumps(config))
 
@@ -42,16 +44,19 @@ def run_ae(config, log_exp_dir, do_plot_frontier=False):
 
     normal_batch = dataset.create_outlier_batch(train=True, perc_outlier=0)
     X_train, y_train = normal_batch.data.astype(np.float32), normal_batch.target
+    X_train, X_val = train_test_split(X_train, test_size=0.1)
+
     scaler = None
     if config['data_standardization']:
         scaler = StandardScaler().fit(X_train)
         X_train = scaler.transform(X_train)
+        X_val = scaler.transform(X_val)
 
     # Create a directory to store experiment logs
     log_dir = get_log_dir(log_exp_dir, config["config_name"])
     log_dir.mkdir(parents=True)
     logging.info('Created a new log directory')
-    logging.info(f'\n >>> tensorboard --logdir {log_dir}\n')
+    logging.info(f'\ntensorboard --logdir {log_dir}\n')
 
     # Train the model on normal data
     logging.info('Fitting the model...')
@@ -61,10 +66,13 @@ def run_ae(config, log_exp_dir, do_plot_frontier=False):
                   config['num_hidden'], input_dim)
     od = OutlierAE(threshold=0.0, ae=ae)
     optimizer = tf.keras.optimizers.Adam(learning_rate=config['learning_rate'])
+    # od.fit(X_train, optimizer=optimizer,
+    #        epochs=config['num_epochs'], batch_size=config['batch_size'])
     mse = tf.losses.MeanSquaredError()
-    trainer(od.ae, mse, X_train, optimizer=optimizer,
+    config['num_epochs'] = 100
+    trainer(od.ae, mse, X_train, X_val=X_val,
             epochs=config['num_epochs'], batch_size=config['batch_size'],
-            log_dir=log_dir)
+            optimizer=optimizer, log_dir=log_dir)
     time_fit = timer() - se
     logging.info(f'Done: {time_fit}')
 
@@ -142,4 +150,4 @@ def run_ae(config, log_exp_dir, do_plot_frontier=False):
 
 
 if __name__ == '__main__':
-    run_experiments(run_ae)
+    run_experiments(run_ae_val)
