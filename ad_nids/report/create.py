@@ -6,11 +6,8 @@ import logging
 import json
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
-
 from json2html import json2html
-
 from ad_nids.utils import int_to_roman
 
 
@@ -34,17 +31,22 @@ CONFIG_NOREPORT_FIELDS = {
 }
 
 
-def performance_asdict(y_true, cm, prf1s):
+def performance_asdict(cm, prf1s):
 
-    p = np.sum(y_true)
-    n = len(y_true) - p
+    tp = cm[1][1]
+    fp = cm[0][1]
+    fn = cm[1][0]
+    tn = cm[0][0]
+
+    p = tp + fn
+    n = tn + fp
 
     perf = dict(
         p=p,
         n=n,
-        tp=cm[1][1],
-        fp=cm[0][1],
-        fn=cm[1][0],
+        tp=tp,
+        fp=fp,
+        fn=fn,
         precision=round(prf1s[0], 2),
         recall=round(prf1s[1], 2),
         f1score=round(prf1s[2], 2),
@@ -82,7 +84,7 @@ def create_report(log_path, static_path, exp_idx=1):
     report = report.replace('{{ALGORITHM}}', config['experiment_name'].upper())
     report = report.replace('{{DATASET_NAME}}', config['dataset_name'])
     report = report.replace('{{CONFIG_NAME}}', config['config_name'])
-    report = report.replace('{{LOG_DIR}}', log_path)
+    report = report.replace('{{LOG_DIR}}', str(log_path))
 
     config_report = {k: v for k, v in config.items()
                      if k not in CONFIG_NOREPORT_FIELDS}
@@ -90,7 +92,7 @@ def create_report(log_path, static_path, exp_idx=1):
 
     # train performance
     report = report.replace('{{THRESHOLD}}', '{:0.2f}'.format(results['threshold']))
-    train_perf = performance_asdict(results['y_train'], results['train_cm'], results['train_prf1s'])
+    train_perf = performance_asdict(results['train_cm'], results['train_prf1s'])
     report = report.replace('{{TIME_FIT}}',
                             '{:0.2f}'.format(results['time_fit']))
     report = report.replace('{{TIME_SCORE_TRAIN}}',
@@ -102,7 +104,7 @@ def create_report(log_path, static_path, exp_idx=1):
     report = report.replace('{{TRAIN_PLOTS}}', train_plots)
 
     # test performance
-    test_perf = performance_asdict(results['y_test'], results['test_cm'], results['test_prf1s'])
+    test_perf = performance_asdict(results['test_cm'], results['test_prf1s'])
     report = report.replace('{{TIME_SCORE_TEST}}',
                             '{:0.2f}'.format(results['time_score_test']))
     report = report.replace('{{TEST_PERFORMANCE}}', json2html.convert(test_perf))
@@ -151,11 +153,9 @@ def create_datasets_report(log_paths, static_path):
             time_fit = round(results['time_fit'], 2)
             time_score_train = round(results['time_score_train'], 2)
             time_score_test = round(results['time_score_test'], 2)
-            train_perf = performance_asdict(results['y_train'],
-                                            results['train_cm'],
+            train_perf = performance_asdict(results['train_cm'],
                                             results['train_prf1s'])
-            test_perf = performance_asdict(results['y_test'],
-                                           results['test_cm'],
+            test_perf = performance_asdict(results['test_cm'],
                                            results['test_prf1s'])
             exp = [
                 config_name, model_name, time_fit,
