@@ -14,7 +14,7 @@ from ad_nids.ml import run_experiments
 from ad_nids.config import config_dumps
 from ad_nids.dataset import Dataset
 from ad_nids.utils.logging import get_log_dir, log_experiment, \
-    log_plot_prf1_curve, log_plot_frontier, log_plot_instance_score
+    log_plot_prf1_curve, log_plot_frontier, log_plot_instance_score, log_preds
 from ad_nids.utils.metrics import precision_recall_curve_scores, select_threshold
 
 EXPERIMENT_NAME = 'if'
@@ -42,6 +42,12 @@ def run_if(config, log_exp_dir, do_plot_frontier=False):
         scaler = StandardScaler().fit(X_train)
         X_train = scaler.transform(X_train)
 
+    # Create a directory to store experiment logs
+    log_dir = get_log_dir(log_exp_dir, config["config_name"])
+    log_dir.mkdir(parents=True)
+    logging.info('Created a new log directory')
+    logging.info(f'{log_dir}\n')
+
     # Train the model on normal data
     logging.info('Fitting the model...')
     se = timer()
@@ -49,8 +55,6 @@ def run_if(config, log_exp_dir, do_plot_frontier=False):
     od.fit(X_train)
     time_fit = timer() - se
     logging.info(f'Done: {time_fit}')
-
-    log_dir = get_log_dir(log_exp_dir, config["config_name"])
 
     # Compute the anomaly scores for train with anomalies
     # Select a threshold that maximises F1 Score
@@ -88,10 +92,6 @@ def run_if(config, log_exp_dir, do_plot_frontier=False):
     logging.info(f'Done (test): {timer() - se}')
 
     eval_results = {
-        'test_pred': X_test_pred,
-        'train_pred': X_threshold_pred,
-        'y_test': y_test,
-        'y_train': y_threshold,
         'threshold': od.threshold,
         'train_prf1_curve': train_prf1_curve,
         'train_prf1s': train_prf1s,
@@ -106,10 +106,10 @@ def run_if(config, log_exp_dir, do_plot_frontier=False):
 
     # Log everything
     logging.info(f'Logging the results\n')
-    log_dir.mkdir(parents=True)
-    logging.info(f'{log_dir}\n')
     try:
         log_experiment(log_dir, config, dataset.meta, od, eval_results)
+        log_preds(log_dir, 'test', X_test_pred, y_test)
+        log_preds(log_dir, 'train', X_threshold_pred, y_threshold)
         log_plot_prf1_curve(log_dir, train_prf1_curve)
         # ToDo: subsample
         log_plot_instance_score(log_dir, X_test_pred, y_test, od.threshold,

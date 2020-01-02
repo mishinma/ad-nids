@@ -3,6 +3,7 @@ from datetime import datetime
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 from alibi_detect.utils.saving import save_detector
 from alibi_detect.utils.visualize import plot_instance_score
@@ -32,6 +33,18 @@ def log_experiment(log_dir, config, dataset_meta, detector,
 
     with open(log_dir/'eval_results.json', 'w') as f:
         json.dump(jsonify(eval_results), f)
+
+
+def log_preds(log_dir, subset, preds, gt):
+    subset_dir = log_dir / subset
+    subset_dir.mkdir(exist_ok=True)
+    np.savez_compressed(
+        str(log_dir / subset / 'eval.npz'),
+        feature_score=preds['data'].get('feature_score', []),
+        instance_score=preds['data'].get('instance_score', []),
+        is_outlier=preds['data'].get('is_outlier', []),
+        ground_truth=gt
+    )
 
 
 def log_plot_prf1_curve(log_dir, prf1_curve):
