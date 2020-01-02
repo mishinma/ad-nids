@@ -114,7 +114,15 @@ def trainer(model: tf.keras.Model,
 
         if do_validation:
             val_preds = model(X_val)
-            val_loss = loss_fn(X_val, val_preds)
+
+            if tf.is_tensor(val_preds):
+                args = [X_val, val_preds]
+            else:
+                args = [X_val] + list(val_preds)
+            if loss_fn_kwargs:
+                val_loss = loss_fn(*args, **loss_fn_kwargs)
+            else:
+                val_loss = loss_fn(*args)
             abs_step = (epoch + 1) * n_minibatch
             with val_summary_writer.as_default():
                 tf.summary.scalar('loss', val_loss, step=abs_step)

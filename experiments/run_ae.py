@@ -27,7 +27,7 @@ np.random.seed(42)
 tf.random.set_seed(42)
 
 
-def run_ae_val(config, log_exp_dir, do_plot_frontier=False):
+def run_ae_val(config, log_dir, do_plot_frontier=False):
     logging.info(f'Starting {config["config_name"]}')
     logging.info(config_dumps(config))
 
@@ -52,8 +52,6 @@ def run_ae_val(config, log_exp_dir, do_plot_frontier=False):
         X_val = scaler.transform(X_val)
 
     # Create a directory to store experiment logs
-    log_dir = get_log_dir(log_exp_dir, config["config_name"])
-    log_dir.mkdir(parents=True)
     logging.info('Created a new log directory')
     logging.info(f'{log_dir}\n')
     logging.info(f'\n >>> tensorboard --host 0.0.0.0 --port 8888 --logdir {log_dir}\n')
@@ -123,24 +121,19 @@ def run_ae_val(config, log_exp_dir, do_plot_frontier=False):
 
     # Log everything
     logging.info(f'Logging the results\n')
-    try:
-        log_experiment(log_dir, config, dataset.meta, od, eval_results)
-        log_preds(log_dir, 'test', X_test_pred, y_test)
-        log_preds(log_dir, 'train', X_threshold_pred, y_threshold)
-        log_plot_prf1_curve(log_dir, train_prf1_curve)
-        # ToDo: subsample
-        log_plot_instance_score(log_dir, X_test_pred, y_test, od.threshold,
-                                labels=test_batch.target_names)
-        if do_plot_frontier:
-            input_dim = X_threshold.shape[1]
-            if input_dim == 2:
-                log_plot_frontier(log_dir, od, X_threshold, y_threshold, X_test, y_test)
-            else:
-                logging.warning(f"Cannot plot frontier for {input_dim} dims")
-
-    except Exception as e:
-        shutil.rmtree(log_dir)
-        raise e
+    log_experiment(log_dir, od, eval_results)
+    log_preds(log_dir, 'test', X_test_pred, y_test)
+    log_preds(log_dir, 'train', X_threshold_pred, y_threshold)
+    log_plot_prf1_curve(log_dir, train_prf1_curve)
+    # ToDo: subsample
+    log_plot_instance_score(log_dir, X_test_pred, y_test, od.threshold,
+                            labels=test_batch.target_names)
+    if do_plot_frontier:
+        input_dim = X_threshold.shape[1]
+        if input_dim == 2:
+            log_plot_frontier(log_dir, od, X_threshold, y_threshold, X_test, y_test)
+        else:
+            logging.warning(f"Cannot plot frontier for {input_dim} dims")
 
 
 if __name__ == '__main__':

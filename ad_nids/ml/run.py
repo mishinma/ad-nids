@@ -2,10 +2,12 @@
 import argparse
 import logging
 import json
+import shutil
 
 from pathlib import Path
 
 from ad_nids.report import create_experiments_report, create_datasets_report
+from ad_nids.utils.logging import get_log_dir, log_config
 
 
 def run_parser():
@@ -39,7 +41,13 @@ def run_experiments(run_fn):
         for config_path in config_paths:
             with open(config_path, 'r') as f:
                 config = json.load(f)
-            run_fn(config, log_exp_path, do_plot_frontier=True)
+            log_path = get_log_dir(log_exp_path, config["config_name"])
+            log_path.mkdir(parents=True)
+            try:
+                run_fn(config, log_path, do_plot_frontier=True)
+            except Exception as e:
+                logging.error(e)
+            log_config(log_path, config)
 
     log_paths = list([p for p in log_exp_path.iterdir() if p.is_dir()])
     log_paths = sorted(log_paths)

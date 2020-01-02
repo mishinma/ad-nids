@@ -1,4 +1,5 @@
 import json
+import shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -20,14 +21,21 @@ def get_log_dir(log_root_dir, config_name):
     return log_dir
 
 
-def log_experiment(log_dir, config, dataset_meta, detector,
-                   eval_results):
+def log_config(log_dir, config):
 
-    with open(log_dir/'config.json', 'w') as f:
+    with open(log_dir / 'config.json', 'w') as f:
         json.dump(config, f)
 
-    with open(log_dir/'dataset_meta.json', 'w') as f:
-        json.dump(dataset_meta, f)
+    dataset_path = Path(config['dataset_path'])
+
+    shutil.copy(
+        str(dataset_path/'meta.json'),
+        str(log_dir/'dataset_meta.json')
+    )
+
+
+def log_experiment(log_dir, detector,
+                   eval_results):
 
     save_detector(detector, str(log_dir/'detector'))
 
