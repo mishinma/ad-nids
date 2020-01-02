@@ -73,7 +73,6 @@ def run_ae_val(config, log_exp_dir, do_plot_frontier=False):
     time_fit = timer() - se
     logging.info(f'Done: {time_fit}')
 
-
     # Compute the anomaly scores for train with anomalies
     # Select a threshold that maximises F1 Score
     threshold_batch = dataset.create_outlier_batch(train=True, scaler=scaler)
