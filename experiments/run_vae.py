@@ -10,16 +10,17 @@ import tensorflow as tf
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
+from sklearn.model_selection import train_test_split
 
 from alibi_detect.od import OutlierVAE
 from alibi_detect.models.losses import elbo
 
-from ad_nids.ml import build_vae, run_experiments
+from ad_nids.ml import build_vae, run_experiments, trainer
 from ad_nids.config import config_dumps
 from ad_nids.dataset import Dataset
 from ad_nids.utils.logging import get_log_dir, log_experiment, log_plot_prf1_curve,\
     log_plot_frontier, log_plot_instance_score, log_preds
-from ad_nids.utils.metrics import precision_recall_curve_scores, select_threshold
+from ad_nids.utils.metrics import precision_recall_curve_scores, select_threshold, cov_elbo_type
 
 EXPERIMENT_NAME = 'vae'
 DEFAULT_CONTAM_PERCS = np.array([0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.5, 1, 2, 3, 5, 10])
@@ -41,10 +42,13 @@ def run_vae(config, log_exp_dir, do_plot_frontier=False):
 
     normal_batch = dataset.create_outlier_batch(train=True, perc_outlier=0)
     X_train, y_train = normal_batch.data.astype(np.float32), normal_batch.target
+    X_train, X_val = train_test_split(X_train, test_size=0.1)
+
     scaler = None
     if config['data_standardization']:
         scaler = StandardScaler().fit(X_train)
         X_train = scaler.transform(X_train)
+        X_val = scaler.transform(X_val)
 
     # Create a directory to store experiment logs
     log_dir = get_log_dir(log_exp_dir, config["config_name"])
@@ -62,9 +66,12 @@ def run_vae(config, log_exp_dir, do_plot_frontier=False):
     od = OutlierVAE(threshold=0.0, vae=vae, score_type='mse',
                     latent_dim=config['latent_dim'], samples=config['samples'])
     optimizer = tf.keras.optimizers.Adam(learning_rate=config['learning_rate'])
-    od.fit(X_train, optimizer=optimizer, loss_fn=elbo,
-           cov_elbo=dict(sim=.1), epochs=config['num_epochs'],
-           batch_size=config['batch_size'], verbose=True)
+
+    loss_fn_kwargs = {}
+    loss_fn_kwargs.update(cov_elbo_type(cov_elbo=dict(sim=.1), X=X_train))
+    trainer(od.vae, elbo, X_train, X_val=X_val, loss_fn_kwargs=loss_fn_kwargs,
+            epochs=config['num_epochs'], batch_size=config['batch_size'],
+            optimizer=optimizer, log_dir=log_dir)
     time_fit = timer() - se
     logging.info(f'Done: {time_fit}')
 

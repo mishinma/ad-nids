@@ -2,6 +2,8 @@
 from math import floor
 
 import numpy as np
+import tensorflow as tf
+import tensorflow_probability as tfp
 
 from sklearn.metrics import precision_recall_fscore_support
 
@@ -53,3 +55,14 @@ def get_frontier(od, x):
     Z -= od.threshold
     Z = Z.reshape(xx.shape)
     return xx, yy, Z
+
+
+def cov_elbo_type(cov_elbo, X):
+    cov_elbo_type, cov = [*cov_elbo][0], [*cov_elbo.values()][0]
+    if cov_elbo_type in ['cov_full', 'cov_diag']:
+        cov = tfp.stats.covariance(X.reshape(X.shape[0], -1))
+        if cov_elbo_type == 'cov_diag':  # infer standard deviation from covariance matrix
+            cov = tf.math.sqrt(tf.linalg.diag_part(cov))
+
+    return {cov_elbo_type: tf.dtypes.cast(cov, tf.float32)}
+
