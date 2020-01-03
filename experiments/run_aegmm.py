@@ -68,7 +68,7 @@ def run_aegmm(config, log_dir, do_plot_frontier=False):
     encoder_net = tf.keras.Sequential(
         [
             InputLayer(input_shape=(input_dim,)),
-            Dense(9, activation=tf.nn.tanh),
+            Dense(10, activation=tf.nn.tanh),
             Dense(6, activation=tf.nn.tanh),
             Dense(3, activation=tf.nn.tanh),
             Dense(latent_dim, activation=None)
@@ -79,7 +79,7 @@ def run_aegmm(config, log_dir, do_plot_frontier=False):
             InputLayer(input_shape=(latent_dim,)),
             Dense(3, activation=tf.nn.tanh),
             Dense(6, activation=tf.nn.tanh),
-            Dense(9, activation=tf.nn.tanh),
+            Dense(10, activation=tf.nn.tanh),
             Dense(input_dim, activation=None)
         ])
 
