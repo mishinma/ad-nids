@@ -123,7 +123,7 @@ def run_ae_val(config, log_dir, do_plot_frontier=False):
     logging.info(f'Logging the results\n')
     log_experiment(log_dir, od, eval_results)
     log_preds(log_dir, 'test', X_test_pred, y_test)
-    log_preds(log_dir, 'train', X_threshold_pred, y_threshold)
+    # log_preds(log_dir, 'train', X_threshold_pred, y_threshold)
     log_plot_prf1_curve(log_dir, train_prf1_curve)
     # ToDo: subsample
     log_plot_instance_score(log_dir, X_test_pred, y_test, od.threshold,
