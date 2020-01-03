@@ -6,7 +6,7 @@ import pandas as pd
 
 data_dir = sys.argv[1]
 
-dest_dir = 'data/ctu_mock/'
+dest_dir = 'data/mock_datasets/ctu_mock/'
 if os.path.exists(dest_dir):
     raise FileExistsError('Test CTU13 dataset exists')
 

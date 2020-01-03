@@ -197,5 +197,5 @@ if __name__ == '__main__':
         test_dates=test_dates, frequency=args.frequency
     )
 
-    dataset.write_to(args.out_dir, plot=args.plot,
+    dataset.write_to(args.out_dir, visualize=args.plot,
                      overwrite=args.overwrite, archive=args.archive)

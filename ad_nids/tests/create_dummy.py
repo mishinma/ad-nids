@@ -94,7 +94,7 @@ else:
         test = test_datasets[name]
         meta = {'name': name}
         dataset = Dataset(train, test, meta=meta, create_hash=True)
-        dataset.write_to(data_path, overwrite=True, plot=True)
+        dataset.write_to(data_path, overwrite=True, visualize=True)
 
 dataset_paths = list(data_path.iterdir())
 

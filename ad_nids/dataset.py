@@ -76,6 +76,7 @@ def hash_from_paths(paths):
 
 
 class Dataset:
+
     def __init__(self, train, test, train_meta=None, test_meta=None,
                  meta=None, create_hash=True):
 
@@ -179,20 +180,27 @@ class Dataset:
 
         return create_outlier_batch(data, targets, n_samples, perc_outlier)
 
-    # def visualize(self, ax, train=True):
-    #
-    #     loader = self.loader(train=train, contamination=True, standardize=False)
-    #
-    #     num_dims = loader.x.shape[1]
-    #     if num_dims > 2:
-    #         loader.x = TSNE(n_components=2).fit_transform(loader.x)
-    #
-    #     plot_data_2d(ax, loader.x_norm, loader.x_anom)
-    #
-    #     title = 'Train data' if train else 'Test data'
-    #     ax.set_title(title)
+    def visualize(self, ax, train=True):
 
-    def write_to(self, root_path, archive=False, overwrite=False, plot=False):
+        data = self.train if train else self.test
+        targets = data.iloc[:, -1]
+        data = data.iloc[:, :-1]
+
+        batch = create_outlier_batch(data, targets, n_samples=1000, perc_outlier=10)
+
+        X, y = batch.data.astype('float32'), batch.target.astype('bool')
+        num_dims = X.shape[0]
+
+        if num_dims > 2:
+            X = TSNE(n_components=2).fit_transform(X)
+
+        X_norm, X_anom = X[y], X[~y]
+        plot_data_2d(ax, X_norm, X_anom)
+
+        title = 'Train data' if train else 'Test data'
+        ax.set_title(title)
+
+    def write_to(self, root_path, archive=False, overwrite=False, visualize=False):
 
         logging.info("Writing {} to {}".format(self.name, root_path))
 
@@ -202,7 +210,8 @@ class Dataset:
         if dataset_path.exists() and not overwrite:
             logging.info("Found existing; no overwrite")
             return
-        dataset_path.mkdir(parents=True)
+
+        dataset_path.mkdir(parents=True, exist_ok=True)
 
         train_path = dataset_path / 'train.csv'
         test_path = dataset_path / 'test.csv'
@@ -223,14 +232,14 @@ class Dataset:
             with open(meta_path, 'w') as f:
                 json.dump(self.meta, f)
 
-        # if plot:
-        #     logging.info('Visualizing the data')
-        #     fig, ax = plt.subplots(1, 2)
-        #     self.visualize(ax[0], train=True)
-        #     self.visualize(ax[1], train=False)
-        #     fig.savefig(dataset_path / 'data.png')
-        #     plt.close()
-        #
+        if visualize:
+            logging.info('Visualizing the data')
+            fig, ax = plt.subplots(1, 2)
+            self.visualize(ax[0], train=True)
+            self.visualize(ax[1], train=False)
+            fig.savefig(dataset_path / 'data.png')
+            plt.close()
+
         # if archive:
         #     logging.info('Compressing the data')
         #     shutil.make_archive(dataset_path, 'zip', root_path, self.name)

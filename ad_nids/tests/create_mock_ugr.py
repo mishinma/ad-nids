@@ -95,8 +95,8 @@ if __name__ == '__main__':
     # path to downloaded week 5
     data_dir = Path(sys.argv[1])
 
-    mock_dir = Path('data/ugr_mock/')
-    mock_split_dir = Path('data/ugr_mock_split/')
+    mock_dir = Path('data/mock_datasets/ugr_mock/')
+    mock_split_dir = Path('data/mock_datasets/ugr_mock_split/')
 
     all_flows_path = data_dir / 'uniq' / 'july.week5.csv.uniqblacklistremoved'
     attack_flows_path = data_dir / 'july' / 'week5'
