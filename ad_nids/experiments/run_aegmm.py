@@ -18,7 +18,7 @@ from alibi_detect.models.gmm import gmm_params
 from alibi_detect.models.losses import loss_aegmm
 from tensorflow.keras.layers import Dense, InputLayer
 
-from ad_nids.ml import run_experiments, trainer
+from ad_nids.ml import trainer
 from ad_nids.config import config_dumps
 from ad_nids.dataset import Dataset
 from ad_nids.utils.logging import log_experiment, log_plot_prf1_curve,\
@@ -180,7 +180,3 @@ def run_aegmm(config, log_dir, do_plot_frontier=False):
             log_plot_frontier(log_dir, od, X_threshold, y_threshold, X_test, y_test)
         else:
             logging.warning(f"Cannot plot frontier for {input_dim} dims")
-
-
-if __name__ == '__main__':
-    run_experiments(run_aegmm)

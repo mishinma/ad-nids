@@ -4,24 +4,29 @@ import logging
 
 from timeit import default_timer as timer
 
+
 import numpy as np
+import tensorflow as tf
+
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
+from sklearn.model_selection import train_test_split
 
-from alibi_detect.od import IForest
+from alibi_detect.od import OutlierVAE
+from alibi_detect.models.losses import elbo
 
-from ad_nids.ml import run_experiments
+from ad_nids.ml import build_vae, trainer
 from ad_nids.config import config_dumps
 from ad_nids.dataset import Dataset
-from ad_nids.utils.logging import log_experiment, \
-    log_plot_prf1_curve, log_plot_frontier, log_plot_instance_score, log_preds
-from ad_nids.utils.metrics import precision_recall_curve_scores, select_threshold
+from ad_nids.utils.logging import log_experiment, log_plot_prf1_curve,\
+    log_plot_frontier, log_plot_instance_score, log_preds
+from ad_nids.utils.metrics import precision_recall_curve_scores, select_threshold, cov_elbo_type
 
-EXPERIMENT_NAME = 'if'
+EXPERIMENT_NAME = 'vae'
 DEFAULT_CONTAM_PERCS = np.array([0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.5, 1, 2, 3, 5, 10])
 
 
-def run_if(config, log_dir, do_plot_frontier=False):
+def run_vae(config, log_dir, do_plot_frontier=False):
     logging.info(f'Starting {config["config_name"]}')
     logging.info(config_dumps(config))
 
@@ -36,39 +41,53 @@ def run_if(config, log_dir, do_plot_frontier=False):
     dataset = Dataset.from_path(config['dataset_path'])
 
     normal_batch = dataset.create_outlier_batch(train=True, perc_outlier=0)
-    X_train, y_train = normal_batch.data.astype('float'), normal_batch.target
+    X_train, y_train = normal_batch.data.astype(np.float32), normal_batch.target
+    X_train, X_val = train_test_split(X_train, test_size=0.1)
+
     scaler = None
     if config['data_standardization']:
         scaler = StandardScaler().fit(X_train)
         X_train = scaler.transform(X_train)
+        X_val = scaler.transform(X_val)
 
     # Create a directory to store experiment logs
-    logging.info('Created a new log directory')
+    logging.info('Created a new log directory\n')
     logging.info(f'{log_dir}\n')
+    logging.info(f'\n >>> tensorboard --host 0.0.0.0 --port 8888 --logdir {log_dir}\n')
 
     # Train the model on normal data
     logging.info('Fitting the model...')
     se = timer()
-    od = IForest(threshold=0.0, n_estimators=config['n_estimators'])
-    od.fit(X_train)
+    input_dim = X_train.shape[1]
+    vae = build_vae(config['hidden_dim'], config['latent_dim'],
+                    config['num_hidden'], input_dim)
+    od = OutlierVAE(threshold=0.0, vae=vae, score_type='mse',
+                    latent_dim=config['latent_dim'], samples=config['samples'])
+    optimizer = tf.keras.optimizers.Adam(learning_rate=config['learning_rate'])
+
+    loss_fn_kwargs = {}
+    loss_fn_kwargs.update(cov_elbo_type(cov_elbo=dict(sim=.1), X=X_train))
+    trainer(od.vae, elbo, X_train, X_val=X_val, loss_fn_kwargs=loss_fn_kwargs,
+            epochs=config['num_epochs'], batch_size=config['batch_size'],
+            optimizer=optimizer, log_dir=log_dir)
     time_fit = timer() - se
     logging.info(f'Done: {time_fit}')
 
     # Compute the anomaly scores for train with anomalies
     # Select a threshold that maximises F1 Score
     threshold_batch = dataset.create_outlier_batch(train=True, scaler=scaler)
-    X_threshold, y_threshold = threshold_batch.data.astype('float'), threshold_batch.target
+    X_threshold, y_threshold = threshold_batch.data.astype(np.float32), threshold_batch.target
     logging.info(f'Selecting the optimal threshold...')
     se = timer()
-    X_threshold_pred = od.predict(X_threshold)
-    score_threshold = X_threshold_pred['data']['instance_score']
+    X_threshold_pred = od.predict(X_threshold)  # feature and instance lvl
+    iscore_threshold = X_threshold_pred['data']['instance_score']
     train_prf1_curve = precision_recall_curve_scores(
-        y_threshold, score_threshold, 100 - DEFAULT_CONTAM_PERCS)
+        y_threshold, iscore_threshold, 100 - DEFAULT_CONTAM_PERCS)
     best_threshold = select_threshold(
         train_prf1_curve['thresholds'],
         train_prf1_curve['f1scores'])
     od.threshold = best_threshold
-    y_threshold_pred = (score_threshold > od.threshold).astype(int)
+    y_threshold_pred = (iscore_threshold > od.threshold).astype(int)
     X_threshold_pred['data']['is_outlier'] = y_threshold_pred
     time_score_train = timer() - se
 
@@ -80,7 +99,7 @@ def run_if(config, log_dir, do_plot_frontier=False):
     # Compute anomaly scores for test
     logging.info('Computing test anomaly scores...')
     test_batch = dataset.create_outlier_batch(train=False, scaler=scaler)
-    X_test, y_test = test_batch.data.astype('float'), test_batch.target
+    X_test, y_test = test_batch.data.astype(np.float32), test_batch.target
     se = timer()
     X_test_pred = od.predict(X_test)
     y_test_pred = X_test_pred['data']['is_outlier']
@@ -105,9 +124,10 @@ def run_if(config, log_dir, do_plot_frontier=False):
     # Log everything
     logging.info(f'Logging the results\n')
     log_experiment(log_dir, od, eval_results)
+    log_plot_prf1_curve(log_dir, train_prf1_curve)
     log_preds(log_dir, 'test', X_test_pred, y_test)
     # log_preds(log_dir, 'train', X_threshold_pred, y_threshold)
-    log_plot_prf1_curve(log_dir, train_prf1_curve)
+
     # ToDo: subsample
     log_plot_instance_score(log_dir, X_test_pred, y_test, od.threshold,
                             labels=test_batch.target_names)
@@ -117,7 +137,3 @@ def run_if(config, log_dir, do_plot_frontier=False):
             log_plot_frontier(log_dir, od, X_threshold, y_threshold, X_test, y_test)
         else:
             logging.warning(f"Cannot plot frontier for {input_dim} dims")
-
-
-if __name__ == '__main__':
-    run_experiments(run_if)

@@ -1,5 +1,4 @@
 
-import shutil
 import logging
 
 from timeit import default_timer as timer
@@ -13,10 +12,10 @@ from sklearn.model_selection import train_test_split
 
 from alibi_detect.od import OutlierAE
 
-from ad_nids.ml import build_ae, run_experiments, trainer
+from ad_nids.ml import build_ae, trainer
 from ad_nids.config import config_dumps
 from ad_nids.dataset import Dataset
-from ad_nids.utils.logging import get_log_dir, log_experiment, log_plot_prf1_curve,\
+from ad_nids.utils.logging import log_experiment, log_plot_prf1_curve,\
     log_plot_frontier, log_plot_instance_score, log_preds
 from ad_nids.utils.metrics import precision_recall_curve_scores, select_threshold
 
@@ -27,7 +26,7 @@ np.random.seed(42)
 tf.random.set_seed(42)
 
 
-def run_ae_val(config, log_dir, do_plot_frontier=False):
+def run_ae(config, log_dir, do_plot_frontier=False):
     logging.info(f'Starting {config["config_name"]}')
     logging.info(config_dumps(config))
 
@@ -135,6 +134,3 @@ def run_ae_val(config, log_dir, do_plot_frontier=False):
         else:
             logging.warning(f"Cannot plot frontier for {input_dim} dims")
 
-
-if __name__ == '__main__':
-    run_experiments(run_ae_val)

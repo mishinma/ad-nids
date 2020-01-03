@@ -23,12 +23,12 @@ with open(templates_path/'dataset.html', 'r') as f:
     DATASET = f.read()
 
 
-CONFIG_NOREPORT_FIELDS = {
+CONFIG_NOREPORT_FIELDS = [
     'experiment_name',
-    'config_name',
+    'experiment_run_fn',
     'dataset_name',
-    'dataset_path'
-}
+    'dataset_path',
+]
 
 
 def performance_asdict(cm, prf1s):
@@ -227,8 +227,7 @@ def create_datasets_report(log_paths, static_path):
 
         dataset_configs = [logs[1] for logs in dataset2logs[dataset_name]]
         dataset_configs_frame = pd.DataFrame.from_records(dataset_configs).set_index('config_name')
-        dataset_configs_frame = dataset_configs_frame.drop(
-            ['dataset_path', 'dataset_name', 'experiment_name'], axis=1)
+        dataset_configs_frame = dataset_configs_frame.drop(CONFIG_NOREPORT_FIELDS, axis=1)
         dataset_report = dataset_report.replace('{{CONFIGS_TABLE}}', dataset_configs_frame.to_html())
 
         dataset_reports.append(dataset_report)
@@ -257,7 +256,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("log_root_path", type=str,
                         help="log directory")
-    parser.add_argument("--report_path", type=str, default=None,
+    parser.add_argument("report_path", type=str,
                         help="report directory")
     parser.add_argument("-l", "--logging", type=str, default='INFO',
                         help="logging level")

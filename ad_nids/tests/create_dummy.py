@@ -1,5 +1,6 @@
 
 import logging
+import shutil
 from pathlib import Path
 
 import numpy as np
@@ -103,18 +104,17 @@ exp_params_root_path = DUMMY_PATH/'exp_params'
 exp_params_root_path.mkdir(parents=True, exist_ok=True)
 
 config_root_path = DUMMY_PATH/'config'
-config_root_path.mkdir(parents=True, exist_ok=True)
+if config_root_path.exists():
+    shutil.rmtree(config_root_path)
+config_root_path.mkdir(parents=True)
 
 for exp_name, exp_params_str in EXP_PARAMS.items():
 
-    config_exp_path = config_root_path / exp_name
     exp_params_path = (exp_params_root_path / exp_name).with_suffix('.csv')
-
-    if config_exp_path.exists():
-        logging.warning(f'Experiment params {exp_name} already created')
-        continue
 
     with open(exp_params_path, 'w') as f:
         f.write(exp_params_str)
 
-    create_configs(exp_params_path, dataset_paths, config_exp_path)
+    exp_fn_name = f'run_{exp_name}'
+
+    create_configs(exp_params_path, dataset_paths, config_root_path, exp_fn_name)

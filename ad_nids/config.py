@@ -29,7 +29,7 @@ def read_exp_params_csv(params_path):
     return exp_name, exp_params
 
 
-def create_configs(exp_params_path, dataset_paths, config_exp_path):
+def create_configs(exp_params_path, dataset_paths, config_exp_path, exp_run_fn):
 
     exp_name, exp_params = read_exp_params_csv(exp_params_path)
     config_exp_path = Path(config_exp_path).resolve()
@@ -41,6 +41,7 @@ def create_configs(exp_params_path, dataset_paths, config_exp_path):
             conf = dict(
                 config_name='conf_{}_{:03d}'.format(uniq_str, idx),
                 experiment_name=exp_name,
+                experiment_run_fn=exp_run_fn,
                 dataset_name=str(dataset_path.name),
                 dataset_path=str(dataset_path),
             )
@@ -49,8 +50,8 @@ def create_configs(exp_params_path, dataset_paths, config_exp_path):
 
     configs = pd.DataFrame.from_records(configs)
 
-    config_exp_path.mkdir(parents=True)
-    configs.to_csv(config_exp_path/'configs.csv', index=None)
+    config_exp_path.mkdir(parents=True, exist_ok=True)
+    # configs.to_csv(config_exp_path/'configs.csv', index=None)
     for _, conf in configs.iterrows():
         conf = conf.to_dict()
         logging.debug(json.dumps(conf, indent=4) + '\n')
@@ -68,9 +69,10 @@ if __name__ == '__main__':
                         help="data root path")
     parser.add_argument("config_exp_path", type=str,
                         help="output config directory")
+    parser.add_argument("exp_run_fn", type=str,
+                        help="experiment run function")
     parser.add_argument("-l", "--logging", type=str, default='INFO',
                         help="logging level")
-
     args = parser.parse_args()
 
     loglevel = getattr(logging, args.logging.upper(), None)
@@ -83,4 +85,4 @@ if __name__ == '__main__':
         dataset_paths = [p for p in data_root_path.iterdir()
                          if Dataset.is_dataset(p)]
 
-    create_configs(args.exp_params_path, dataset_paths, args.config_exp_path)
+    create_configs(args.exp_params_path, dataset_paths, args.config_exp_path, args.exp_run_fn)
