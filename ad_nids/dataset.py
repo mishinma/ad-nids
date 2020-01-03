@@ -94,6 +94,11 @@ class Dataset:
         if create_hash:
             self._create_hash()
 
+    @staticmethod
+    def is_dataset(some_path):
+        some_path = Path(some_path)
+        return (some_path/'train.csv').exists() and (some_path/'test.csv').exists()
+
     @classmethod
     def from_path(cls, dataset_path):
 

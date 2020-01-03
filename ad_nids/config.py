@@ -7,6 +7,8 @@ from uuid import uuid4
 
 import pandas as pd
 
+from ad_nids.dataset import Dataset
+
 
 LOG_SHOW_PARAMS = ['dataset_name', 'algorithm', 'model_parameters',
                    'data_standardization', 'lr', 'num_epochs', 'optimizer']
@@ -75,6 +77,10 @@ if __name__ == '__main__':
     logging.basicConfig(level=loglevel)
 
     data_root_path = Path(args.data_root_path).resolve()
-    dataset_paths = list(data_root_path.iterdir())
+    if Dataset.is_dataset(data_root_path):
+        dataset_paths = [data_root_path]
+    else:
+        dataset_paths = [p for p in data_root_path.iterdir()
+                         if Dataset.is_dataset(p)]
 
     create_configs(args.exp_params_path, dataset_paths, args.config_exp_path)
