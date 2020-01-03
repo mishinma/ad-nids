@@ -24,7 +24,6 @@ with open(templates_path/'dataset.html', 'r') as f:
 
 
 CONFIG_NOREPORT_FIELDS = [
-    'experiment_name',
     'experiment_run_fn',
     'dataset_name',
     'dataset_path',
@@ -137,6 +136,8 @@ def create_datasets_report(log_paths, static_path):
         dataset2logs.setdefault(config['dataset_name'], []).append((log_path, config))
 
     dataset_names_sorted = sorted(dataset2logs.keys())
+    for logs in dataset2logs.values():
+        logs.sort(key=lambda l: l[1]['experiment_name'])
     dataset_reports = []
 
     for dataset_name in dataset_names_sorted:
@@ -164,9 +165,9 @@ def create_datasets_report(log_paths, static_path):
                 # Path to dataset visualization
                 dataset_img = Path(config['dataset_path']) / 'data.png'
 
+            exp_name = config['experiment_name']
             config_name = config['config_name']
             if results:
-                model_name = results['model_name']
                 time_fit = round(results['time_fit'], 2)
                 time_score_train = round(results['time_score_train'], 2)
                 time_score_test = round(results['time_score_test'], 2)
@@ -175,14 +176,14 @@ def create_datasets_report(log_paths, static_path):
                 test_perf = performance_asdict(results['test_cm'],
                                                results['test_prf1s'])
                 exp = [
-                    config_name, model_name, time_fit,
+                    config_name, exp_name, time_fit,
                     time_score_train, train_perf['tp'], train_perf['fp'], train_perf['fn'],
                     train_perf['precision'], train_perf['recall'], train_perf['f1score'],
                     time_score_test, test_perf['tp'], test_perf['fp'], test_perf['fn'],
                     test_perf['precision'], test_perf['recall'], test_perf['f1score']
                 ]
             else:
-                exp = [config_name] + [None]*16
+                exp = [config_name, exp_name] + [None]*15
 
             experiments.append(exp)
 
@@ -226,9 +227,13 @@ def create_datasets_report(log_paths, static_path):
             dataset_report = dataset_report.replace('{{DATASET_IMG}}', str(static_img_path))
 
         dataset_configs = [logs[1] for logs in dataset2logs[dataset_name]]
+        configs_html = ''
         dataset_configs_frame = pd.DataFrame.from_records(dataset_configs).set_index('config_name')
-        dataset_configs_frame = dataset_configs_frame.drop(CONFIG_NOREPORT_FIELDS, axis=1)
-        dataset_report = dataset_report.replace('{{CONFIGS_TABLE}}', dataset_configs_frame.to_html())
+        for _, configs_grp in dataset_configs_frame.groupby('experiment_name'):
+            configs_grp = configs_grp.drop(CONFIG_NOREPORT_FIELDS, axis=1)
+            configs_grp = configs_grp.dropna(axis=1)
+            configs_html += configs_grp.to_html() + '\n<br>\n'
+        dataset_report = dataset_report.replace('{{CONFIGS_TABLE}}', configs_html)
 
         dataset_reports.append(dataset_report)
 
