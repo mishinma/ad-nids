@@ -34,7 +34,7 @@ test_df['lbl'] = y_test
 meta = dict(
     name='KDDCUP99_033',
     test_size=0.33,
-    percent10=True
+    percent10=args.percent10
 )
 
 dataset = Dataset(train_df, test_df, meta=meta)
