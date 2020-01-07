@@ -12,10 +12,10 @@ from ad_nids.utils.logging import get_log_dir, log_config
 
 def run_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument("config_exp_path", type=str,
-                        help="directory with config files")
     parser.add_argument("log_exp_path", type=str,
                         help="log directory")
+    parser.add_argument("--config_path", type=str, default=None,
+                        help="directory with config files")
     parser.add_argument("--report_path", type=str, default=None,
                         help="report directory")
     parser.add_argument("--load", action="store_true",
@@ -32,11 +32,6 @@ def runner():
 
     loglevel = getattr(logging, args.logging.upper(), None)
     logging.basicConfig(level=loglevel)
-
-    config_exp_path = Path(args.config_exp_path).resolve()
-    config_paths = [p for p in config_exp_path.iterdir()
-                    if p.suffix == '.json']
-
     log_exp_path = Path(args.log_exp_path).resolve()
 
     if args.contam_percs is not None:
@@ -44,23 +39,54 @@ def runner():
     else:
         contam_percs = None
 
-    for config_path in config_paths:
-        with open(config_path, 'r') as f:
-            config = json.load(f)
-        try:
-            run_fn = getattr(experiments, config['experiment_run_fn'])
-        except AttributeError as e:
-            logging.error(f"No such function "
-                          f"{config['experiment_run_fn']}")
-            continue
-        log_path = get_log_dir(log_exp_path, config["config_name"])
-        log_path.mkdir(parents=True)
-        try:
-            run_fn(config, log_path, do_plot_frontier=True,
-                   contam_percs=contam_percs, load_outlier_detctor=args.load)
-        except Exception as e:
-            logging.error(e)
-        log_config(log_path, config)
+    if not args.load:
+
+        config_exp_path = Path(args.config_path).resolve()
+        config_paths = [p for p in config_exp_path.iterdir()
+                        if p.suffix == '.json']
+
+        for config_path in config_paths:
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+            try:
+                run_fn = getattr(experiments, config['experiment_run_fn'])
+            except AttributeError as e:
+                logging.error(f"No such function "
+                              f"{config['experiment_run_fn']}")
+                continue
+            log_path = get_log_dir(log_exp_path, config["config_name"])
+            log_path.mkdir(parents=True)
+            log_config(log_path, config)
+
+            try:
+                run_fn(config, log_path, do_plot_frontier=True, contam_percs=contam_percs)
+            except Exception as e:
+                logging.exception(e)
+
+    else:
+        # Re-evaluate existing log directories
+
+        for log_path in log_exp_path.iterdir():
+            try:
+                with open(log_path/'config.json', 'r') as f:
+                    config = json.load(f)
+            except Exception as e:
+                logging.exception('Could not load config')
+                continue
+
+            try:
+                run_fn = getattr(experiments, config['experiment_run_fn'])
+            except AttributeError as e:
+                logging.error(f"No such function "
+                              f"{config['experiment_run_fn']}")
+                continue
+
+            try:
+                run_fn(config, log_path, do_plot_frontier=True,
+                       contam_percs=contam_percs, load_outlier_detector=args.load)
+            except Exception as e:
+                logging.exception(e)
+
 
     if args.report_path is not None:
 
