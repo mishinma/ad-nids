@@ -6,10 +6,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
-from alibi_detect.utils.saving import save_detector
 from alibi_detect.utils.visualize import plot_instance_score
 from ad_nids.utils.metrics import get_frontier
-from ad_nids.utils.misc import jsonify
 from ad_nids.utils.plot import plot_precision_recall, \
     plot_f1score, plot_data_2d, plot_frontier
 
@@ -32,15 +30,6 @@ def log_config(log_dir, config):
         str(dataset_path/'meta.json'),
         str(log_dir/'dataset_meta.json')
     )
-
-
-def log_experiment(log_dir, detector,
-                   eval_results):
-
-    save_detector(detector, str(log_dir/'detector'))
-
-    with open(log_dir/'eval_results.json', 'w') as f:
-        json.dump(jsonify(eval_results), f)
 
 
 def log_preds(log_dir, subset, preds, gt):

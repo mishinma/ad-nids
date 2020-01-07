@@ -1,5 +1,5 @@
 
-import shutil
+import json
 import logging
 
 from timeit import default_timer as timer
@@ -9,18 +9,20 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
 
 from alibi_detect.od import IForest
+from alibi_detect.utils.saving import load_detector, save_detector
 
 from ad_nids.config import config_dumps
 from ad_nids.dataset import Dataset
-from ad_nids.utils.logging import log_experiment, \
-    log_plot_prf1_curve, log_plot_frontier, log_plot_instance_score, log_preds
+from ad_nids.utils.misc import jsonify
+from ad_nids.utils.logging import log_plot_prf1_curve,\
+    log_plot_frontier, log_plot_instance_score
 from ad_nids.utils.metrics import precision_recall_curve_scores, select_threshold
 
 EXPERIMENT_NAME = 'if'
-DEFAULT_CONTAM_PERCS = np.array([0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.5, 1, 2, 3, 5, 10])
+DEFAULT_CONTAM_PERCS = [0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.5, 1, 2, 3, 5, 10]
 
 
-def run_if(config, log_dir, do_plot_frontier=False):
+def run_if(config, log_dir, do_plot_frontier=False, contam_percs=None, load_outlier_detector=False):
     logging.info(f'Starting {config["config_name"]}')
     logging.info(config_dumps(config))
 
@@ -45,13 +47,25 @@ def run_if(config, log_dir, do_plot_frontier=False):
     logging.info('Created a new log directory')
     logging.info(f'{log_dir}\n')
 
-    # Train the model on normal data
-    logging.info('Fitting the model...')
-    se = timer()
-    od = IForest(threshold=0.0, n_estimators=config['n_estimators'])
-    od.fit(X_train)
-    time_fit = timer() - se
-    logging.info(f'Done: {time_fit}')
+    if load_outlier_detector:
+        # Load the model
+        logging.info('Loading the model...')
+        try:
+            od = load_detector(str(log_dir/'detector'))
+            # fetch the time it took to fit the model
+            with open(log_dir / 'eval_results.json', 'r') as f:
+                time_fit = json.load(f)['time_fit']
+        except Exception as e:
+            logging.exception("Could not load the detector")
+            raise e
+    else:
+        # Train the model on normal data
+        logging.info('Fitting the model...')
+        se = timer()
+        od = IForest(threshold=0.0, n_estimators=config['n_estimators'])
+        od.fit(X_train)
+        time_fit = timer() - se
+        logging.info(f'Done: {time_fit}')
 
     # Compute the anomaly scores for train with anomalies
     # Select a threshold that maximises F1 Score
@@ -61,8 +75,11 @@ def run_if(config, log_dir, do_plot_frontier=False):
     se = timer()
     X_threshold_pred = od.predict(X_threshold)
     score_threshold = X_threshold_pred['data']['instance_score']
+    if contam_percs is None:
+        contam_percs = DEFAULT_CONTAM_PERCS
+    contam_percs = np.array(contam_percs)
     train_prf1_curve = precision_recall_curve_scores(
-        y_threshold, score_threshold, 100 - DEFAULT_CONTAM_PERCS)
+        y_threshold, score_threshold, 100 - contam_percs)
     best_threshold = select_threshold(
         train_prf1_curve['thresholds'],
         train_prf1_curve['f1scores'])
@@ -103,8 +120,11 @@ def run_if(config, log_dir, do_plot_frontier=False):
 
     # Log everything
     logging.info(f'Logging the results\n')
-    log_experiment(log_dir, od, eval_results)
-    log_preds(log_dir, 'test', X_test_pred, y_test)
+    if not load_outlier_detector:
+        save_detector(od, str(log_dir / 'detector'))
+    with open(log_dir / 'eval_results.json', 'w') as f:
+        json.dump(jsonify(eval_results), f)
+    # log_preds(log_dir, 'test', X_test_pred, y_test)
     # log_preds(log_dir, 'train', X_threshold_pred, y_threshold)
     log_plot_prf1_curve(log_dir, train_prf1_curve)
     # ToDo: subsample
