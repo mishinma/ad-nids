@@ -1,9 +1,9 @@
 FROM python:3.7-buster
 
 RUN apt-get update
-RUN apt-get -y install screen zip git python3-dev
+RUN apt-get -y install screen zip git python3-dev nano
 
-RUN pip install git+git://github.com/mishinma/alibi-detect.git
+RUN pip install --no-cache-dir git+git://github.com/mishinma/alibi-detect.git
 
 WORKDIR /home
 
