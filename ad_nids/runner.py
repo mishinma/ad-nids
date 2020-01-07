@@ -18,8 +18,9 @@ def run_parser():
                         help="log directory")
     parser.add_argument("--report_path", type=str, default=None,
                         help="report directory")
-    parser.add_argument("--idle", action="store_true",
-                        help="do not run the experiments")
+    parser.add_argument("--load", action="store_true",
+                        help="load_outlier detector")
+    parser.add_argument("--contam_percs", default=None)
     parser.add_argument("-l", "--logging", type=str, default='INFO',
                         help="logging level")
     return parser
@@ -37,23 +38,29 @@ def runner():
                     if p.suffix == '.json']
 
     log_exp_path = Path(args.log_exp_path).resolve()
-    if not args.idle:
-        for config_path in config_paths:
-            with open(config_path, 'r') as f:
-                config = json.load(f)
-            try:
-                run_fn = getattr(experiments, config['experiment_run_fn'])
-            except AttributeError as e:
-                logging.error(f"No such function "
-                              f"{config['experiment_run_fn']}")
-                continue
-            log_path = get_log_dir(log_exp_path, config["config_name"])
-            log_path.mkdir(parents=True)
-            try:
-                run_fn(config, log_path, do_plot_frontier=True)
-            except Exception as e:
-                logging.error(e)
-            log_config(log_path, config)
+
+    if args.contam_percs is not None:
+        contam_percs = json.loads(args.contam_percs)
+    else:
+        contam_percs = None
+
+    for config_path in config_paths:
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+        try:
+            run_fn = getattr(experiments, config['experiment_run_fn'])
+        except AttributeError as e:
+            logging.error(f"No such function "
+                          f"{config['experiment_run_fn']}")
+            continue
+        log_path = get_log_dir(log_exp_path, config["config_name"])
+        log_path.mkdir(parents=True)
+        try:
+            run_fn(config, log_path, do_plot_frontier=True,
+                   contam_percs=contam_percs, load_outlier_detctor=args.load)
+        except Exception as e:
+            logging.error(e)
+        log_config(log_path, config)
 
     if args.report_path is not None:
 
