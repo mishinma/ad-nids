@@ -6,4 +6,3 @@ json2html
 scikit-learn
 scipy
 tqdm
-torch
