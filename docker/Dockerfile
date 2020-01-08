@@ -8,6 +8,6 @@ RUN pip install --no-cache-dir git+git://github.com/mishinma/alibi-detect.git
 WORKDIR /home
 
 COPY . ad-nids
-RUN pip install -r ad-nids/requirements.txt
+RUN pip install -r ad-nids/requirements/requirements.txt
+RUN pip install -r ad-nids/requirements/requirements_notebooks.txt
 RUN pip install -e ad-nids
-RUN pip install jupyter
