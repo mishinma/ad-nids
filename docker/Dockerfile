@@ -10,3 +10,4 @@ WORKDIR /home
 COPY . ad-nids
 RUN pip install -r ad-nids/requirements.txt
 RUN pip install -e ad-nids
+RUN pip install jupyter
