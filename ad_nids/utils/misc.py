@@ -49,3 +49,12 @@ def jsonify(data):
         json_data = data
 
     return json_data
+
+
+def sample_df(df, n):
+    """ Sample n instances from the dataframe df. """
+    if n < df.shape[0]+1:
+        replace = False
+    else:
+        replace = True
+    return df.sample(n=n, replace=replace)

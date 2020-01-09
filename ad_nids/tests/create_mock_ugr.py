@@ -6,7 +6,7 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 
-from ad_nids.process.ugr import split_ugr_flows
+from ad_nids.process.datasets.ugr import split_ugr_flows
 from ad_nids.process.columns import UGR_COLUMNS
 
 RANDOM_SEED = 42
