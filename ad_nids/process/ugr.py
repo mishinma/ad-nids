@@ -95,7 +95,7 @@ def format_ugr_flows(flows):
     return flows
 
 
-def create_ugr_dataset(aggr_path, train_dates, test_dates, frequency='T'):
+def create_aggr_ugr_dataset(aggr_path, train_dates, test_dates, frequency='T'):
 
     aggr_path = Path(aggr_path).resolve()
 
@@ -132,8 +132,8 @@ def create_ugr_dataset(aggr_path, train_dates, test_dates, frequency='T'):
     return Dataset(train, test, train_meta, test_meta, meta)
 
 
-def process_ugr_data(split_root_path, aggr_path, processes=-1,
-                     frequency='T', exist_ok=True):
+def aggregate_ugr_data(split_root_path, aggr_path, processes=-1,
+                       frequency='T', exist_ok=True):
 
     split_root_path = Path(split_root_path).resolve()
     aggr_path = Path(aggr_path).resolve()
@@ -190,9 +190,9 @@ if __name__ == '__main__':
     test_dates = TEST_DATES
 
     aggr_dir = args.aggr_dir if args.aggr_dir else args.root_dir
-    process_ugr_data(args.root_dir, aggr_dir,
-                     processes=args.processes, frequency=args.frequency)
-    dataset = create_ugr_dataset(
+    aggregate_ugr_data(args.root_dir, aggr_dir,
+                       processes=args.processes, frequency=args.frequency)
+    dataset = create_aggr_ugr_dataset(
         aggr_dir, train_dates=train_dates,
         test_dates=test_dates, frequency=args.frequency
     )

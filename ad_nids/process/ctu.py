@@ -29,8 +29,8 @@ def format_ctu_flows(flows):
     return flows
 
 
-def process_ctu_data(root_path, aggr_path, processes=-1,
-                     frequency='T', exist_ok=True):
+def aggregate_ctu_data(root_path, aggr_path, processes=-1,
+                       frequency='T', exist_ok=True):
 
     if processes == -1:
         processes = mp.cpu_count() - 1
@@ -69,7 +69,7 @@ def process_ctu_data(root_path, aggr_path, processes=-1,
         logging.info("Done {0:.2f}".format(time.time() - start_time))
 
 
-def create_ctu_dataset(aggr_path, train_scenarios, test_scenarios, frequency='T'):
+def create_aggr_ctu_dataset(aggr_path, train_scenarios, test_scenarios, frequency='T'):
 
     aggr_path = Path(aggr_path).resolve()
 
@@ -114,9 +114,9 @@ if __name__ == '__main__':
     test_scenarios = ['3']
 
     aggr_dir = args.aggr_dir if args.aggr_dir else args.root_dir
-    process_ctu_data(args.root_dir, aggr_dir,
-                     args.processes, args.frequency)
-    dataset = create_ctu_dataset(
+    aggregate_ctu_data(args.root_dir, aggr_dir,
+                       args.processes, args.frequency)
+    dataset = create_aggr_ctu_dataset(
         args.root_dir, train_scenarios=train_scenarios,
         test_scenarios=test_scenarios, frequency=args.frequency
     )
