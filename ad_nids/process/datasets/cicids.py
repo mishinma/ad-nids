@@ -103,5 +103,5 @@ def create_mock_cicids(dataset_path, mock_dataset_path, mock_dates=None,
         flows_attack_sample = sample_df(flows_attack, num_attack_sample)
         flows_normal_sample = sample_df(flows_normal, num_normal_sample)
         flows_sample = pd.concat([flows_attack_sample, flows_normal_sample])
-        flows_sample = flows_sample.sort_values('Timestamp')
+        flows_sample = flows_sample.sort_values('timestamp')
         flows_sample.to_csv(mock_processed_path/path.name, index=False)
