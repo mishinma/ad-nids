@@ -69,9 +69,7 @@ def cleanup_cidids(dataset_path):
     for path in dataset_path.iterdir():
 
         flows = pd.read_csv(path)
-        bad_rows = list(
-            flows[flows['Protocol'] == 'Protocol'].index
-        )
+        bad_rows = flows.index[flows['Protocol'].astype(str).str.isalpha()]
         flows = flows.drop(bad_rows).reset_index()
 
         flows = flows[CIC_IDS_ORIG_COLUMNS]
