@@ -16,8 +16,8 @@ from alibi_detect.utils.data import create_outlier_batch
 from ad_nids.utils import plot_data_2d
 
 
-def create_meta(dataset_name, train_split, test_split, frequency,
-                features, name=None, notes=None):
+def create_meta(dataset_name, train_split, test_split, frequency=None,
+                features=None, name=None, notes=None):
 
     if notes is None:
         notes = ''

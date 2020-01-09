@@ -162,3 +162,21 @@ CIC_IDS_ORIG_COLUMNS = [
     'Idle Min',
     'Label'
 ]
+
+
+CIC_IDS_ATTACK_LABELS = [
+    'Bot',
+    'Brute Force -Web',
+    'Brute Force -XSS',
+    'DDOS attack-HOIC',
+    'DDOS attack-LOIC-UDP',
+    'DDoS attacks-LOIC-HTTP',
+    'DoS attacks-GoldenEye',
+    'DoS attacks-Hulk',
+    'DoS attacks-SlowHTTPTest',
+    'DoS attacks-Slowloris',
+    'FTP-BruteForce',
+    'Infilteration',
+    'SQL Injection',
+    'SSH-Bruteforce'
+]

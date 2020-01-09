@@ -21,6 +21,10 @@ def yyyy_mm_dd2mmdd(dates):
     return [datetime.strptime(d, '%Y-%m-%d').strftime('%m%d') for d in dates]
 
 
+def dd_mm_yyyy2mmdd(dates):
+    return [datetime.strptime(d, '%m-%d-%Y').strftime('%m%d') for d in dates]
+
+
 def int_to_roman(input):
     """ Convert an integer to a Roman numeral. """
 
