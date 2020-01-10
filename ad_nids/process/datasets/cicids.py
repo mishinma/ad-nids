@@ -77,7 +77,8 @@ def cleanup_cidids(dataset_path):
 
         # Fill na
         flows['flow_byts_s'] = flows['flow_byts_s'].fillna(0.0).astype(np.float64)
-        flows['flow_pkts_s'] = flows['flow_pkts_s'].astype(np.float64)
+        flows['flow_pkts_s'] = flows['flow_pkts_s'].replace([np.inf, -np.inf], np.nan)\
+            .fillna(0.0).astype(np.float64)
 
         assert not flows.isnull().values.any()
         flows.to_csv(path, index=False)
@@ -134,13 +135,13 @@ def create_cicids_dataset(dataset_path, train_dates, test_dates):
     train_meta = train.loc[:, meta_columns]
     train = train.drop(meta_columns, axis=1)
     train['target'] = 0
-    train['target'][train_meta['label'].isin(CIC_IDS_ATTACK_LABELS)] = 1
+    train.loc[train_meta['label'].isin(CIC_IDS_ATTACK_LABELS), 'target'] = 1
 
     test = pd.concat([pd.read_csv(p) for p in test_paths])
     test_meta = test.loc[:, meta_columns]
     test = test.drop(meta_columns, axis=1)
     test['target'] = 0
-    test['target'][test_meta['label'].isin(CIC_IDS_ATTACK_LABELS)] = 1
+    test.loc[test_meta['label'].isin(CIC_IDS_ATTACK_LABELS), 'target'] = 1
 
     logging.info("Done")
 
