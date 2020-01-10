@@ -1,4 +1,5 @@
 import json
+import shutil
 import zipfile
 import hashlib
 import logging
@@ -6,7 +7,6 @@ import logging
 from pathlib import Path
 from uuid import uuid4
 
-import numpy as np
 import pandas as pd
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
@@ -194,7 +194,7 @@ class Dataset:
         batch = create_outlier_batch(data, targets, n_samples=1000, perc_outlier=10)
 
         X, y = batch.data.astype('float32'), batch.target.astype('bool')
-        num_dims = X.shape[0]
+        num_dims = X.shape[1]
 
         if num_dims > 2:
             X = TSNE(n_components=2).fit_transform(X)
@@ -240,12 +240,15 @@ class Dataset:
         if visualize:
             logging.info('Visualizing the data')
             fig, ax = plt.subplots(1, 2)
-            self.visualize(ax[0], train=True)
-            self.visualize(ax[1], train=False)
+            try:
+                self.visualize(ax[0], train=True)
+                self.visualize(ax[1], train=False)
+            except Exception as e:
+                logging.exception("Failed to visualize_data")
             fig.savefig(dataset_path / 'data.png')
             plt.close()
 
-        # if archive:
-        #     logging.info('Compressing the data')
-        #     shutil.make_archive(dataset_path, 'zip', root_path, self.name)
-        #     # shutil.rmtree(dataset_path)
+        if archive:
+            logging.info('Compressing the data')
+            shutil.make_archive(dataset_path, 'zip', root_path, self.name)
+
