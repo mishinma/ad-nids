@@ -4,6 +4,7 @@ import shutil
 import uuid
 import logging
 import json
+import numpy as np
 from pathlib import Path
 
 import pandas as pd
@@ -32,10 +33,7 @@ CONFIG_NOREPORT_FIELDS = [
 
 def performance_asdict(cm, prf1s):
 
-    tp = cm[1][1]
-    fp = cm[0][1]
-    fn = cm[1][0]
-    tn = cm[0][0]
+    tn, fp, fn, tp = np.array(cm).ravel()
 
     p = tp + fn
     n = tn + fp
