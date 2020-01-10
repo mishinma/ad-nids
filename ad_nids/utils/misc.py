@@ -22,7 +22,7 @@ def yyyy_mm_dd2mmdd(dates):
 
 
 def dd_mm_yyyy2mmdd(dates):
-    return [datetime.strptime(d, '%m-%d-%Y').strftime('%m%d') for d in dates]
+    return [datetime.strptime(d, '%d-%m-%Y').strftime('%m%d') for d in dates]
 
 
 def int_to_roman(input):
