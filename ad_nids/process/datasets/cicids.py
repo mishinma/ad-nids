@@ -76,10 +76,10 @@ def cleanup_cidids(dataset_path):
         flows = flows.rename({c: format_col(c) for c in flows.columns}, axis=1)
 
         # Fill na
-        flows['flow_byts_s'] = flows['flow_byts_s'].replace([np.inf, -np.inf], np.nan)\
-            .fillna(0.0).astype(np.float64)
-        flows['flow_pkts_s'] = flows['flow_pkts_s'].replace([np.inf, -np.inf], np.nan)\
-            .fillna(0.0).astype(np.float64)
+        flows['flow_byts_s'] = flows['flow_byts_s'].astype(np.float64)\
+            .replace([np.inf, -np.inf], np.nan).fillna(0.0)
+        flows['flow_pkts_s'] = flows['flow_pkts_s'].astype(np.float64)\
+            .replace([np.inf, -np.inf], np.nan).fillna(0.0)
 
         assert not flows.isnull().values.any()
         flows.to_csv(path, index=False)
