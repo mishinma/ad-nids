@@ -8,9 +8,8 @@ from timeit import default_timer as timer
 import numpy as np
 import tensorflow as tf
 
-from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
-from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 
 from alibi_detect.od import OutlierAEGMM
 from alibi_detect.models.autoencoder import eucl_cosim_features
@@ -22,17 +21,17 @@ from tensorflow.keras.layers import Dense, InputLayer
 
 from ad_nids.ml import trainer
 from ad_nids.config import config_dumps
-from ad_nids.dataset import Dataset
 from ad_nids.utils.misc import jsonify
 from ad_nids.utils.logging import log_plot_prf1_curve,\
     log_plot_frontier, log_plot_instance_score
-from ad_nids.utils.metrics import precision_recall_curve_scores, select_threshold, cov_elbo_type
+from ad_nids.utils.metrics import precision_recall_curve_scores, select_threshold, concatenate_preds
 
 EXPERIMENT_NAME = 'aegmm'
 DEFAULT_CONTAM_PERCS = [0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.5, 1, 2, 3, 5, 10]
 
 
-def run_aegmm(config, log_dir, do_plot_frontier=False, contam_percs=None, load_outlier_detector=False):
+def run_aegmm(config, log_dir, experiment_data,
+              do_plot_frontier=False, contam_percs=None, load_outlier_detector=False):
     logging.info(f'Starting {config["config_name"]}')
     logging.info(config_dumps(config))
 
@@ -42,19 +41,19 @@ def run_aegmm(config, log_dir, do_plot_frontier=False, contam_percs=None, load_o
                 EXPERIMENT_NAME, config['experiment_name'])
         )
 
-    # Create dataset and loaders
-    logging.info('Loading the dataset...')
-    dataset = Dataset.from_path(config['dataset_path'])
+    # data
+    train_normal_batch, train_outlier_batch, val_batch, test_batch = experiment_data
+    X_train, y_train = train_normal_batch.data, train_normal_batch.target
+    X_train_outlier, y_train_outlier = train_outlier_batch.data, train_outlier_batch.target
+    X_val, y_val = val_batch.data, val_batch.target
+    X_test, y_test = test_batch.data, test_batch.target
 
-    normal_batch = dataset.create_outlier_batch(train=True, perc_outlier=0)
-    X_train, y_train = normal_batch.data.astype(np.float32), normal_batch.target
-    X_train, X_val = train_test_split(X_train, test_size=0.1)
-
-    scaler = None
     if config['data_standardization']:
         scaler = StandardScaler().fit(X_train)
         X_train = scaler.transform(X_train)
+        X_train_outlier = scaler.transform(X_train_outlier)
         X_val = scaler.transform(X_val)
+        X_test = scaler.transform(X_test)
 
     # Create a directory to store experiment logs
     logging.info('Created a new log directory\n')
@@ -133,11 +132,12 @@ def run_aegmm(config, log_dir, do_plot_frontier=False, contam_percs=None, load_o
 
     # Compute the anomaly scores for train with anomalies
     # Select a threshold that maximises F1 Score
-    threshold_batch = dataset.create_outlier_batch(train=True, scaler=scaler)
-    X_threshold, y_threshold = threshold_batch.data.astype(np.float32), threshold_batch.target
     logging.info(f'Selecting the optimal threshold...')
     se = timer()
-    X_threshold_pred = od.predict(X_threshold)  # feature and instance lvl
+    X_threshold_pred = od.predict(X_train)  # feature and instance lvl
+    X_threshold_outlier_pred = od.predict(X_train_outlier)
+    X_threshold_pred = concatenate_preds(X_threshold_pred, X_threshold_outlier_pred)
+    y_threshold = np.concatenate([y_train, y_train_outlier])
     iscore_threshold = X_threshold_pred['data']['instance_score']
     if contam_percs is None:
         contam_percs = DEFAULT_CONTAM_PERCS
@@ -159,8 +159,6 @@ def run_aegmm(config, log_dir, do_plot_frontier=False, contam_percs=None, load_o
 
     # Compute anomaly scores for test
     logging.info('Computing test anomaly scores...')
-    test_batch = dataset.create_outlier_batch(train=False, scaler=scaler)
-    X_test, y_test = test_batch.data.astype(np.float32), test_batch.target
     se = timer()
     X_test_pred = od.predict(X_test)
     y_test_pred = X_test_pred['data']['is_outlier']
@@ -196,7 +194,8 @@ def run_aegmm(config, log_dir, do_plot_frontier=False, contam_percs=None, load_o
     log_plot_instance_score(log_dir, X_test_pred, y_test, od.threshold,
                             labels=test_batch.target_names)
     if do_plot_frontier:
-        input_dim = X_threshold.shape[1]
+        input_dim = X_train.shape[1]
+        X_threshold = np.concatenate([X_train, X_train_outlier])
         if input_dim == 2:
             log_plot_frontier(log_dir, od, X_threshold, y_threshold, X_test, y_test)
         else:
