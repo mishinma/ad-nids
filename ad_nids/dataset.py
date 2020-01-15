@@ -112,17 +112,15 @@ class Dataset:
         train = pd.read_csv(dataset_path / 'train.csv')
         test = pd.read_csv(dataset_path / 'test.csv')
 
-        train_meta_path = dataset_path / 'train-meta.json'
+        train_meta_path = dataset_path / 'train-meta.csv'
         train_meta = None
         if train_meta_path.exists():
-            with open(train_meta_path, 'r') as f:
-                train_meta = json.load(f)
+            train_meta = pd.read_csv(train_meta_path)
 
-        test_meta_path = dataset_path / 'test-meta.json'
+        test_meta_path = dataset_path / 'test-meta.csv'
         test_meta = None
         if test_meta_path.exists():
-            with open(test_meta_path, 'r') as f:
-                test_meta = json.load(f)
+            test_meta = pd.read_csv(test_meta_path)
 
         meta_path = dataset_path / 'meta.json'
         meta = None
