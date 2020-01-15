@@ -111,7 +111,7 @@ def create_mock_cicids(dataset_path, mock_dataset_path, mock_dates=None,
         flows_sample.to_csv(mock_dataset_path/path.name, index=False)
 
 
-def create_cicids_dataset(dataset_path, train_dates, test_dates):
+def create_cicids_dataset(dataset_path, train_dates, test_dates, create_hash=False):
 
     features = 'ORIG'
 
@@ -146,8 +146,4 @@ def create_cicids_dataset(dataset_path, train_dates, test_dates):
 
     logging.info("Done")
 
-    return Dataset(train, test, train_meta, test_meta, meta)
-
-
-
-
+    return Dataset(train, test, train_meta, test_meta, meta, create_hash=create_hash)
