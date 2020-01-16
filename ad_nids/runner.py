@@ -18,7 +18,7 @@ def run_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("log_exp_path", type=str,
                         help="log directory")
-    parser.add_argument("--config_path", type=str, default=None,
+    parser.add_argument("--config_path",  nargs='*',
                         help="directory with config files")
     parser.add_argument("--report_path", type=str, default=None,
                         help="report directory")
@@ -80,9 +80,12 @@ def runner():
         contam_percs = None
 
     if args.config_path:
-        config_exp_path = Path(args.config_path).resolve()
-        config_paths = [p for p in config_exp_path.iterdir()
-                        if p.suffix == '.json']
+        config_paths = []
+        config_dset_paths = [Path(p).resolve() for p in args.config_path]
+        for config_dset_path in config_dset_paths:
+            config_paths.extend([p for p in config_dset_path.iterdir()
+                                 if p.suffix == '.json'])
+
         log_paths = []
         for config_path in config_paths:
             with open(config_path, 'r') as f:
