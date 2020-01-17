@@ -27,7 +27,7 @@ from ad_nids.utils.logging import log_plot_prf1_curve,\
 from ad_nids.utils.metrics import precision_recall_curve_scores, select_threshold, concatenate_preds
 
 EXPERIMENT_NAME = 'aegmm'
-DEFAULT_CONTAM_PERCS = [0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.5, 1, 2, 3, 5, 10]
+DEFAULT_CONTAM_PERCS = [0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.5, 1, 2, 3, 5, 10, 15, 20, 30, 40, 50]
 
 
 def run_aegmm(config, log_dir, experiment_data,
