@@ -7,3 +7,4 @@ Docker
     docker build -f docker/Dockerfile .  -t ad-nids
     docker run -di --name worker -v /storage/nids/:/data/ -v /home/emikmis/dev/ad-nids/notebooks:/home/notebooks/  -p 8888:8888 ad-nids
     jupyter notebook --ip 0.0.0.0 --port 8888 --no-browser --allow-root --NotebookApp.token=
+    kill $(lsof -t -i:8888)
