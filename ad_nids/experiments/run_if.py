@@ -19,7 +19,7 @@ from ad_nids.utils.metrics import precision_recall_curve_scores, select_threshol
     concatenate_preds
 
 EXPERIMENT_NAME = 'if'
-DEFAULT_CONTAM_PERCS = [0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.5, 1, 2, 3, 5, 10]
+DEFAULT_CONTAM_PERCS = [0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.5, 1, 2, 3, 5, 10, 15, 20, 30, 40, 50]
 
 
 def run_if(config, log_dir, experiment_data,
