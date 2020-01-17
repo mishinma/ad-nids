@@ -4,6 +4,8 @@ import numpy as np
 import tensorflow as tf
 from typing import Tuple
 
+class NANLossError(ValueError):
+    pass
 
 def trainer(model: tf.keras.Model,
             loss_fn: tf.keras.losses,
@@ -97,7 +99,7 @@ def trainer(model: tf.keras.Model,
 
             loss = loss.numpy()
             if np.isnan(loss):
-                return
+                raise NANLossError
 
             if verbose:
                 if loss.shape != (batch_size,) and loss.shape:
