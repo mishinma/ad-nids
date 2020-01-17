@@ -96,6 +96,9 @@ def trainer(model: tf.keras.Model,
             optimizer.apply_gradients(zip(grads, model.trainable_weights))
 
             loss = loss.numpy()
+            if np.isnan(loss):
+                return
+
             if verbose:
                 if loss.shape != (batch_size,) and loss.shape:
                     add_mean = np.ones((batch_size - loss.shape[0],)) * loss.mean()
