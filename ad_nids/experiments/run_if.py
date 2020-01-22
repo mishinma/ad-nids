@@ -19,7 +19,6 @@ from ad_nids.utils.metrics import precision_recall_curve_scores, select_threshol
     concatenate_preds
 
 EXPERIMENT_NAME = 'if'
-DEFAULT_CONTAM_PERCS = [0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.5, 1, 2, 3, 5, 10, 15, 20, 30, 40, 50]
 
 
 def run_if(config, log_dir, experiment_data,
@@ -80,8 +79,6 @@ def run_if(config, log_dir, experiment_data,
     X_threshold_pred = concatenate_preds(X_threshold_pred, X_threshold_outlier_pred)
     y_threshold = np.concatenate([y_train, y_train_outlier])
     score_threshold = X_threshold_pred['data']['instance_score']
-    if contam_percs is None:
-        contam_percs = DEFAULT_CONTAM_PERCS
     contam_percs = np.array(contam_percs)
     train_prf1_curve = precision_recall_curve_scores(
         y_threshold, score_threshold, 100 - contam_percs)

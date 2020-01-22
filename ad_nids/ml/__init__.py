@@ -1,2 +1,2 @@
-from .builder import build_ae, build_vae
+from .builder import build_net
 from .trainer import trainer

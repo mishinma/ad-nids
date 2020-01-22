@@ -14,6 +14,9 @@ from ad_nids.report import create_experiments_report, create_datasets_report
 from ad_nids.utils.logging import get_log_dir, log_config
 
 
+DEFAULT_CONTAM_PERCS = [0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.5, 1, 2, 3, 5, 10, 15, 20, 30, 40, 50, 70]
+
+
 def run_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("log_exp_path", type=str,
@@ -77,7 +80,7 @@ def runner():
     if args.contam_percs is not None:
         contam_percs = json.loads(args.contam_percs)
     else:
-        contam_percs = None
+        contam_percs = DEFAULT_CONTAM_PERCS
 
     if args.config_path:
         config_paths = []

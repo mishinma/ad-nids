@@ -12,8 +12,9 @@ from sklearn.preprocessing import StandardScaler
 
 from alibi_detect.od import OutlierAE
 from alibi_detect.utils.saving import load_detector, save_detector
+from alibi_detect.models.autoencoder import AE
 
-from ad_nids.ml import build_ae, trainer
+from ad_nids.ml import build_net, trainer
 from ad_nids.config import config_dumps
 from ad_nids.utils.misc import jsonify
 from ad_nids.utils.logging import log_plot_prf1_curve,\
@@ -21,7 +22,6 @@ from ad_nids.utils.logging import log_plot_prf1_curve,\
 from ad_nids.utils.metrics import precision_recall_curve_scores, select_threshold, concatenate_preds
 
 EXPERIMENT_NAME = 'ae'
-DEFAULT_CONTAM_PERCS = [0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.5, 1, 2, 3, 5, 10, 15, 20, 30, 40, 50]
 
 np.random.seed(42)
 tf.random.set_seed(42)
@@ -73,8 +73,11 @@ def run_ae(config, log_dir, experiment_data,
         logging.info('Fitting the model...')
         se = timer()
         input_dim = X_train.shape[1]
-        ae = build_ae(config['hidden_dim'], config['encoding_dim'],
-                      config['num_hidden'], input_dim)
+        encoder_dims = [input_dim] + json.loads(config['encoder_net'])
+        encoder_net = build_net(encoder_dims)
+        decoder_dims = json.loads(config['decoder_net']) + [input_dim]
+        decoder_net = build_net(decoder_dims)
+        ae = AE(encoder_net, decoder_net)
         od = OutlierAE(threshold=0.0, ae=ae)
         optimizer = tf.keras.optimizers.Adam(learning_rate=config['learning_rate'])
         mse = tf.losses.MeanSquaredError()
@@ -93,8 +96,6 @@ def run_ae(config, log_dir, experiment_data,
     X_threshold_pred = concatenate_preds(X_threshold_pred, X_threshold_outlier_pred)
     y_threshold = np.concatenate([y_train, y_train_outlier])
     iscore_threshold = X_threshold_pred['data']['instance_score']
-    if contam_percs is None:
-        contam_percs = DEFAULT_CONTAM_PERCS
     contam_percs = np.array(contam_percs)
     train_prf1_curve = precision_recall_curve_scores(
         y_threshold, iscore_threshold, 100 - contam_percs)
