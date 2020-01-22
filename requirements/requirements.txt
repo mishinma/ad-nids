@@ -7,3 +7,4 @@ json2html
 scikit-learn
 scipy
 tqdm
+flask

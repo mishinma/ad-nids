@@ -2,12 +2,14 @@
 import argparse
 import logging
 import json
+import shutil
 
 import numpy as np
 from pathlib import Path
 from sklearn.model_selection import train_test_split
 from alibi_detect.datasets import Bunch
 
+import ad_nids
 import ad_nids.experiments as experiments
 from ad_nids.dataset import Dataset
 from ad_nids.report import create_experiments_report, create_datasets_report
@@ -156,6 +158,10 @@ def runner():
         experiments_report = create_experiments_report(log_paths, static_path)
         with open(experiments_report_path, 'w') as f:
             f.write(experiments_report)
+
+        server_path = Path(ad_nids.__path__[0]) / 'server'
+        shutil.copy(str(server_path / 'report_server.py'), str(report_path))
+        shutil.copy(str(server_path / 'run_server.sh'), str(report_path))
 
 
 if __name__ == '__main__':

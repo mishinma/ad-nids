@@ -1,4 +1,5 @@
 import argparse
+import ad_nids
 import os
 import shutil
 import uuid
@@ -294,4 +295,8 @@ if __name__ == '__main__':
     experiments_report = create_experiments_report(log_paths, static_path)
     with open(experiments_report_path, 'w') as f:
         f.write(experiments_report)
+
+    server_path = Path(ad_nids.__path__[0])/'server'
+    shutil.copy(str(server_path/'report_server.py'), str(report_path))
+    shutil.copy(str(server_path/'run_server.sh'), str(report_path))
 
