@@ -73,11 +73,12 @@ def run_vae(config, log_dir, experiment_data,
         logging.info('Fitting the model...')
         se = timer()
         input_dim = X_train.shape[1]
+        latent_dim = config['latent_dim']
         encoder_dims = [input_dim] + json.loads(config['encoder_net'])
         encoder_net = build_net(encoder_dims)
-        decoder_dims = json.loads(config['decoder_net']) + [input_dim]
+        decoder_dims = [latent_dim] + json.loads(config['decoder_net']) + [input_dim]
         decoder_net = build_net(decoder_dims)
-        vae = VAE(encoder_net, decoder_net, config['latent_dim'])
+        vae = VAE(encoder_net, decoder_net, latent_dim)
         od = OutlierVAE(threshold=0.0, vae=vae, score_type='mse',
                         latent_dim=config['latent_dim'], samples=config['samples'])
         optimizer = tf.keras.optimizers.Adam(learning_rate=config['learning_rate'])
