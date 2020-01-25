@@ -9,15 +9,12 @@ import pandas as pd
 import numpy as np
 
 from ad_nids.dataset import Dataset, create_meta
+from ad_nids.utils.exception import DownloadError
 from ad_nids.utils.misc import sample_df, dd_mm_yyyy2mmdd
 from ad_nids.process.columns import CIC_IDS_ORIG_COLUMNS, CIC_IDS_ATTACK_LABELS
 
 
 DATASET_NAME = 'CSE-CIC-IDS2018'
-
-
-class DownloadError(Exception):
-    pass
 
 
 def download_cicids(dataset_path):
