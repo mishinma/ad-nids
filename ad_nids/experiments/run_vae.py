@@ -17,11 +17,11 @@ from alibi_detect.utils.saving import load_detector, save_detector
 
 from ad_nids.ml import build_net, trainer
 from ad_nids.config import config_dumps
-from ad_nids.utils.misc import jsonify
+from ad_nids.utils.misc import jsonify, concatenate_preds
 from ad_nids.utils.logging import log_plot_prf1_curve,\
     log_plot_frontier, log_plot_instance_score
 from ad_nids.utils.metrics import precision_recall_curve_scores, select_threshold, \
-    cov_elbo_type, concatenate_preds
+    cov_elbo_type
 
 EXPERIMENT_NAME = 'vae'
 # Todo: should be a property of a dataset
@@ -103,6 +103,7 @@ def run_vae(config, log_dir, experiment_data,
     contam_percs = np.array(contam_percs)
     train_prf1_curve = precision_recall_curve_scores(
         y_threshold, iscore_threshold, 100 - contam_percs)
+    # todo save the corresponding contam percent
     best_threshold = select_threshold(
         train_prf1_curve['thresholds'],
         train_prf1_curve['f1scores'])

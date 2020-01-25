@@ -1,25 +1,8 @@
-
-from math import floor
-
 import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
 
 from sklearn.metrics import precision_recall_fscore_support
-
-
-def concatenate_preds(preds, other_preds):
-    if preds['data'].get('feature_score') is not None:
-        preds['data']['feature_score'] = np.concatenate(
-            [preds['data']['feature_score'],  other_preds['data']['feature_score']]
-        )
-    preds['data']['instance_score'] = np.concatenate(
-        [preds['data']['instance_score'], other_preds['data']['instance_score']]
-    )
-    preds['data']['is_outlier'] = np.concatenate(
-        [preds['data']['is_outlier'], other_preds['data']['is_outlier']]
-    )
-    return preds
 
 
 def select_threshold(thresholds, metric_scores):

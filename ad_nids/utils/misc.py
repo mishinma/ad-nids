@@ -4,6 +4,7 @@ from functools import wraps
 from timeit import default_timer as timer
 
 import numpy as np
+import tensorflow as tf
 
 
 def timing(f):
@@ -62,3 +63,30 @@ def sample_df(df, n):
     else:
         replace = True
     return df.sample(n=n, replace=replace)
+
+
+def concatenate_preds(preds, other_preds):
+    if preds['data'].get('feature_score') is not None:
+        preds['data']['feature_score'] = np.concatenate(
+            [preds['data']['feature_score'],  other_preds['data']['feature_score']]
+        )
+    preds['data']['instance_score'] = np.concatenate(
+        [preds['data']['instance_score'], other_preds['data']['instance_score']]
+    )
+    preds['data']['is_outlier'] = np.concatenate(
+        [preds['data']['is_outlier'], other_preds['data']['is_outlier']]
+    )
+    return preds
+
+
+def predict_batch(od, X, batch_size=64):
+    X = tf.data.Dataset.from_tensor_slices(X)
+    X = X.batch(batch_size)
+    pred = None
+    for batch in X:
+        batch_pred = od.predict(batch)
+        if pred is not None:
+            concatenate_preds(pred, batch_pred)
+        else:
+            pred = batch_pred
+    return pred

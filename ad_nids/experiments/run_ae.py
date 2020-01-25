@@ -16,10 +16,10 @@ from alibi_detect.models.autoencoder import AE
 
 from ad_nids.ml import build_net, trainer
 from ad_nids.config import config_dumps
-from ad_nids.utils.misc import jsonify
+from ad_nids.utils.misc import jsonify, concatenate_preds
 from ad_nids.utils.logging import log_plot_prf1_curve,\
     log_plot_frontier, log_plot_instance_score
-from ad_nids.utils.metrics import precision_recall_curve_scores, select_threshold, concatenate_preds
+from ad_nids.utils.metrics import precision_recall_curve_scores, select_threshold
 
 EXPERIMENT_NAME = 'ae'
 
