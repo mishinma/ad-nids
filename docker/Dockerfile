@@ -25,10 +25,10 @@ WORKDIR /home
 RUN git clone git@github.com:mishinma/alibi-detect.git
 RUN pip install -e alibi-detect
 
-COPY . ad-nids
+RUN git clone git@github.com:mishinma/ad-nids.git
 RUN pip install -r ad-nids/requirements/requirements.txt
 RUN pip install -r ad-nids/requirements/requirements_notebooks.txt
 RUN pip install -e ad-nids
 
 # Remove SSH keys
-RUN rm -rf /root/.ssh/
+# RUN rm -rf /root/.ssh/
