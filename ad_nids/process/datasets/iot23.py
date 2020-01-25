@@ -24,7 +24,7 @@ def download_iot23(dataset_path):
 
     mycwd = os.getcwd()
     os.chdir(dataset_path)
-    
+
     try:
         # ToDo fix wget
         check_output(
