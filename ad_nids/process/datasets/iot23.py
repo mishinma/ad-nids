@@ -26,13 +26,12 @@ def download_iot23(dataset_path):
     os.chdir(dataset_path)
 
     try:
-        # ToDo fix wget
         check_output(
              'wget --header="Host: mcfp.felk.cvut.cz" '
              '--header="User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.132 Safari/537.36" '
              '--header="Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3" '
              '--header="Accept-Language: en-US,en;q=0.9" "https://mcfp.felk.cvut.cz/publicDatasets/IoT-23-Dataset/iot_23_datasets_small.tar.gz" '
-             '-O "CurlWget392" -c --no-check-certificate', shell=True
+             '-O "iot_23_datasets_small.tar.gz" -c --no-check-certificate', shell=True
             )
         returncode = 0
     except CalledProcessError as e:
