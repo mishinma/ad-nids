@@ -37,6 +37,20 @@ def download_cicids18(data_path):
     if returncode != 0:
         raise DownloadError('Could not download the dataset')
 
+    # Fix a typo in the filename
+    typo_paths = [p for p in data_path.iterdir() if 'Thuesday' in p.name]
+    for path in typo_paths:
+        typo_name = path.name
+        fixed_name = typo_name.replace('Thuesday', 'Tuesday')
+        shutil.move(path, path.parent / fixed_name)
+
+    # Rename original files
+    for path in data_path.iterdir():
+        exp_day_date = path.name.split('_')[0]
+        exp_datetime = datetime.strptime(exp_day_date, '%A-%d-%m-%Y')
+        new_name = exp_datetime.strftime('%d-%m-%Y.csv').lower()
+        shutil.move(path, path.parent / new_name)
+
     return
 
 
@@ -44,27 +58,13 @@ def cleanup_cidids18(data_path):
 
     logging.info('Cleaning up the data')
 
-    # Fix a typo in the filename
-    typo_paths = [p for p in data_path.iterdir() if 'Thuesday' in p.name]
-    for path in typo_paths:
-        typo_name = path.name
-        fixed_name = typo_name.replace('Thuesday', 'Tuesday')
-        shutil.move(path, path.parent/fixed_name)
-
-    # Rename original files
-    for path in data_path.iterdir():
-        exp_day_date = path.name.split('_')[0]
-        exp_datetime = datetime.strptime(exp_day_date, '%A-%d-%m-%Y')
-        new_name = exp_datetime.strftime('%d-%m-%Y.csv').lower()
-        shutil.move(path, path.parent/new_name)
-
     # Some rows in the files are just column names
     # Ignore them
     for path in data_path.iterdir():
 
         flows = pd.read_csv(path)
-        flows = flows.rename(columns=lambda c: CIC_IDS2018_COLUMN_MAPPING(c.strip()))
-        flows = flows[[list(CIC_IDS2018_COLUMN_MAPPING.values())]]
+        flows = flows.rename(columns=lambda c: CIC_IDS2018_COLUMN_MAPPING.get(c.strip(), c))
+        flows = flows[list(CIC_IDS2018_COLUMN_MAPPING.values())]
 
         bad_rows = flows.index[flows['protocol'].astype(str).str.isalpha()]
         flows = flows.drop(bad_rows).reset_index()
