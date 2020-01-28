@@ -58,16 +58,18 @@ def cleanup_cidids18(data_path):
 
     logging.info('Cleaning up the data')
 
-    # Some rows in the files are just column names
-    # Ignore them
     for path in data_path.iterdir():
 
         flows = pd.read_csv(path)
         flows = flows.rename(columns=lambda c: CIC_IDS2018_COLUMN_MAPPING.get(c.strip(), c))
         flows = flows[list(CIC_IDS2018_COLUMN_MAPPING.values())]
 
+        # ToDo: purge flows that are not from this date
+
+        # Some rows in the files are just column names
+        # Ignore them
         bad_rows = flows.index[flows['protocol'].astype(str).str.isalpha()]
-        flows = flows.drop(bad_rows).reset_index()
+        flows = flows.drop(bad_rows).reset_index(drop=True)
 
         # Fill na
         flows['flow_byts/s'] = flows['flow_byts/s'].astype(np.float64)\
