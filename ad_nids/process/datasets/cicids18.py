@@ -11,25 +11,25 @@ import numpy as np
 from ad_nids.dataset import Dataset, create_meta
 from ad_nids.utils.exception import DownloadError
 from ad_nids.utils.misc import sample_df, dd_mm_yyyy2mmdd
-from ad_nids.process.columns import CIC_IDS_ORIG_COLUMNS, CIC_IDS_ATTACK_LABELS
+from ad_nids.process.columns import CIC_IDS2018_ATTACK_LABELS, CIC_IDS2018_COLUMN_MAPPING
 
 
 DATASET_NAME = 'CSE-CIC-IDS2018'
 
 
-def download_cicids(dataset_path):
+def download_cicids18(data_path):
 
     logging.info('Downloading the dataset')
 
-    dataset_path = Path(dataset_path)
-    dataset_path.mkdir(parents=True)
+    data_path = Path(data_path)
+    data_path.mkdir(parents=True)
 
     try:
         check_output(
             ['aws', 's3', 'sync',
              '--region', 'eu-north-1',
              '--no-sign-request', "s3://cse-cic-ids2018/Processed Traffic Data for ML Algorithms",
-             dataset_path])
+             data_path])
         returncode = 0
     except CalledProcessError as e:
         returncode = e.returncode
@@ -40,42 +40,39 @@ def download_cicids(dataset_path):
     return
 
 
-def cleanup_cidids(dataset_path):
+def cleanup_cidids18(data_path):
 
     logging.info('Cleaning up the data')
 
     # Fix a typo in the filename
-    typo_paths = [p for p in dataset_path.iterdir() if 'Thuesday' in p.name]
+    typo_paths = [p for p in data_path.iterdir() if 'Thuesday' in p.name]
     for path in typo_paths:
         typo_name = path.name
         fixed_name = typo_name.replace('Thuesday', 'Tuesday')
         shutil.move(path, path.parent/fixed_name)
 
     # Rename original files
-    for path in dataset_path.iterdir():
+    for path in data_path.iterdir():
         exp_day_date = path.name.split('_')[0]
         exp_datetime = datetime.strptime(exp_day_date, '%A-%d-%m-%Y')
         new_name = exp_datetime.strftime('%d-%m-%Y.csv').lower()
         shutil.move(path, path.parent/new_name)
 
-    def format_col(c):
-        return c.lower().replace(' ', '_').replace('/', '_')
-
     # Some rows in the files are just column names
     # Ignore them
-    for path in dataset_path.iterdir():
+    for path in data_path.iterdir():
 
         flows = pd.read_csv(path)
-        bad_rows = flows.index[flows['Protocol'].astype(str).str.isalpha()]
+        flows = flows.rename(columns=lambda c: CIC_IDS2018_COLUMN_MAPPING(c.strip()))
+        flows = flows[[list(CIC_IDS2018_COLUMN_MAPPING.values())]]
+
+        bad_rows = flows.index[flows['protocol'].astype(str).str.isalpha()]
         flows = flows.drop(bad_rows).reset_index()
 
-        flows = flows[CIC_IDS_ORIG_COLUMNS]
-        flows = flows.rename({c: format_col(c) for c in flows.columns}, axis=1)
-
         # Fill na
-        flows['flow_byts_s'] = flows['flow_byts_s'].astype(np.float64)\
+        flows['flow_byts/s'] = flows['flow_byts/s'].astype(np.float64)\
             .replace([np.inf, -np.inf], np.nan).fillna(0.0)
-        flows['flow_pkts_s'] = flows['flow_pkts_s'].astype(np.float64)\
+        flows['flow_pkts/s'] = flows['flow_pkts/s'].astype(np.float64)\
             .replace([np.inf, -np.inf], np.nan).fillna(0.0)
 
         assert not flows.isnull().values.any()
@@ -133,13 +130,13 @@ def create_cicids_dataset(dataset_path, train_dates, test_dates, create_hash=Fal
     train_meta = train.loc[:, meta_columns]
     train = train.drop(meta_columns, axis=1)
     train['target'] = 0
-    train.loc[train_meta['label'].isin(CIC_IDS_ATTACK_LABELS), 'target'] = 1
+    train.loc[train_meta['label'].isin(CIC_IDS2018_ATTACK_LABELS), 'target'] = 1
 
     test = pd.concat([pd.read_csv(p) for p in test_paths])
     test_meta = test.loc[:, meta_columns]
     test = test.drop(meta_columns, axis=1)
     test['target'] = 0
-    test.loc[test_meta['label'].isin(CIC_IDS_ATTACK_LABELS), 'target'] = 1
+    test.loc[test_meta['label'].isin(CIC_IDS2018_ATTACK_LABELS), 'target'] = 1
 
     logging.info("Done")
 
