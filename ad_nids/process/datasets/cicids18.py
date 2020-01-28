@@ -79,7 +79,7 @@ def cleanup_cidids18(data_path):
         flows.to_csv(path, index=False)
 
 
-def create_mock_cicids(dataset_path, mock_dataset_path, mock_dates=None,
+def create_mock_cicids18(dataset_path, mock_dataset_path, mock_dates=None,
                        num_normal_sample=10000, num_attack_sample=5000):
 
     if mock_dates is None:
@@ -105,7 +105,7 @@ def create_mock_cicids(dataset_path, mock_dataset_path, mock_dates=None,
         flows_sample.to_csv(mock_dataset_path/path.name, index=False)
 
 
-def create_cicids_dataset(dataset_path, train_dates, test_dates, create_hash=False):
+def create_dataset_cicids18(dataset_path, train_dates, test_dates, create_hash=False):
 
     features = 'ORIG'
 
