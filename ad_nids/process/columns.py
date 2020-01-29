@@ -163,6 +163,10 @@ CIC_IDS_FEATURE_COLUMNS = [
 ]
 
 
+"""
+########## CSE-CIC-IDS2017 ############
+"""
+
 CIC_IDS2017_COLUMN_MAPPING = {
     'Flow ID': 'flow_id',
     'Source IP': 'src_ip',
@@ -225,7 +229,7 @@ CIC_IDS2017_COLUMN_MAPPING = {
     'Average Packet Size': 'pkt_size_avg',
     'Avg Fwd Segment Size': 'fwd_seg_size_avg',
     'Avg Bwd Segment Size': 'bwd_seg_size_avg',
-    'Fwd Header Length.1': 'fwd_header_len',
+    'Fwd Header Length.1': 'fwd_header_len1',  # not sure
     'Fwd Avg Bytes/Bulk': 'fwd_byts/blk_avg',
     'Fwd Avg Packets/Bulk': 'fwd_pkts/blk_avg',
     'Fwd Avg Bulk Rate': 'fwd_blk_rate_avg',
@@ -249,6 +253,24 @@ CIC_IDS2017_COLUMN_MAPPING = {
     'Idle Max': 'idle_max',
     'Idle Min': 'idle_min',
     'Label': 'label'
+}
+
+
+CIC_IDS2017_ATTACK_LABELS = {
+    'Bot': 'botnet',
+    'DDoS': 'ddos',
+    'DoS GoldenEye': 'ddos',
+    'DoS Hulk': 'dos',
+    'DoS Slowhttptest': 'dos',
+    'DoS slowloris': 'dos',
+    'FTP-Patator': 'brute-force',
+    'Heartbleed': 'heartbleed',
+    'Infiltration': 'infiltration',
+    'PortScan': 'port-scan',
+    'SSH-Patator': 'brute-force',
+    'Web Attack – Brute Force': 'web',
+    'Web Attack – Sql Injection': 'web',
+    'Web Attack – XSS': 'web'
 }
 
 
