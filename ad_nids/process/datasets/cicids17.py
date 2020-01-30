@@ -199,6 +199,8 @@ def create_report_day_cicids(meta, static_path):
     report += '</br>'
     plt.close('all')
 
+    return report
+
 
 BASE = """
 <!DOCTYPE html>
