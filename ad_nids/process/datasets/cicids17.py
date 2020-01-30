@@ -16,7 +16,7 @@ from matplotlib import pyplot as plt
 
 from ad_nids.utils.exception import DownloadError
 from ad_nids.dataset import Dataset, create_meta
-from ad_nids.utils.misc import sample_df
+from ad_nids.utils.misc import sample_df, dd_mm_yyyy2mmdd
 from ad_nids.process.columns import CIC_IDS2017_COLUMN_MAPPING, CIC_IDS2017_ATTACK_LABELS
 
 
@@ -86,7 +86,7 @@ def cleanup_cidids17(data_path):
 
         return dt
 
-    for path in data_path.iterdir():
+    for idx, path in enumerate(sorted(data_path.iterdir())):
 
         # check if already processed
         try:
@@ -141,7 +141,7 @@ def cleanup_cidids17(data_path):
 
         exp_dt = flows.iloc[0]['timestamp']
         exp_date = exp_dt.strftime('%d-%m-%Y_%a')
-        new_name = f'{exp_date}_{exp_labels}.csv'
+        new_name = f'{idx}_{exp_date}_{exp_labels}.csv'
 
         flows.to_csv(path, index=False)
         shutil.move(path, path.parent/new_name)
@@ -185,7 +185,7 @@ def create_report_day_cicids(meta, static_path):
     plot_name = start_tstmp.strftime("{}.png".format(str(uuid4())[:5]))
     plot_path = os.path.join(static_path, plot_name)
     plt.savefig(plot_path)
-    report += f'<img src="{plot_name}" alt="dataset visualization">'
+    report += f'<img src="static/{plot_name}" alt="dataset visualization">'
     report += '</br>'
 
     plt.close('all')
@@ -195,7 +195,7 @@ def create_report_day_cicids(meta, static_path):
     plot_name = start_tstmp.strftime("{}.png".format(str(uuid4())[:5]))
     plot_path = os.path.join(static_path, plot_name)
     plt.savefig(plot_path)
-    report += f'<img src="{plot_name}" alt="dataset visualization">'
+    report += f'<img src="static/{plot_name}" alt="dataset visualization">'
     report += '</br>'
     plt.close('all')
 
@@ -234,8 +234,7 @@ def create_dataset_report_cicids17(dataset_path, report_path):
         print(name)
 
         df = pd.read_csv(path)
-        df_meta = df[['timestamp', 'label']]
-        path_report = create_report_day_cicids(df_meta, static_path)
+        path_report = create_report_day_cicids(df, static_path)
 
         report += f'<h1> {name} </h1></br>'
         report += path_report
@@ -246,6 +245,49 @@ def create_dataset_report_cicids17(dataset_path, report_path):
         f.write(report)
 
 
+def create_dataset_cicids17(dataset_path, train_scenarios, test_scenarios, create_hash=False):
+
+    features = 'ORIG'
+
+    train_scenario_idx = [s.split('_')[0] for s in train_scenarios]
+    test_scenario_idx = [s.split('_')[0] for s in test_scenarios]
+
+    dataset_name = '{}_TRAIN_{}_TEST_{}_{}'.format(
+        DATASET_NAME,
+        '-'.join(train_scenario_idx),
+        '-'.join(test_scenario_idx),
+        features
+    )
+
+    meta = create_meta(DATASET_NAME, train_scenarios, test_scenarios,
+                       features=features, name=dataset_name)
+    logging.info("Creating dataset {}...".format(meta['name']))
+
+    train_paths = [dataset_path/f'{sc}.csv' for sc in train_scenarios]
+    test_paths = [dataset_path/f'{sc}.csv' for sc in test_scenarios]
+
+    # Naive concat
+    # ToDo: protocol to meta
+    meta_columns = ['protocol', 'timestamp', 'label']
+    train = pd.concat([pd.read_csv(p) for p in train_paths])
+    train_meta = train.loc[:, meta_columns]
+    train = train.drop(meta_columns, axis=1)
+    train['target'] = (train_meta['label'] != 'benign').astype(np.int)
+
+    test = pd.concat([pd.read_csv(p) for p in test_paths])
+    test_meta = test.loc[:, meta_columns]
+    test = test.drop(meta_columns, axis=1)
+    train['target'] = (train_meta['label'] != 'benign').astype(np.int)
+
+    logging.info("Done")
+
+    return Dataset(train, test, train_meta, test_meta, meta, create_hash=create_hash)
+
+
 if __name__ == '__main__':
-    dataset_path = '/home/emikmis/data/cic-ids2017/data/CIC-IDS2017'
-    cleanup_cidids17(dataset_path)
+
+    root_path = Path('/home/emikmis/data/cic-ids2017/')
+    dataset_path = root_path/'data'/'CIC-IDS2017'
+    report_path = root_path/'data_report'/'CIC-IDS2017'
+    # cleanup_cidids17(dataset_path)
+    create_dataset_report_cicids17(dataset_path, report_path)
