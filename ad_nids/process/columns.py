@@ -259,7 +259,7 @@ CIC_IDS2017_COLUMN_MAPPING = {
 CIC_IDS2017_ATTACK_LABELS = {
     'Bot': 'botnet',
     'DDoS': 'ddos',
-    'DoS GoldenEye': 'ddos',
+    'DoS GoldenEye': 'dos',
     'DoS Hulk': 'dos',
     'DoS Slowhttptest': 'dos',
     'DoS slowloris': 'dos',
@@ -268,9 +268,9 @@ CIC_IDS2017_ATTACK_LABELS = {
     'Infiltration': 'infiltration',
     'PortScan': 'port-scan',
     'SSH-Patator': 'brute-force',
-    'Web Attack – Brute Force': 'web',
-    'Web Attack – Sql Injection': 'web',
-    'Web Attack – XSS': 'web'
+    'Web Attack  Brute Force': 'web',
+    'Web Attack  Sql Injection': 'web',
+    'Web Attack  XSS': 'web'
 }
 
 

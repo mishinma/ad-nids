@@ -85,6 +85,14 @@ def cleanup_cidids17(data_path):
 
     for path in data_path.iterdir():
 
+        # check if already processed
+        try:
+            datetime.strptime(path.name.split('_')[0], '%d-%m-%Y')
+        except ValueError:
+            pass
+        else:
+            return
+
         weekday = path.name.split('-')[0]
         assert parserinfo().weekday(weekday) is not None
 
@@ -119,9 +127,10 @@ def cleanup_cidids17(data_path):
         flows = flows.dropna(how='any')
 
         # Create a new file name
+        flows['label_orig'] = flows['label']
+        flows['label'] = flows['label'].apply(lambda x: CIC_IDS2017_ATTACK_LABELS.get(x, 'benign'))
         attack_labels = list(flows['label'].unique())
-        attack_labels.remove('BENIGN')
-        attack_labels = list({CIC_IDS2017_ATTACK_LABELS[l] for l in attack_labels})
+        attack_labels.remove('benign')
         if attack_labels:
             exp_labels = '-'.join(sorted(attack_labels))
         else:
