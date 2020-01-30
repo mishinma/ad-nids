@@ -233,7 +233,7 @@ def create_dataset_report_cicids17(dataset_path, report_path):
 
         df = pd.read_csv(path)
         df_meta = df[['timestamp', 'label']]
-        path_report = create_report_day_cicids(df_meta)
+        path_report = create_report_day_cicids(df_meta, static_path)
 
         report += f'<h1> {name} </h1></br>'
         report += path_report
