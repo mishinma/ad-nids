@@ -6,14 +6,17 @@ from datetime import datetime, time
 from dateutil.parser import parse, parserinfo
 from subprocess import CalledProcessError, check_output
 from pathlib import Path
+from uuid import uuid4
 
 import pandas as pd
 import numpy as np
 
+import seaborn as sns
+from matplotlib import pyplot as plt
 
 from ad_nids.utils.exception import DownloadError
 from ad_nids.dataset import Dataset, create_meta
-from ad_nids.utils.misc import sample_df, dd_mm_yyyy2mmdd
+from ad_nids.utils.misc import sample_df
 from ad_nids.process.columns import CIC_IDS2017_COLUMN_MAPPING, CIC_IDS2017_ATTACK_LABELS
 
 
@@ -144,6 +147,101 @@ def cleanup_cidids17(data_path):
         shutil.move(path, path.parent/new_name)
 
     return
+
+
+def create_report_day_cicids(meta, static_path):
+
+    report = ""
+
+    meta['timestamp'] = pd.to_datetime(meta['timestamp'], format='%Y/%m/%d %H:%M:%S')
+
+    # assert only this day
+    meta['day'] = meta['timestamp'].dt.strftime('%m%d')
+    assert len(meta['day'].unique()) == 1
+
+    meta['target'] = (meta['label'] != 'benign').astype(int)
+
+    start_tstmp = meta['timestamp'].iloc[0]
+    meta.loc[:, 'sec'] = (meta['timestamp'] - start_tstmp).dt.total_seconds()
+    day = start_tstmp.strftime("%a %m/%d")
+    #         print(day)
+    report += '<h2> {} </h2>'.format(day)
+    report += '</br>'
+    label_counts = meta['label'].value_counts()
+    report += '<div>' + pd.DataFrame(label_counts).to_html() + '</div>'
+    report += '</br>'
+
+    total_cnt = np.sum(label_counts)
+    attack_cnt = np.sum([cnt for lbl, cnt in label_counts.iteritems()
+                         if lbl != 'benign'])
+    contamination_perc = attack_cnt / total_cnt * 100
+    report += '<h2> Contamination perc: {:.2f} </h2>'.format(contamination_perc)
+    report += '</br>'
+
+    plt.close('all')
+    for lbl in label_counts.index:
+        sns.distplot(meta.loc[meta['label'] == lbl, 'sec'], rug=True, kde=False)
+    plt.legend(labels=label_counts.index)
+    plot_name = start_tstmp.strftime("{}.png".format(str(uuid4())[:5]))
+    plot_path = os.path.join(static_path, plot_name)
+    plt.savefig(plot_path)
+    report += f'<img src="{plot_name}" alt="dataset visualization">'
+    report += '</br>'
+
+    plt.close('all')
+    for lbl in label_counts.index:
+        sns.distplot(meta.loc[meta['label'] == lbl, 'sec'], rug=True)
+    plt.legend(labels=label_counts.index)
+    plot_name = start_tstmp.strftime("{}.png".format(str(uuid4())[:5]))
+    plot_path = os.path.join(static_path, plot_name)
+    plt.savefig(plot_path)
+    report += f'<img src="{plot_name}" alt="dataset visualization">'
+    report += '</br>'
+    plt.close('all')
+
+
+BASE = """
+<!DOCTYPE html>
+<html>
+    <head>
+    <style>
+        table, th, td {
+          border: 1px solid black;
+          border-collapse: collapse;
+        }
+    </style>
+    </head>
+    <body>
+    {{STUFF}}
+    </body>
+</html>
+"""
+
+
+def create_dataset_report_cicids17(dataset_path, report_path):
+
+    dataset_path = Path(dataset_path).resolve()
+    static_path = report_path/'static'
+    static_path.mkdir(parents=True, exist_ok=True)
+
+    report = ''
+
+    for path in dataset_path.iterdir():
+
+        name = path.name[:-len(path.suffix)]
+        print(name)
+
+        df = pd.read_csv(path)
+        df_meta = df[['timestamp', 'label']]
+        path_report = create_report_day_cicids(df_meta)
+
+        report += f'<h1> {name} </h1></br>'
+        report += path_report
+        report += '</br></br>'
+
+    report = BASE.replace('{{STUFF}}', report)
+    with open(report_path / 'report.html', 'w') as f:
+        f.write(report)
 
 
 if __name__ == '__main__':
