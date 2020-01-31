@@ -278,7 +278,7 @@ def create_dataset_cicids17(dataset_path, train_scenarios, test_scenarios, creat
     test = pd.concat([pd.read_csv(p) for p in test_paths])
     test_meta = test.loc[:, meta_columns]
     test = test.drop(meta_columns, axis=1)
-    train['target'] = (train_meta['label'] != 'benign').astype(np.int)
+    test['target'] = (test_meta['label'] != 'benign').astype(np.int)
 
     logging.info("Done")
 
