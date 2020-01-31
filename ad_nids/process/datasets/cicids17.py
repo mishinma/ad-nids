@@ -268,7 +268,7 @@ def create_dataset_cicids17(dataset_path, train_scenarios, test_scenarios, creat
 
     # Naive concat
     # ToDo: protocol to meta
-    meta_columns = ['flow_id', 'src_ip', 'dest_ip', 'src_port', 'dst_port', 'protocol',
+    meta_columns = ['flow_id', 'src_ip', 'dest_ip', 'src_port', 'dest_port', 'protocol',
                     'timestamp', 'label', 'label_orig']
     train = pd.concat([pd.read_csv(p) for p in train_paths])
     train_meta = train.loc[:, meta_columns]
