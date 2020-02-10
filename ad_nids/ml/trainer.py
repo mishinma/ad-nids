@@ -4,8 +4,10 @@ import numpy as np
 import tensorflow as tf
 from typing import Tuple
 
+
 class NANLossError(ValueError):
     pass
+
 
 def trainer(model: tf.keras.Model,
             loss_fn: tf.keras.losses,
@@ -19,6 +21,9 @@ def trainer(model: tf.keras.Model,
             verbose: bool = True,
             log_metric:  Tuple[str, "tf.keras.metrics"] = None,
             log_dir: str = None,
+            checkpoint: bool = True,
+            checkpoint_freq: int = 10,
+            lr_schedule: list = None,
             callbacks: tf.keras.callbacks = None) -> None:  # TODO: incorporate callbacks + LR schedulers
     """
     Train TensorFlow model.
@@ -51,6 +56,8 @@ def trainer(model: tf.keras.Model,
         Additional metrics whose progress will be displayed if verbose equals True.
     log_dir
         Directory to store logs
+    checkpoint
+    lr_schedule
     callbacks
         Callbacks used during training.
     """
@@ -71,8 +78,13 @@ def trainer(model: tf.keras.Model,
 
     # iterate over epochs
     for epoch in range(epochs):
+
         if verbose:
             pbar = tf.keras.utils.Progbar(n_minibatch, 1)
+
+        if lr_schedule is not None:
+            scheduled_lr = lr_schedule[epoch]
+            tf.keras.backend.set_value(optimizer.lr, scheduled_lr)
 
         # iterate over the batches of the dataset
         for step, X_train_batch in enumerate(train_data):
@@ -118,16 +130,30 @@ def trainer(model: tf.keras.Model,
                     tf.summary.scalar('loss', loss, step=abs_step)
 
         if do_validation:
+
             val_preds = model(X_val)
 
             if tf.is_tensor(val_preds):
                 args = [X_val, val_preds]
             else:
                 args = [X_val] + list(val_preds)
+
             if loss_fn_kwargs:
                 val_loss = loss_fn(*args, **loss_fn_kwargs)
             else:
                 val_loss = loss_fn(*args)
+
+            if model.losses:  # additional model losses
+                val_loss += sum(model.losses)
+
             abs_step = (epoch + 1) * n_minibatch
             with val_summary_writer.as_default():
                 tf.summary.scalar('loss', val_loss, step=abs_step)
+
+        if checkpoint and epoch % checkpoint_freq == 0:
+            checkpoint_dir = os.path.join(log_dir, 'weights')
+            if not os.path.exists(checkpoint_dir):
+                os.mkdir(checkpoint_dir)
+            abs_step = (epoch + 1) * n_minibatch
+            weights_fname = f'weights_epoch_{epoch}_step_{abs_step}.ckpt'
+            model.save_weights(os.path.join(checkpoint_dir, weights_fname))
