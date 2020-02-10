@@ -16,7 +16,6 @@ from alibi_detect.models.autoencoder import VAE
 from alibi_detect.utils.saving import load_detector, save_detector
 
 from ad_nids.ml import build_net, trainer
-from ad_nids.config import config_dumps
 from ad_nids.utils.misc import jsonify, concatenate_preds
 from ad_nids.utils.logging import log_plot_prf1_curve,\
     log_plot_frontier, log_plot_instance_score
@@ -30,7 +29,7 @@ EXPERIMENT_NAME = 'vae'
 def run_vae(config, log_dir, experiment_data,
             do_plot_frontier=False, contam_percs=None, load_outlier_detector=False):
     logging.info(f'Starting {config["config_name"]}')
-    logging.info(config_dumps(config))
+    logging.info(json.dumps(config, indent=2))
 
     if config["experiment_name"] != EXPERIMENT_NAME:
         logging.warning(
@@ -74,10 +73,15 @@ def run_vae(config, log_dir, experiment_data,
         se = timer()
         input_dim = X_train.shape[1]
         latent_dim = config['latent_dim']
-        encoder_dims = [input_dim] + json.loads(config['encoder_net'])
-        encoder_net = build_net(encoder_dims)
-        decoder_dims = [latent_dim] + json.loads(config['decoder_net']) + [input_dim]
-        decoder_net = build_net(decoder_dims)
+
+        encoder_hidden_dims = json.loads(config['encoder_net'])
+        encoder_activations = [tf.nn.relu] * len(encoder_hidden_dims)
+        encoder_net = build_net(input_dim, encoder_hidden_dims, encoder_activations)
+
+        decoder_hidden_dims = json.loads(config['decoder_net']) + [input_dim]
+        decoder_activations = [tf.nn.relu] * (len(decoder_hidden_dims) - 1) + [None]
+        decoder_net = build_net(latent_dim, decoder_hidden_dims, decoder_activations)
+
         vae = VAE(encoder_net, decoder_net, latent_dim)
         od = OutlierVAE(threshold=0.0, vae=vae, score_type='mse',
                         latent_dim=config['latent_dim'], samples=config['samples'])

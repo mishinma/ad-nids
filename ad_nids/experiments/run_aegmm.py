@@ -20,7 +20,6 @@ from alibi_detect.utils.saving import load_detector, save_detector
 from tensorflow.keras.layers import Dense, InputLayer
 
 from ad_nids.ml import trainer
-from ad_nids.config import config_dumps
 from ad_nids.utils.misc import jsonify, concatenate_preds
 from ad_nids.utils.logging import log_plot_prf1_curve,\
     log_plot_frontier, log_plot_instance_score
@@ -32,7 +31,7 @@ EXPERIMENT_NAME = 'aegmm'
 def run_aegmm(config, log_dir, experiment_data,
               do_plot_frontier=False, contam_percs=None, load_outlier_detector=False):
     logging.info(f'Starting {config["config_name"]}')
-    logging.info(config_dumps(config))
+    logging.info(json.dumps(config, indent=2))
 
     if config["experiment_name"] != EXPERIMENT_NAME:
         logging.warning(
