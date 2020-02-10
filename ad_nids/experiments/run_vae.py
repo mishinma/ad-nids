@@ -91,7 +91,8 @@ def run_vae(config, log_dir, experiment_data,
         loss_fn_kwargs.update(cov_elbo_type(cov_elbo=dict(sim=.1), X=X_train))
         trainer(od.vae, elbo, X_train, X_val=X_val, loss_fn_kwargs=loss_fn_kwargs,
                 epochs=config['num_epochs'], batch_size=config['batch_size'],
-                optimizer=optimizer, log_dir=log_dir)
+                optimizer=optimizer, log_dir=log_dir,
+                checkpoint=True, checkpoint_freq=5)
         time_fit = timer() - se
         logging.info(f'Done: {time_fit}')
 
