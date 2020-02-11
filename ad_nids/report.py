@@ -26,7 +26,6 @@ with open(templates_path/'dataset.html', 'r') as f:
 
 
 CONFIG_NOREPORT_FIELDS = [
-    'experiment_run_fn',
     'dataset_name',
     'dataset_path',
 ]
