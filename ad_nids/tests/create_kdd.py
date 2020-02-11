@@ -10,7 +10,6 @@ from sklearn.model_selection import train_test_split
 from ad_nids.dataset import Dataset
 
 
-
 parser = argparse.ArgumentParser()
 parser.add_argument("dataset_path", type=str, nargs='?',
                     default='data/processed',

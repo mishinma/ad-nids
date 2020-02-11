@@ -19,7 +19,7 @@ from alibi_detect.utils.saving import load_detector, save_detector
 
 from tensorflow.keras.layers import Dense, InputLayer
 
-from ad_nids.ml import trainer
+from ad_nids.ml import trainer, build_net
 from ad_nids.utils.misc import jsonify, concatenate_preds
 from ad_nids.utils.logging import log_plot_prf1_curve,\
     log_plot_frontier, log_plot_instance_score
@@ -30,6 +30,7 @@ EXPERIMENT_NAME = 'aegmm'
 
 def run_aegmm(config, log_dir, experiment_data,
               do_plot_frontier=False, contam_percs=None, load_outlier_detector=False):
+
     logging.info(f'Starting {config["config_name"]}')
     logging.info(json.dumps(config, indent=2))
 
@@ -77,41 +78,28 @@ def run_aegmm(config, log_dir, experiment_data,
         latent_dim = config['latent_dim']
         n_gmm = config['n_gmm']
 
-        encoder_net = tf.keras.Sequential(
-            [
-                InputLayer(input_shape=(input_dim,)),
-                Dense(10, activation=tf.nn.tanh),
-                Dense(6, activation=tf.nn.tanh),
-                Dense(3, activation=tf.nn.tanh),
-                Dense(latent_dim, activation=None)
-            ])
+        encoder_hidden_dims = json.loads(config['encoder_net']) + [latent_dim]
+        encoder_activations = [tf.nn.tanh] * (len(encoder_hidden_dims) - 1) + [None]
+        encoder_net = build_net(input_dim, encoder_hidden_dims, encoder_activations)
 
-        decoder_net = tf.keras.Sequential(
-            [
-                InputLayer(input_shape=(latent_dim,)),
-                Dense(3, activation=tf.nn.tanh),
-                Dense(6, activation=tf.nn.tanh),
-                Dense(10, activation=tf.nn.tanh),
-                Dense(input_dim, activation=None)
-            ])
+        decoder_hidden_dims = json.loads(config['decoder_net']) + [input_dim]
+        decoder_activations = [tf.nn.tanh] * (len(decoder_hidden_dims) - 1) + [None]
+        decoder_net = build_net(latent_dim, decoder_hidden_dims, decoder_activations)
 
-        gmm_density_net = tf.keras.Sequential(
-            [
-                InputLayer(input_shape=(latent_dim + 2,)),
-                Dense(10, activation=tf.nn.tanh),
-                Dense(n_gmm, activation=tf.nn.softmax)
-            ])
+        gmm_hidden_dims = json.loads(config['gmm_density_net']) + [n_gmm]
+        gmm_activations = [tf.nn.tanh] * (len(gmm_hidden_dims) - 1) + [tf.nn.softmax]
+        gmm_net = build_net(latent_dim + 2, gmm_hidden_dims, gmm_activations)
 
         # initialize outlier detector
         od = OutlierAEGMM(threshold=0.0,  # threshold for outlier score
                           encoder_net=encoder_net,  # can also pass AEGMM model instead
                           decoder_net=decoder_net,  # of separate encoder, decoder
-                          gmm_density_net=gmm_density_net,  # and gmm density net
+                          gmm_density_net=gmm_net,  # and gmm density net
                           n_gmm=n_gmm,
                           recon_features=eucl_cosim_features)  # fn used to derive features
-        # from the reconstructed
-        # instances based on cosine
-        # similarity and Eucl distance
+                                                               # from the reconstructed
+                                                               # instances based on cosine
+                                                               # similarity and Eucl distance
 
     optimizer = tf.keras.optimizers.Adam(learning_rate=config['learning_rate'])
 
@@ -121,7 +109,8 @@ def run_aegmm(config, log_dir, experiment_data,
     )
     trainer(od.aegmm, loss_aegmm, X_train, X_val=X_val, loss_fn_kwargs=loss_fn_kwargs,
             epochs=config['num_epochs'], batch_size=config['batch_size'],
-            optimizer=optimizer, log_dir=log_dir)
+            optimizer=optimizer, log_dir=log_dir,
+            checkpoint=True, checkpoint_freq=5)
     # set GMM parameters
     x_recon, z, gamma = od.aegmm(X_train)
     od.phi, od.mu, od.cov, od.L, od.log_det_cov = gmm_params(z, gamma)
