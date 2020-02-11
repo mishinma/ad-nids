@@ -107,9 +107,10 @@ def runner_fit_predict():
 
         for idx, config in configs.iterrows():
 
+            config = config.to_dict()
             log_path = get_log_dir(log_root, config)
             log_path.mkdir(parents=True)
-            log_config(log_path, config.to_dict())
+            log_config(log_path, config)
 
             try:
                 # Pass data
