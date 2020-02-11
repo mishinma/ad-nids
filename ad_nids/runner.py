@@ -1,4 +1,3 @@
-
 import argparse
 import logging
 import json
@@ -16,20 +15,19 @@ from ad_nids.dataset import Dataset
 from ad_nids.report import create_experiments_report, create_datasets_report
 from ad_nids.utils.logging import get_log_dir, log_config
 
-
 DEFAULT_CONTAM_PERCS = [0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.5, 1, 2, 3, 5, 10, 15, 20, 30, 40, 50, 70]
 
 
 def parser_fit_predict():
     parser = argparse.ArgumentParser()
-    parser.add_argument("data_path", type=str,
-                        help="data root path")
-    parser.add_argument("config_path",  type=str,
+    parser.add_argument("config_path", type=str,
                         help="directory with config files")
     parser.add_argument("log_path", type=str,
                         help="log directory")
     parser.add_argument("run_fn", type=str,
                         help="experiment run function")
+    parser.add_argument("--data_path", nargs='*',
+                        help="data root path")
     parser.add_argument("--report_path", type=str, default=None,
                         help="report directory")
     parser.add_argument("--contam_percs", default=None)
@@ -39,7 +37,6 @@ def parser_fit_predict():
 
 
 def prepare_experiment_data(dataset_path):
-
     logging.info('Loading the dataset...')
     dataset = Dataset.from_path(dataset_path)
 
@@ -63,8 +60,8 @@ def prepare_experiment_data(dataset_path):
                                 target=train_targets_outlier,
                                 target_names=['normal', 'outlier'])
     val_batch = Bunch(data=val_data,
-                       target=val_targets,
-                       target_names=['normal', 'outlier'])
+                      target=val_targets,
+                      target_names=['normal', 'outlier'])
     test_batch = Bunch(data=test_data,
                        target=test_targets,
                        target_names=['normal', 'outlier'])
@@ -91,12 +88,14 @@ def runner_fit_predict():
         logging.error(f"No such function {args.run_fn}")
         raise e
 
-    data_root_path = Path(args.data_path).resolve()
-    if Dataset.is_dataset(data_root_path):
-        dataset_paths = [data_root_path]
-    else:
-        dataset_paths = [p for p in data_root_path.iterdir()
-                         if Dataset.is_dataset(p)]
+    dataset_paths = []
+    for data_path in args.data_path:
+        data_path = Path(data_path).resolve()
+        if Dataset.is_dataset(data_path):
+            dataset_paths += [data_path]
+        else:
+            dataset_paths += [p for p in data_path.iterdir()
+                              if Dataset.is_dataset(p)]
 
     for dataset_path in dataset_paths:
 
