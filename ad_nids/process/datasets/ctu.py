@@ -1,24 +1,59 @@
 
+import os
 import time
 import logging
 import multiprocessing as mp
 
 from pathlib import Path
+from subprocess import check_output
 
 import numpy as np
 import pandas as pd
 
-from ad_nids.process.process_parser import get_argparser
+
+from ad_nids.utils.exception import DownloadError
 from ad_nids.dataset import Dataset, create_meta
 from ad_nids.process.aggregate import aggregate_extract_features
 from ad_nids.process.columns import CTU2FLOW_COLUMNS, FLOW_COLUMNS, FLOW_STATS
 
-DATASET_NAME = 'CTU_13'
+DATASET_NAME = 'CTU-13'
 FEATURES = 'BASIC'
 
 ORIG_TRAIN_SCENARIOS = [3, 4, 5, 7, 10, 11, 12, 13]
 ORIG_TEST_SCENARIOS = [1, 2, 6, 8, 9]
 ALL_SCENARIOS = sorted(ORIG_TEST_SCENARIOS + ORIG_TRAIN_SCENARIOS)
+
+
+def download_ctu13(data_path):
+
+    logging.info('Downloading the dataset')
+
+    data_path = Path(data_path).resolve()
+    data_path.mkdir(parents=True)
+
+    mycwd = os.getcwd()
+    os.chdir(data_path)
+
+    try:
+        check_output(
+            'wget --header="Host: mcfp.felk.cvut.cz" '
+            '--header="User-Agent: Mozilla/5.0 (X11; Linux x86_64) '
+            'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.132 Safari/537.36" '
+            '--header="Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,'
+            '*/*;q=0.8,application/signed-exchange;v=b3" --header="Accept-Language: en-US,en;q=0.9" '
+            '--header="Referer: https://www.stratosphereips.org/datasets-ctu13" '
+            '"https://mcfp.felk.cvut.cz/publicDatasets/CTU-13-Dataset/CTU-13-Dataset.tar.bz2" '
+            '-O "CTU-13-Dataset.tar.bz2" -c', shell=True
+        )
+    except Exception as e:
+        raise DownloadError('Could not download the dataset')
+
+    check_output(['tar', '-xvf', "CTU-13-Dataset.tar.bz2"])
+    os.remove(data_path / "CTU-13-Dataset.tar.bz2")
+
+    os.chdir(mycwd)  # go back where you came from
+
+    return
 
 
 def format_ctu_flows(flows):
@@ -99,26 +134,26 @@ def create_aggr_ctu_dataset(aggr_path, train_scenarios, test_scenarios, frequenc
     return Dataset(train, test, train_meta, test_meta, meta)
 
 
-if __name__ == '__main__':
-
-    # Example command
-    # python ctu.py ../tests/data/ctu_mock/ ../tests/data/processed/ -p -1 -f T --overwrite --plot
-
-    parser = get_argparser()
-    args = parser.parse_args()
-
-    loglevel = getattr(logging, args.logging.upper(), None)
-    logging.basicConfig(level=loglevel)
-
-    train_scenarios = ['2', '9']
-    test_scenarios = ['3']
-
-    aggr_dir = args.aggr_dir if args.aggr_dir else args.root_dir
-    aggregate_ctu_data(args.root_dir, aggr_dir,
-                       args.processes, args.frequency)
-    dataset = create_aggr_ctu_dataset(
-        args.root_dir, train_scenarios=train_scenarios,
-        test_scenarios=test_scenarios, frequency=args.frequency
-    )
-    dataset.write_to(args.out_dir, visualize=args.plot,
-                     overwrite=args.overwrite, archive=args.archive)
+# if __name__ == '__main__':
+#
+#     # Example command
+#     # python ctu.py ../tests/data/ctu_mock/ ../tests/data/processed/ -p -1 -f T --overwrite --plot
+#
+#     parser = get_argparser()
+#     args = parser.parse_args()
+#
+#     loglevel = getattr(logging, args.logging.upper(), None)
+#     logging.basicConfig(level=loglevel)
+#
+#     train_scenarios = ['2', '9']
+#     test_scenarios = ['3']
+#
+#     aggr_dir = args.aggr_dir if args.aggr_dir else args.root_dir
+#     aggregate_ctu_data(args.root_dir, aggr_dir,
+#                        args.processes, args.frequency)
+#     dataset = create_aggr_ctu_dataset(
+#         args.root_dir, train_scenarios=train_scenarios,
+#         test_scenarios=test_scenarios, frequency=args.frequency
+#     )
+#     dataset.write_to(args.out_dir, visualize=args.plot,
+#                      overwrite=args.overwrite, archive=args.archive)
