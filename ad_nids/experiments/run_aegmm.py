@@ -17,8 +17,6 @@ from alibi_detect.models.gmm import gmm_params
 from alibi_detect.models.losses import loss_aegmm
 from alibi_detect.utils.saving import load_detector, save_detector
 
-from tensorflow.keras.layers import Dense, InputLayer
-
 from ad_nids.ml import trainer, build_net
 from ad_nids.utils.misc import jsonify, concatenate_preds
 from ad_nids.utils.logging import log_plot_prf1_curve,\
@@ -101,21 +99,21 @@ def run_aegmm(config, log_dir, experiment_data,
                                                                # instances based on cosine
                                                                # similarity and Eucl distance
 
-    optimizer = tf.keras.optimizers.Adam(learning_rate=config['learning_rate'])
+        optimizer = tf.keras.optimizers.Adam(learning_rate=config['learning_rate'])
 
-    loss_fn_kwargs = dict(
-        w_energy=.1,
-        w_cov_diag=.005
-    )
-    trainer(od.aegmm, loss_aegmm, X_train, X_val=X_val, loss_fn_kwargs=loss_fn_kwargs,
-            epochs=config['num_epochs'], batch_size=config['batch_size'],
-            optimizer=optimizer, log_dir=log_dir,
-            checkpoint=True, checkpoint_freq=5)
-    # set GMM parameters
-    x_recon, z, gamma = od.aegmm(X_train)
-    od.phi, od.mu, od.cov, od.L, od.log_det_cov = gmm_params(z, gamma)
-    time_fit = timer() - se
-    logging.info(f'Done: {time_fit}')
+        loss_fn_kwargs = dict(
+            w_energy=.1,
+            w_cov_diag=.005
+        )
+        trainer(od.aegmm, loss_aegmm, X_train, X_val=X_val, loss_fn_kwargs=loss_fn_kwargs,
+                epochs=config['num_epochs'], batch_size=config['batch_size'],
+                optimizer=optimizer, log_dir=log_dir,
+                checkpoint=True, checkpoint_freq=5)
+        # set GMM parameters
+        x_recon, z, gamma = od.aegmm(X_train)
+        od.phi, od.mu, od.cov, od.L, od.log_det_cov = gmm_params(z, gamma)
+        time_fit = timer() - se
+        logging.info(f'Done: {time_fit}')
 
     # Compute the anomaly scores for train with anomalies
     # Select a threshold that maximises F1 Score
