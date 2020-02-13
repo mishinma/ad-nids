@@ -30,8 +30,10 @@ def download_ctu13(data_path):
     logging.info('Downloading the dataset')
 
     data_path = Path(data_path).resolve()
+    assert not data_path.exists()
+
     data_root = data_path.parent
-    data_root.mkdir(parents=True, exist_ok=True)
+    data_path.mkdir(parents=True, exist_ok=True)
 
     mycwd = os.getcwd()
     os.chdir(data_root)
@@ -52,10 +54,11 @@ def download_ctu13(data_path):
         raise DownloadError('Could not download the dataset')
 
     check_output(['tar', '-xvf', "CTU-13-Dataset.tar.bz2"])
+    os.remove(data_root / "CTU-13-Dataset.tar.bz2")
+
     check_output(['rm'] + list((data_root / "CTU-13-Dataset").glob('**/*.pcap')))
     check_output(['rm'] + list((data_root / "CTU-13-Dataset").glob('**/*.exe')))
-    shutil.move(data_root / "CTU-13-Dataset", data_path)
-    os.remove(data_root / "CTU-13-Dataset.tar.bz2")
+    shutil.move(str(data_root / "CTU-13-Dataset"), str(data_path))
 
     os.chdir(mycwd)  # go back where you came from
 
