@@ -2,6 +2,7 @@
 import os
 import time
 import logging
+import shutil
 import multiprocessing as mp
 
 from pathlib import Path
@@ -29,10 +30,11 @@ def download_ctu13(data_path):
     logging.info('Downloading the dataset')
 
     data_path = Path(data_path).resolve()
-    data_path.mkdir(parents=True)
+    data_root = data_path.parent
+    data_root.mkdir(parents=True, exist_ok=True)
 
     mycwd = os.getcwd()
-    os.chdir(data_path)
+    os.chdir(data_root)
 
     try:
         check_output(
@@ -43,13 +45,17 @@ def download_ctu13(data_path):
             '*/*;q=0.8,application/signed-exchange;v=b3" --header="Accept-Language: en-US,en;q=0.9" '
             '--header="Referer: https://www.stratosphereips.org/datasets-ctu13" '
             '"https://mcfp.felk.cvut.cz/publicDatasets/CTU-13-Dataset/CTU-13-Dataset.tar.bz2" '
+            '--no-check-certificate '
             '-O "CTU-13-Dataset.tar.bz2" -c', shell=True
         )
     except Exception as e:
         raise DownloadError('Could not download the dataset')
 
     check_output(['tar', '-xvf', "CTU-13-Dataset.tar.bz2"])
-    os.remove(data_path / "CTU-13-Dataset.tar.bz2")
+    check_output(['rm'] + list((data_root / "CTU-13-Dataset").glob('**/*.pcap')))
+    check_output(['rm'] + list((data_root / "CTU-13-Dataset").glob('**/*.exe')))
+    shutil.move(data_root / "CTU-13-Dataset", data_path)
+    os.remove(data_root / "CTU-13-Dataset.tar.bz2")
 
     os.chdir(mycwd)  # go back where you came from
 
@@ -134,10 +140,18 @@ def create_aggr_ctu_dataset(aggr_path, train_scenarios, test_scenarios, frequenc
     return Dataset(train, test, train_meta, test_meta, meta)
 
 
-# if __name__ == '__main__':
-#
+if __name__ == '__main__':
+
+    root_path = Path('/home/emikmis/data/ctu-13/')
+
+    dataset_name = 'CTU-13'
+    data_path = root_path / 'data'
+    dataset_path = data_path / dataset_name
+
+    download_ctu13(dataset_path)
+
 #     # Example command
-#     # python ctu.py ../tests/data/ctu_mock/ ../tests/data/processed/ -p -1 -f T --overwrite --plot
+#     # python ctu13.py ../tests/data/ctu_mock/ ../tests/data/processed/ -p -1 -f T --overwrite --plot
 #
 #     parser = get_argparser()
 #     args = parser.parse_args()
