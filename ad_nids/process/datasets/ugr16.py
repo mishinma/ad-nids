@@ -178,7 +178,7 @@ def aggregate_ugr_data(split_root_path, aggr_path, processes=-1,
 if __name__ == '__main__':
 
     # Example command
-    # python ugr.py ../tests/data/ugr_mock_split/ ../tests/data/processed/ -p -1 -f T --overwrite --plot
+    # python ugr16.py ../tests/data/ugr_mock_split/ ../tests/data/processed/ -p -1 -f T --overwrite --plot
 
     parser = get_argparser()
     args = parser.parse_args()
