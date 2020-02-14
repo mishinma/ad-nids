@@ -18,6 +18,7 @@ from ad_nids.utils.exception import DownloadError
 from ad_nids.dataset import Dataset, create_meta
 from ad_nids.utils.misc import sample_df, dd_mm_yyyy2mmdd
 from ad_nids.process.columns import CIC_IDS2017_COLUMN_MAPPING, CIC_IDS2017_ATTACK_LABELS
+from ad_nids.report import BASE
 
 
 DATASET_NAME = 'CIC-IDS2017'
@@ -200,24 +201,6 @@ def create_report_day_cicids(meta, static_path):
     plt.close('all')
 
     return report
-
-
-BASE = """
-<!DOCTYPE html>
-<html>
-    <head>
-    <style>
-        table, th, td {
-          border: 1px solid black;
-          border-collapse: collapse;
-        }
-    </style>
-    </head>
-    <body>
-    {{STUFF}}
-    </body>
-</html>
-"""
 
 
 def create_dataset_report_cicids17(dataset_path, report_path):

@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pandas as pd
 from json2html import json2html
+
 from ad_nids.utils import int_to_roman
 
 
@@ -68,7 +69,7 @@ def collect_plots(plot_paths, static_path):
     return plots
 
 
-def create_report(log_path, static_path, exp_idx=1):
+def create_experiment_report(log_path, static_path, exp_idx=1):
     """ Create a simple HTML doc with summary. """
 
     with open(log_path / 'config.json', 'r') as f:
@@ -125,7 +126,7 @@ def create_report(log_path, static_path, exp_idx=1):
     return report
 
 
-def create_datasets_report(log_paths, static_path):
+def create_experiments_per_dataset_report(log_paths, static_path):
 
     dataset2logs = {}
     for log_path in log_paths:
@@ -246,7 +247,7 @@ def create_experiments_report(log_paths, static_path):
     reports = []
 
     for i, log_path in enumerate(log_paths):
-        report = create_report(log_path, static_path, exp_idx=i+1)
+        report = create_experiment_report(log_path, static_path, exp_idx=i + 1)
         reports.append(report)
 
     reports = '\n<br><br>\n'.join(reports)
@@ -285,7 +286,7 @@ if __name__ == '__main__':
 
     datasets_report_path = report_path / 'datasets_report.html'
     logging.info(f"Creating all datasets report {datasets_report_path}")
-    datasets_report = create_datasets_report(log_paths, static_path)
+    datasets_report = create_experiments_per_dataset_report(log_paths, static_path)
     with open(datasets_report_path, 'w') as f:
         f.write(datasets_report)
 

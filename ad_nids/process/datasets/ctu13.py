@@ -7,9 +7,13 @@ import multiprocessing as mp
 
 from pathlib import Path
 from subprocess import check_output
+from uuid import uuid4
 
 import numpy as np
 import pandas as pd
+
+from matplotlib import pyplot as plt
+import seaborn as sns
 
 
 from ad_nids.utils.exception import DownloadError
@@ -17,6 +21,7 @@ from ad_nids.dataset import Dataset, create_meta
 from ad_nids.process.aggregate import aggregate_extract_features
 from ad_nids.process.columns import CTU_13_ORIG_COLUMN_MAPPING, TCP_FLAGS, CTU_13_PROTOS, \
     CTU_13_COLUMNS, CTU_13_FEATURES, CTU_13_META
+from ad_nids.report import BASE
 
 
 DATASET_NAME = 'CTU-13'
@@ -116,74 +121,144 @@ def cleanup_ctu13(data_path):
         sc_flows.to_csv(sc_path, index=False)
 
 
-def aggregate_ctu_data(root_path, aggr_path, processes=-1,
-                       frequency='T', exist_ok=True):
+def create_report_scenario_ctu13(data, static_path):
 
-    if processes == -1:
-        processes = mp.cpu_count() - 1
+    report = ""
 
-    root_path = Path(root_path).resolve()
-    aggr_path = Path(aggr_path).resolve()
+    data['timestamp'] = pd.to_datetime(data['timestamp'])
 
-    scenarios = [s.name for s in root_path.iterdir()
-                 if s.name in map(str, ALL_SCENARIOS)]
+    start_tstmp = data['timestamp'].iloc[0]
+    data.loc[:, 'sec'] = (data['timestamp'] - start_tstmp).dt.total_seconds()
 
-    for scenario in scenarios:
-        scenario_path = root_path/scenario
-        scenario_out_path = aggr_path/scenario
-        scenario_out_path.mkdir(parents=True, exist_ok=True)
+    num_flows = data.shape[0]
+    report += '<h3>' + f'Num flows: {num_flows}' + ' </h3>'
+    report += '</br>'
 
-        logging.info("Processing scenario {}...".format(scenario))
-        start_time = time.time()
+    attack_cnt = np.sum(data['target'])
+    report += '<h3>' + f'Botnet flows: {attack_cnt}' + ' </h3>'
+    report += '</br>'
 
-        flow_file = [f for f in scenario_path.iterdir()
-                     if f.suffix == '.binetflow'][0]
+    contamination_perc = attack_cnt / num_flows * 100
+    report += '<h2> Contamination perc: {:.2f} </h2>'.format(contamination_perc)
+    report += '</br>'
 
-        out_name = "{}_aggr_{}.csv".format(flow_file, frequency)
-        out_path = scenario_out_path/out_name
+    plt.close('all')
+    sns.distplot(data.loc[~data['target'].astype(bool), 'sec'], rug=True, kde=False)
+    sns.distplot(data.loc[data['target'].astype(bool), 'sec'], rug=True, kde=False)
+    plt.legend(labels=['normal', 'botnet'])
+    plot_name = start_tstmp.strftime("{}.png".format(str(uuid4())[:5]))
+    plot_path = os.path.join(static_path, plot_name)
+    plt.savefig(plot_path)
+    report += f'<img src="static/{plot_name}" alt="dataset visualization">'
+    report += '</br>'
 
-        # Don't overwrite if exist_ok is set
-        if out_path.exists() and exist_ok:
-            logging.info("Found existing; no overwrite")
-            continue
+    plt.close('all')
+    sns.distplot(data.loc[~data['target'].astype(bool), 'sec'], rug=True)
+    sns.distplot(data.loc[data['target'].astype(bool), 'sec'], rug=True)
+    plt.legend(labels=['normal', 'botnet'])
+    plot_name = start_tstmp.strftime("{}.png".format(str(uuid4())[:5]))
+    plot_path = os.path.join(static_path, plot_name)
+    plt.savefig(plot_path)
+    report += f'<img src="static/{plot_name}" alt="dataset visualization">'
+    report += '</br>'
+    plt.close('all')
 
-        flows = pd.read_csv(scenario_path/flow_file)
-        flows = format_ctu_flows(flows)
-
-        aggr_flows = aggregate_extract_features(flows, frequency, processes)
-        aggr_flows.to_csv(out_path, index=False)
-
-        logging.info("Done {0:.2f}".format(time.time() - start_time))
+    return report
 
 
-def create_aggr_ctu_dataset(aggr_path, train_scenarios, test_scenarios, frequency='T'):
+def create_dataset_report_ctu13(dataset_path, report_path):
 
-    aggr_path = Path(aggr_path).resolve()
+    dataset_path = Path(dataset_path).resolve()
+    static_path = report_path/'static'
+    static_path.mkdir(parents=True, exist_ok=True)
 
-    meta = create_meta(DATASET_NAME, train_scenarios,
-                       test_scenarios, frequency, FEATURES)  # no hash created
-    logging.info("Creating dataset {}...".format(meta['name']))
+    report = ''
 
-    train_paths = []
-    for sc in train_scenarios:
-        train_paths.extend((aggr_path / str(sc)).glob(f'*aggr_{frequency}.csv'))
+    for path in dataset_path.iterdir():
 
-    test_paths = []
-    for sc in test_scenarios:
-        test_paths.extend((aggr_path / str(sc)).glob(f'*aggr_{frequency}.csv'))
+        name = path.name[:-len(path.suffix)]
+        print(name)
 
-    # Naive concat
-    train = pd.concat([pd.read_csv(p) for p in train_paths])
-    train_meta = train.loc[:, ['sa', 'tws']]
-    train = train.loc[:, FLOW_STATS.keys()]
+        data = pd.read_csv(path)
+        path_report = create_report_scenario_ctu13(data, static_path)
 
-    test = pd.concat([pd.read_csv(p) for p in test_paths])
-    test_meta = test.loc[:, ['sa', 'tws']]
-    test = test.loc[:, FLOW_STATS.keys()]
+        report += f'<h1> {name} </h1></br>'
+        report += path_report
+        report += '</br></br>'
 
-    logging.info("Done")
+    report = BASE.replace('{{STUFF}}', report)
+    with open(report_path / 'report.html', 'w') as f:
+        f.write(report)
 
-    return Dataset(train, test, train_meta, test_meta, meta)
+
+# def aggregate_ctu_data(root_path, aggr_path, processes=-1,
+#                        frequency='T', exist_ok=True):
+#
+#     if processes == -1:
+#         processes = mp.cpu_count() - 1
+#
+#     root_path = Path(root_path).resolve()
+#     aggr_path = Path(aggr_path).resolve()
+#
+#     scenarios = [s.name for s in root_path.iterdir()
+#                  if s.name in map(str, ALL_SCENARIOS)]
+#
+#     for scenario in scenarios:
+#         scenario_path = root_path/scenario
+#         scenario_out_path = aggr_path/scenario
+#         scenario_out_path.mkdir(parents=True, exist_ok=True)
+#
+#         logging.info("Processing scenario {}...".format(scenario))
+#         start_time = time.time()
+#
+#         flow_file = [f for f in scenario_path.iterdir()
+#                      if f.suffix == '.binetflow'][0]
+#
+#         out_name = "{}_aggr_{}.csv".format(flow_file, frequency)
+#         out_path = scenario_out_path/out_name
+#
+#         # Don't overwrite if exist_ok is set
+#         if out_path.exists() and exist_ok:
+#             logging.info("Found existing; no overwrite")
+#             continue
+#
+#         flows = pd.read_csv(scenario_path/flow_file)
+#         flows = format_ctu_flows(flows)
+#
+#         aggr_flows = aggregate_extract_features(flows, frequency, processes)
+#         aggr_flows.to_csv(out_path, index=False)
+#
+#         logging.info("Done {0:.2f}".format(time.time() - start_time))
+#
+#
+# def create_aggr_ctu_dataset(aggr_path, train_scenarios, test_scenarios, frequency='T'):
+#
+#     aggr_path = Path(aggr_path).resolve()
+#
+#     meta = create_meta(DATASET_NAME, train_scenarios,
+#                        test_scenarios, frequency, FEATURES)  # no hash created
+#     logging.info("Creating dataset {}...".format(meta['name']))
+#
+#     train_paths = []
+#     for sc in train_scenarios:
+#         train_paths.extend((aggr_path / str(sc)).glob(f'*aggr_{frequency}.csv'))
+#
+#     test_paths = []
+#     for sc in test_scenarios:
+#         test_paths.extend((aggr_path / str(sc)).glob(f'*aggr_{frequency}.csv'))
+#
+#     # Naive concat
+#     train = pd.concat([pd.read_csv(p) for p in train_paths])
+#     train_meta = train.loc[:, ['sa', 'tws']]
+#     train = train.loc[:, FLOW_STATS.keys()]
+#
+#     test = pd.concat([pd.read_csv(p) for p in test_paths])
+#     test_meta = test.loc[:, ['sa', 'tws']]
+#     test = test.loc[:, FLOW_STATS.keys()]
+#
+#     logging.info("Done")
+#
+#     return Dataset(train, test, train_meta, test_meta, meta)
 
 
 if __name__ == '__main__':
