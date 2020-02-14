@@ -228,7 +228,7 @@ def create_dataset_ctu13(dataset_path,
         train, test = train_test_split(data, test_size=test_size, random_seed=random_seed)
 
     else:
-        name = '{}_TRAIN_{}_TEST_{}_'.format(
+        name = '{}_TRAIN_{}_TEST_{} '.format(
             DATASET_NAME,
             '-'.join(map(str, train_scenarios)),
             '-'.join(map(str, test_scenarios)),
