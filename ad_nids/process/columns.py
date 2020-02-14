@@ -4,6 +4,17 @@ from collections import OrderedDict
 import numpy as np
 from scipy.stats import entropy
 
+TCP_FLAGS = {
+    'A': 'ack',
+    'S': 'syn',
+    'R': 'rst',
+    'P': 'psh',
+    'F': 'fin',
+    'U': 'urg',
+    'C': 'cwe',
+    'E': 'ece'
+}
+
 FLOW_COLUMNS = [
     'ts',   # timestamp of the start of a flow
     'td',   # duration of flow
@@ -37,23 +48,150 @@ FLOW_STATS = OrderedDict([
 
 FLOW_STATS_COLUMNS = ['sa', 'tws'] + list(FLOW_STATS.keys())
 
+
 """
 ########## CTU-13 ############
 """
 
-FLOW2CTU_COLUMNS = {
-    'ts': 'StartTime',
-    'td': 'Dur',
-    'sa': 'SrcAddr',
-    'da': 'DstAddr',
-    'sp': 'Sport',
-    'dp': 'Dport',
-    'pr': 'Proto',
-    'pkt': 'TotPkts',
-    'byt': 'TotBytes',
-    'lbl': 'Label'
+CTU_13_PROTOS = ['tcp', 'udp', 'icmp']
+
+CTU_13_ORIG_COLUMN_MAPPING = {
+    'StartTime': 'timestamp',
+    'Dur': 'dur',
+    'Proto': 'proto',
+    'SrcAddr': 'src_ip',
+    'Sport': 'src_port',
+    'Dir': 'dir',
+    'DstAddr': 'dst_ip',
+    'Dport': 'dst_port',
+    'State': 'state',  # transaction state
+    'sTos': 'src_tos',  # source Type Of Service byte value
+    'dTos': 'dst_tos',  # destination Type Of Service byte value
+    'TotPkts': 'tot_pkts',
+    'TotBytes': 'tot_byts',
+    'SrcBytes': 'src_byts',
+    'Label': 'label'
 }
-CTU2FLOW_COLUMNS = {v: k for k, v in FLOW2CTU_COLUMNS.items()}
+
+#  'con_state',  # transaction state CON (UDP) ?
+#  'int_state',  # transaction state INT (UDP) ?
+CTU_13_COLUMNS = [
+    'timestamp',
+    'src_ip',
+    'src_port',
+    'dst_ip',
+    'dst_port',
+    'proto',  # tcp, udp, icmp or other; categorical
+    'dur',
+    'dir',
+    'fwd_dir',  # '>' in dir
+    'bwd_dir',  # '<' in dir
+    'state',
+    'fwd_fin_flag',
+    'fwd_syn_flag',
+    'fwd_rst_flag',
+    'fwd_psh_flag',
+    'fwd_ack_flag',
+    'fwd_urg_flag',
+    'fwd_cwe_flag',
+    'fwd_ece_flag',
+    'bwd_fin_flag',
+    'bwd_syn_flag',
+    'bwd_rst_flag',
+    'bwd_psh_flag',
+    'bwd_ack_flag',
+    'bwd_urg_flag',
+    'bwd_cwe_flag',
+    'bwd_ece_flag',
+    'src_tos',  # 1 if sTos not 0
+    'dst_tos',  # 1 if dTos not 0
+    'tot_pkts',
+    'tot_byts',
+    'src_byts',
+    'label',
+    'target'
+]
+
+CTU_13_FEATURES = [
+    'proto',  # tcp, udp, icmp or other; categorical
+    'dur',
+    'fwd_dir',  # '>' in dir
+    'bwd_dir',  # '<' in dir
+    'fwd_fin_flag',
+    'fwd_syn_flag',
+    'fwd_rst_flag',
+    'fwd_psh_flag',
+    'fwd_ack_flag',
+    'fwd_urg_flag',
+    'fwd_cwe_flag',
+    'fwd_ece_flag',
+    'bwd_fin_flag',
+    'bwd_syn_flag',
+    'bwd_rst_flag',
+    'bwd_psh_flag',
+    'bwd_ack_flag',
+    'bwd_urg_flag',
+    'bwd_cwe_flag',
+    'bwd_ece_flag',
+    'src_tos',  # 1 if sTos not 0
+    'dst_tos',  # 1 if dTos not 0
+    'tot_pkts',
+    'tot_byts',
+    'src_byts',
+    'target'
+]
+
+
+CTU_13_META = [
+    'timestamp',
+    'src_ip',
+    'src_port',
+    'dst_ip',
+    'dst_port',
+    'proto',  # tcp, udp, icmp or other; categorical
+    'dir',
+    'state',
+    'label',
+]
+
+# numerical:  mean, min, max, std, median
+# categorical: num_unique, entropy
+CTU_13_AGGR_FEATURES = [
+    'total_cnt',
+    'dur_mean',
+    'dur_min',
+    'dur_max',
+    'dur_std',
+    'dur_median',
+    'proto_entropy',
+    'proto_nuniq',
+    'fwd_flag_entropy',  #
+    'fwd_flag_nuniq',
+    'bwd_flag_entropy',  #
+    'bwd_flag_nuniq',
+    'tot_pkts_mean',
+    'tot_pkts_min',
+    'tot_pkts_max',
+    'tot_pkts_std',
+    'tot_pkts_median',
+    'tot_byts_mean',
+    'tot_byts_min',
+    'tot_byts_max',
+    'tot_byts_std',
+    'tot_byts_median',
+    'tot_byts_mean',
+    'tot_byts_min',
+    'tot_byts_max',
+    'tot_byts_std',
+    'tot_byts_median',
+    'src_byts_mean',
+    'src_byts_min',
+    'src_byts_max',
+    'src_byts_std',
+    'src_byts_median',
+]
+
+CTU_13_AGGR_META = []
 
 
 """
