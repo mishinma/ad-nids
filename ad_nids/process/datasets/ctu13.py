@@ -211,8 +211,8 @@ def create_dataset_ctu13(dataset_path,
     else:
         name = '{}_TRAIN_{}_TEST_{}_'.format(
             DATASET_NAME,
-            '-'.join(train_scenarios),
-            '-'.join(test_scenarios),
+            '-'.join(map(str(train_scenarios))),
+            '-'.join(map(str(test_scenarios))),
         )
 
         train_paths = [dataset_path / '{:02d}.csv'.format(i) for i in train_scenarios]
