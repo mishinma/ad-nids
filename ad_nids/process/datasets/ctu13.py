@@ -11,13 +11,13 @@ from uuid import uuid4
 
 import numpy as np
 import pandas as pd
-
+from sklearn.model_selection import train_test_split
 from matplotlib import pyplot as plt
 import seaborn as sns
 
 
 from ad_nids.utils.exception import DownloadError
-from ad_nids.dataset import Dataset, create_meta
+from ad_nids.dataset import Dataset
 from ad_nids.process.aggregate import aggregate_extract_features
 from ad_nids.process.columns import CTU_13_ORIG_COLUMN_MAPPING, TCP_FLAGS, CTU_13_PROTOS, \
     CTU_13_COLUMNS, CTU_13_FEATURES, CTU_13_META
@@ -191,66 +191,66 @@ def create_data_report_ctu13(dataset_path, report_path):
         f.write(report)
 
 
-def create_dataset_ctu13(dataset_path, train_scenarios, test_scenarios, create_hash=False):
+def create_dataset_ctu13(dataset_path,
+                         train_scenarios=None, test_scenarios=None, frequency=None,
+                         test_size=None, random_seed=None,
+                         create_hash=False):
 
-    features = 'ORIG'
+    dataset_path = Path(dataset_path).resolve()
+    logging.info("Creating dataset")
 
-    dataset_name = '{}_TRAIN_{}_TEST_{}_{}'.format(
-        DATASET_NAME,
-        '-'.join(train_scenarios),
-        '-'.join(test_scenarios),
-        features
-    )
+    if random_seed is not None:
 
-    meta = create_meta(DATASET_NAME, train_scenarios, test_scenarios,
-                       features=features, name=dataset_name)
-    logging.info("Creating dataset {}...".format(meta['name']))
+        name = '{}_TEST_SIZE_{}_RANDOM_SEED_{}'.format(
+            DATASET_NAME, test_size, random_seed
+        )
+        data_paths = [dataset_path / '{:02d}.csv'.format(i) for i in ALL_SCENARIOS]
+        data = pd.concat([pd.read_csv(p) for p in data_paths])
+        train, test = train_test_split(data, test_size=test_size, random_seed=random_seed)
 
-    train_paths = [dataset_path/'{:02d}.csv'.format(i) for i in train_scenarios]
-    test_paths = [dataset_path/'{:02d}.csv'.format(i) for i in test_scenarios]
+    else:
+        name = '{}_TRAIN_{}_TEST_{}_'.format(
+            DATASET_NAME,
+            '-'.join(train_scenarios),
+            '-'.join(test_scenarios),
+        )
 
-    # Naive concat
-    train = pd.concat([pd.read_csv(p) for p in train_paths])
-    train_meta = train.loc[:, CTU_13_META]
-    train = train.loc[:, CTU_13_FEATURES]
+        train_paths = [dataset_path / '{:02d}.csv'.format(i) for i in train_scenarios]
+        test_paths = [dataset_path / '{:02d}.csv'.format(i) for i in test_scenarios]
+        train = pd.concat([pd.read_csv(p) for p in train_paths])
+        test = pd.concat([pd.read_csv(p) for p in test_paths])
 
-    test = pd.concat([pd.read_csv(p) for p in test_paths])
-    test_meta = test.loc[:, CTU_13_META]
-    test = test.loc[:, CTU_13_FEATURES]
+    if frequency is not None:
+        name += '_AGGR_{}'.format(frequency)
+        feature_columns = []  # change to aggr!
+        meta_columns = CTU_13_META
+    else:
+        feature_columns = CTU_13_FEATURES
+        meta_columns = CTU_13_META
 
-    logging.info("Done")
+    train_meta = train.loc[:, meta_columns]
+    train = train.loc[:, feature_columns]
+    test_meta = test.loc[:, meta_columns]
+    test = test.loc[:, feature_columns]
 
-    return Dataset(train, test, train_meta, test_meta, meta, create_hash=create_hash)
+    meta = {
+        'data_hash': None,
+        'dataset_name': DATASET_NAME,
+        'test_size': test_size,
+        'random_seed': random_seed,
+        'frequency': frequency,
+        'train_scenarios': train_scenarios,
+        'test_scenarios': test_scenarios,
+        'feature_columns': feature_columns,
+        'meta_columns': meta_columns,
+        'name': name
+    }
 
+    dataset = Dataset(train, test, train_meta, test_meta, meta, create_hash=create_hash)
 
-# def create_dataset_ctu13(aggr_path, train_scenarios, test_scenarios, frequency='T'):
-#
-#     aggr_path = Path(aggr_path).resolve()
-#
-#     meta = create_meta(DATASET_NAME, train_scenarios,
-#                        test_scenarios, frequency, FEATURES)  # no hash created
-#     logging.info("Creating dataset {}...".format(meta['name']))
-#
-#     train_paths = []
-#     for sc in train_scenarios:
-#         train_paths.extend((aggr_path / str(sc)).glob(f'*aggr_{frequency}.csv'))
-#
-#     test_paths = []
-#     for sc in test_scenarios:
-#         test_paths.extend((aggr_path / str(sc)).glob(f'*aggr_{frequency}.csv'))
-#
-#     # Naive concat
-#     train = pd.concat([pd.read_csv(p) for p in train_paths])
-#     train_meta = train.loc[:, ['sa', 'tws']]
-#     train = train.loc[:, FLOW_STATS.keys()]
-#
-#     test = pd.concat([pd.read_csv(p) for p in test_paths])
-#     test_meta = test.loc[:, ['sa', 'tws']]
-#     test = test.loc[:, FLOW_STATS.keys()]
-#
-#     logging.info("Done")
-#
-#     return Dataset(train, test, train_meta, test_meta, meta)
+    logging.info('Done!')
+
+    return dataset
 
 
 # def aggregate_ctu_data(root_path, aggr_path, processes=-1,
@@ -291,9 +291,6 @@ def create_dataset_ctu13(dataset_path, train_scenarios, test_scenarios, create_h
 #         aggr_flows.to_csv(out_path, index=False)
 #
 #         logging.info("Done {0:.2f}".format(time.time() - start_time))
-#
-#
-
 
 
 if __name__ == '__main__':
