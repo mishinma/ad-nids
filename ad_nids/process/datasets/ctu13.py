@@ -8,6 +8,7 @@ import multiprocessing as mp
 from pathlib import Path
 from subprocess import check_output
 from uuid import uuid4
+from ipaddress import ip_address
 
 import numpy as np
 import pandas as pd
@@ -30,6 +31,18 @@ TOTAL_SCENARIOS = 13
 ORIG_TRAIN_SCENARIOS = [3, 4, 5, 7, 10, 11, 12, 13]
 ORIG_TEST_SCENARIOS = [1, 2, 6, 8, 9]
 ALL_SCENARIOS = list(range(1, TOTAL_SCENARIOS + 1))
+
+IGNORE_IPS = ['0.0.0.0', '::', 'ff:ff:ff:ff:ff:ff']
+
+
+def is_valid_ip(x):
+    try:
+        ip_address(x)
+    except ValueError:
+        return False
+    if x in IGNORE_IPS:
+        return False
+    return True
 
 
 def download_ctu13(data_path):
@@ -75,6 +88,12 @@ def download_ctu13(data_path):
 def format_ctu_flows(flows):
 
     flows = flows.rename(columns=CTU_13_ORIG_COLUMN_MAPPING)
+
+    # drop bad rows
+    flows = flows[~flows[['src_port', 'dst_port', 'proto']].isna().any(axis=1)]
+    valid_ip_idx = flows['src_ip'].apply(is_valid_ip) & flows['dst_ip'].apply(is_valid_ip)
+    flows = flows[valid_ip_idx]
+    flows = flows.fillna(0)  # fill the rest of na with 0
 
     flows['timestamp'] = pd.to_datetime(flows['timestamp'], format='%Y/%m/%d %H:%M:%S.%f')
     flows = flows.sort_values(by='timestamp').reset_index(drop=True)
