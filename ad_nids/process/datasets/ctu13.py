@@ -85,12 +85,12 @@ def download_ctu13(data_path):
     return
 
 
-def format_ctu_flows(flows):
+def cleanup_ctu_flows(flows):
 
     flows = flows.rename(columns=CTU_13_ORIG_COLUMN_MAPPING)
 
     # drop bad rows
-    flows = flows[~flows[['src_port', 'dst_port', 'proto']].isna().any(axis=1)]
+    # flows = flows[~flows[['src_port', 'dst_port', 'proto']].isna().any(axis=1)]   dst_port is NaN in 04, 10, 11
     valid_ip_idx = flows['src_ip'].apply(is_valid_ip) & flows['dst_ip'].apply(is_valid_ip)
     flows = flows[valid_ip_idx]
     flows = flows.fillna(0)  # fill the rest of na with 0
@@ -136,7 +136,7 @@ def cleanup_ctu13(data_path):
         logging.info(f'Processing scenario {sc_i}')
         sc_path = data_path/'{:02d}.csv'.format(sc_i)
         sc_flows = pd.read_csv(sc_path)
-        sc_flows = format_ctu_flows(sc_flows)
+        sc_flows = cleanup_ctu_flows(sc_flows)
         sc_flows.to_csv(sc_path, index=False)
 
 
