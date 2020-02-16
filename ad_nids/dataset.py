@@ -78,13 +78,26 @@ def hash_from_paths(paths):
 class Dataset:
 
     def __init__(self, train, test, train_meta=None, test_meta=None,
-                 meta=None, create_hash=True):
+                 meta=None, categorical_features=None, binary_features=None,
+                 create_hash=True):
 
         self.train = train
         self.test = test
         self.train_meta = train_meta
         self.test_meta = test_meta
         self.meta = meta
+
+        if categorical_features is not None:
+            self.categorical_features_map = categorical_features
+            self.categorical_features = list(categorical_features.keys())
+        else:
+            self.categorical_features_map = {}
+            self.categorical_features = []
+
+        if binary_features is not None:
+            self.binary_features = binary_features
+        else:
+            self.binary_features = []
 
         if self.meta is not None and self.meta.get('name'):
             self.name = self.meta['name']
@@ -186,6 +199,12 @@ class Dataset:
     def visualize(self, ax, train=True):
 
         data = self.train if train else self.test
+
+        # ToDo: drop cat features for now
+        data = data.drop(columns=self.categorical_features + self.binary_features)
+        if data.shape[1] < 1:
+            return
+
         targets = data.iloc[:, -1]
         data = data.iloc[:, :-1]
 

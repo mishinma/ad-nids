@@ -141,6 +141,32 @@ CTU_13_FEATURES = [
     'target'
 ]
 
+CTU_13_CATEGORICAL_FEATURES_MAP = {
+    'proto': ['tcp', 'udp', 'icmp', 'other']
+}
+
+CTU_13_BINARY_FEATURES = [
+    'fwd_dir',
+    'bwd_dir',
+    'fwd_fin_flag',
+    'fwd_syn_flag',
+    'fwd_rst_flag',
+    'fwd_psh_flag',
+    'fwd_ack_flag',
+    'fwd_urg_flag',
+    'fwd_cwe_flag',
+    'fwd_ece_flag',
+    'bwd_fin_flag',
+    'bwd_syn_flag',
+    'bwd_rst_flag',
+    'bwd_psh_flag',
+    'bwd_ack_flag',
+    'bwd_urg_flag',
+    'bwd_cwe_flag',
+    'bwd_ece_flag',
+]
+
+
 CTU_13_META = [
     'timestamp',
     'src_ip',

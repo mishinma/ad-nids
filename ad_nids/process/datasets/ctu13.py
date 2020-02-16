@@ -21,7 +21,7 @@ from ad_nids.utils.exception import DownloadError
 from ad_nids.dataset import Dataset
 from ad_nids.process.aggregate import aggregate_extract_features
 from ad_nids.process.columns import CTU_13_ORIG_COLUMN_MAPPING, TCP_FLAGS, CTU_13_PROTOS, \
-    CTU_13_COLUMNS, CTU_13_FEATURES, CTU_13_META
+    CTU_13_COLUMNS, CTU_13_FEATURES, CTU_13_META, CTU_13_BINARY_FEATURES, CTU_13_CATEGORICAL_FEATURES_MAP
 from ad_nids.report import BASE
 
 
@@ -193,7 +193,7 @@ def create_data_report_ctu13(dataset_path, report_path):
 
     report = ''
 
-    for path in dataset_path.iterdir():
+    for path in sorted(dataset_path.iterdir()):
 
         name = path.name[:-len(path.suffix)]
         print(name)
@@ -228,7 +228,7 @@ def create_dataset_ctu13(dataset_path,
         train, test = train_test_split(data, test_size=test_size, random_seed=random_seed)
 
     else:
-        name = '{}_TRAIN_{}_TEST_{} '.format(
+        name = '{}_TRAIN_{}_TEST_{}'.format(
             DATASET_NAME,
             '-'.join(map(str, train_scenarios)),
             '-'.join(map(str, test_scenarios)),
@@ -260,12 +260,13 @@ def create_dataset_ctu13(dataset_path,
         'frequency': frequency,
         'train_scenarios': train_scenarios,
         'test_scenarios': test_scenarios,
-        'feature_columns': feature_columns,
-        'meta_columns': meta_columns,
         'name': name
     }
 
-    dataset = Dataset(train, test, train_meta, test_meta, meta, create_hash=create_hash)
+    dataset = Dataset(train, test, train_meta, test_meta, meta,
+                      categorical_features=CTU_13_CATEGORICAL_FEATURES_MAP,
+                      binary_features=CTU_13_BINARY_FEATURES,
+                      create_hash=create_hash)
 
     logging.info('Done!')
 
