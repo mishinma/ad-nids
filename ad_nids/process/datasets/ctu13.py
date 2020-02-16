@@ -21,7 +21,8 @@ from ad_nids.utils.exception import DownloadError
 from ad_nids.dataset import Dataset
 from ad_nids.process.aggregate import aggregate_extract_features
 from ad_nids.process.columns import CTU_13_ORIG_COLUMN_MAPPING, TCP_FLAGS, CTU_13_PROTOS, \
-    CTU_13_COLUMNS, CTU_13_FEATURES, CTU_13_META, CTU_13_BINARY_FEATURES, CTU_13_CATEGORICAL_FEATURES_MAP
+    CTU_13_COLUMNS, CTU_13_FEATURES, CTU_13_META_COLUMNS, CTU_13_BINARY_FEATURES, \
+    CTU_13_CATEGORICAL_FEATURE_MAP, CTU_13_NUMERICAL_FEATURES
 from ad_nids.report import BASE
 
 
@@ -241,11 +242,19 @@ def create_dataset_ctu13(dataset_path,
 
     if frequency is not None:
         name += '_AGGR_{}'.format(frequency)
+        # TOdo ad this
         feature_columns = []  # change to aggr!
-        meta_columns = CTU_13_META
+        meta_columns = CTU_13_META_COLUMNS
+        features_info = {}
     else:
-        feature_columns = CTU_13_FEATURES
-        meta_columns = CTU_13_META
+        feature_columns = list(CTU_13_FEATURES.keys())
+        meta_columns = CTU_13_META_COLUMNS
+        features_info = {
+            'categorical_feature_map': CTU_13_CATEGORICAL_FEATURE_MAP,
+            'categorical_features': list(CTU_13_CATEGORICAL_FEATURE_MAP.keys()),
+            'binary_features': CTU_13_BINARY_FEATURES,
+            'numerical_features': CTU_13_NUMERICAL_FEATURES
+        }
 
     train_meta = train.loc[:, meta_columns]
     train = train.loc[:, feature_columns]
@@ -262,10 +271,9 @@ def create_dataset_ctu13(dataset_path,
         'test_scenarios': test_scenarios,
         'name': name
     }
+    meta.update(features_info)
 
     dataset = Dataset(train, test, train_meta, test_meta, meta,
-                      categorical_features=CTU_13_CATEGORICAL_FEATURES_MAP,
-                      binary_features=CTU_13_BINARY_FEATURES,
                       create_hash=create_hash)
 
     logging.info('Done!')

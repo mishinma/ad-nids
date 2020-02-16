@@ -4,6 +4,31 @@ from collections import OrderedDict
 import numpy as np
 from scipy.stats import entropy
 
+
+class FEATURETYPE:
+
+    def __init__(self):
+        self.type = self.__class__.__name__
+
+class CATEGORICAL(FEATURETYPE):
+
+    def __init__(self, values):
+        self.values = values
+        super(CATEGORICAL, self).__init__()
+
+
+class NUMERICAL(FEATURETYPE):
+    pass
+
+
+class BINARY(FEATURETYPE):
+    pass
+
+
+class LABEL(FEATURETYPE):
+    pass
+
+
 TCP_FLAGS = {
     'A': 'ack',
     'S': 'syn',
@@ -112,62 +137,52 @@ CTU_13_COLUMNS = [
     'target'
 ]
 
-CTU_13_FEATURES = [
-    'proto',  # tcp, udp, icmp or other; categorical
-    'dur',
-    'fwd_dir',  # '>' in dir
-    'bwd_dir',  # '<' in dir
-    'fwd_fin_flag',
-    'fwd_syn_flag',
-    'fwd_rst_flag',
-    'fwd_psh_flag',
-    'fwd_ack_flag',
-    'fwd_urg_flag',
-    'fwd_cwe_flag',
-    'fwd_ece_flag',
-    'bwd_fin_flag',
-    'bwd_syn_flag',
-    'bwd_rst_flag',
-    'bwd_psh_flag',
-    'bwd_ack_flag',
-    'bwd_urg_flag',
-    'bwd_cwe_flag',
-    'bwd_ece_flag',
-    'src_tos',  # 1 if sTos not 0
-    'dst_tos',  # 1 if dTos not 0
-    'tot_pkts',
-    'tot_byts',
-    'src_byts',
-    'target'
-]
-
-CTU_13_CATEGORICAL_FEATURES_MAP = {
-    'proto': ['tcp', 'udp', 'icmp', 'other']
+CTU_13_FEATURES = {
+    'proto':  CATEGORICAL(['tcp', 'udp', 'icmp', 'other']),
+    'dur': NUMERICAL(),
+    'fwd_dir': BINARY(),  # '>' in dir
+    'bwd_dir': BINARY(),  # '<' in dir
+    'fwd_fin_flag': BINARY(),
+    'fwd_syn_flag': BINARY(),
+    'fwd_rst_flag': BINARY(),
+    'fwd_psh_flag': BINARY(),
+    'fwd_ack_flag': BINARY(),
+    'fwd_urg_flag': BINARY(),
+    'fwd_cwe_flag': BINARY(),
+    'fwd_ece_flag': BINARY(),
+    'bwd_fin_flag': BINARY(),
+    'bwd_syn_flag': BINARY(),
+    'bwd_rst_flag': BINARY(),
+    'bwd_psh_flag': BINARY(),
+    'bwd_ack_flag': BINARY(),
+    'bwd_urg_flag': BINARY(),
+    'bwd_cwe_flag': BINARY(),
+    'bwd_ece_flag': BINARY(),
+    'src_tos': BINARY(),  # 1 if sTos not 0
+    'dst_tos': BINARY(),  # 1 if dTos not 0
+    'tot_pkts': NUMERICAL(),
+    'tot_byts': NUMERICAL(),
+    'src_byts': NUMERICAL(),
+    'target': LABEL()
 }
 
-CTU_13_BINARY_FEATURES = [
-    'fwd_dir',
-    'bwd_dir',
-    'fwd_fin_flag',
-    'fwd_syn_flag',
-    'fwd_rst_flag',
-    'fwd_psh_flag',
-    'fwd_ack_flag',
-    'fwd_urg_flag',
-    'fwd_cwe_flag',
-    'fwd_ece_flag',
-    'bwd_fin_flag',
-    'bwd_syn_flag',
-    'bwd_rst_flag',
-    'bwd_psh_flag',
-    'bwd_ack_flag',
-    'bwd_urg_flag',
-    'bwd_cwe_flag',
-    'bwd_ece_flag',
+
+CTU_13_CATEGORICAL_FEATURE_MAP = {
+    f: t.values for f, t in CTU_13_FEATURES.items() if t.type == 'CATEGORICAL'
+}
+
+
+CTU_13_NUMERICAL_FEATURES = [
+    f for f, t in CTU_13_FEATURES.items() if t.type == 'NUMERICAL'
 ]
 
 
-CTU_13_META = [
+CTU_13_BINARY_FEATURES = [
+    f for f, t in CTU_13_FEATURES.items() if t.type == 'BINARY'
+]
+
+
+CTU_13_META_COLUMNS = [
     'timestamp',
     'src_ip',
     'src_port',
