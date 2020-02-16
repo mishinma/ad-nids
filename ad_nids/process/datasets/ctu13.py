@@ -225,7 +225,7 @@ def create_dataset_ctu13(dataset_path,
         )
         data_paths = [dataset_path / '{:02d}.csv'.format(i) for i in ALL_SCENARIOS]
         data = pd.concat([pd.read_csv(p) for p in data_paths])
-        train, test = train_test_split(data, test_size=test_size, random_seed=random_seed)
+        train, test = train_test_split(data, test_size=test_size, random_state=random_seed)
 
     else:
         name = '{}_TRAIN_{}_TEST_{}'.format(
