@@ -7,6 +7,7 @@ import logging
 from pathlib import Path
 from uuid import uuid4
 
+import numpy as np
 import pandas as pd
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
@@ -14,6 +15,16 @@ import matplotlib.pyplot as plt
 from alibi_detect.utils.data import create_outlier_batch
 
 from ad_nids.utils import plot_data_2d
+
+
+def sample_df(df: pd.DataFrame,
+              n: int):
+    """ Sample n instances from the dataframe df. """
+    if n < df.shape[0] + 1:
+        replace = False
+    else:
+        replace = True
+    return df.sample(n=n, replace=replace)
 
 
 def create_meta(dataset_name, train_split, test_split, frequency=None,
@@ -78,31 +89,21 @@ def hash_from_paths(paths):
 class Dataset:
 
     def __init__(self, train, test, train_meta=None, test_meta=None,
-                 meta=None, categorical_features=None, binary_features=None,
-                 create_hash=True):
+                 meta=None, create_hash=True):
 
         self.train = train
         self.test = test
         self.train_meta = train_meta
         self.test_meta = test_meta
-        self.meta = meta
 
-        if categorical_features is not None:
-            self.categorical_features_map = categorical_features
-            self.categorical_features = list(categorical_features.keys())
+        if meta is not None:
+            self.meta = meta
         else:
-            self.categorical_features_map = {}
-            self.categorical_features = []
+            self.meta = {}
 
-        if binary_features is not None:
-            self.binary_features = binary_features
-        else:
-            self.binary_features = []
-
-        if self.meta is not None and self.meta.get('name'):
-            self.name = self.meta['name']
-        else:
-            self.name = 'noname_{}'.format(str(uuid4())[:5])
+        if 'name' not in self.meta:
+            meta['name'] = 'noname_{}'.format(str(uuid4())[:5])
+        self.name = meta['name']
 
         if create_hash:
             self._create_hash()
@@ -162,46 +163,42 @@ class Dataset:
         val = self._contamination(self.test)
         return val*100
 
-    def create_outlier_batch(self, train=True, n_samples=-1, perc_outlier=-1, scaler=None):
-        """
+    def create_outlier_batch(self, n_samples, perc_outlier, train=True):
+        """ Create a batch with a defined percentage of outliers. """
 
-        :param train:
-        :param n_samples: -1 infer number of samples
-        :param perc_outlier: -1 true contamination
-        :param scaler:
-        :return:
-        """
-        # ToDo: test this
-        if train:
-            data = self.train
-            true_contamination = self.train_contamination_perc
+        data = self.train if train else self.test
+
+        # separate inlier and outlier data
+        normal = data[data['target'] == 0]
+        outlier = data[data['target'] == 1]
+
+        if n_samples == 1:
+            n_outlier = np.random.binomial(1, .01 * perc_outlier)
+            n_normal = 1 - n_outlier
         else:
-            data = self.test
-            true_contamination = self.test_contamination_perc
+            n_outlier = int(perc_outlier * .01 * n_samples)
+            n_normal = int((100 - perc_outlier) * .01 * n_samples)
 
-        targets = data.iloc[:, -1]
-        data = data.iloc[:, :-1]
+        # draw samples
+        batch_normal = sample_df(normal, n_normal)
+        batch_outlier = sample_df(outlier, n_outlier)
 
-        if perc_outlier == -1:
-            perc_outlier = true_contamination
+        batch = pd.concat([batch_normal, batch_outlier])
+        batch = batch.sample(frac=1).reset_index(drop=True)
 
-        if n_samples == -1:
-            # under/over sample outliers
-            # take all normal data
-            n_outlier = int(perc_outlier * .01 * data.shape[0])
-            n_normal = int((100 - true_contamination) * .01 * data.shape[0])
-            n_samples = n_outlier + n_normal
-        if scaler is not None:
-            data = scaler.transform(data)
+        is_outlier = batch['target'].values
+        batch.drop(columns=['target'], inplace=True)
 
-        return create_outlier_batch(data, targets, n_samples, perc_outlier)
+        return batch, is_outlier
 
     def visualize(self, ax, train=True):
 
         data = self.train if train else self.test
 
         # ToDo: drop cat features for now
-        data = data.drop(columns=self.categorical_features + self.binary_features)
+        categorical_features = self.meta.get('categorical_features', [])
+        binary_features = self.meta.get('binary_features', [])
+        data = data.drop(columns=categorical_features + binary_features)
         if data.shape[1] < 1:
             return
 

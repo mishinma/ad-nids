@@ -7,6 +7,11 @@ import numpy as np
 import tensorflow as tf
 
 
+def set_seed(s=0):
+    np.random.seed(s)
+    tf.random.set_seed(s)
+
+
 def timing(f):
     @wraps(f)
     def wrap(*args, **kw):
