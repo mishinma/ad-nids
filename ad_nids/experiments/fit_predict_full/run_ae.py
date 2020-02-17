@@ -77,7 +77,7 @@ def run_ae(config, log_dir, experiment_data,
         encoder_activations = [tf.nn.relu] * len(encoder_hidden_dims)
         encoder_net = build_net(input_dim, encoder_hidden_dims, encoder_activations)
 
-        decoder_hidden_dims = json.loads(config['decoder_net'])
+        decoder_hidden_dims = json.loads(config['decoder_net']) + [input_dim]
         decoder_input_dim, decoder_hidden_dims = decoder_hidden_dims[0], decoder_hidden_dims[1:]
         decoder_activations = [tf.nn.relu] * (len(decoder_hidden_dims) - 1) + [None]
         decoder_net = build_net(decoder_input_dim, decoder_hidden_dims, decoder_activations)

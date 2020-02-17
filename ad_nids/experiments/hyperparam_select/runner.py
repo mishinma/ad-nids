@@ -1,24 +1,23 @@
 import argparse
 import logging
 import json
-import shutil
+import copy
 
-import numpy as np
 import pandas as pd
 from pathlib import Path
 
-import ad_nids.experiments.fit_predict_full as experiments
+import ad_nids.experiments.hyperparam_select as experiments
 from ad_nids.dataset import Dataset
 from ad_nids.utils.logging import get_log_dir, log_config
-from ad_nids.utils.misc import set_seed
+from ad_nids.utils.misc import set_seed, average_results, jsonify
 
 
 DEFAULT_CONTAM_PERCS = [0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.5, 1, 2, 3, 5, 10, 15, 20, 30, 40, 50, 70]
 DEFAULT_RANDOM_SEEDS = [11, 22, 33, 44, 55]
 DEFAULT_SAMPLE_PARAMS = {
-    'train': {'n_samples': 40000},
-    'threshold': {'n_samples': 5000, 'perc_outlier': 5},
-    'test': {'n_samples': 5000, 'perc_outlier': 5}
+    'train': {'n_samples': 400000},
+    'threshold': {'n_samples': 10000, 'perc_outlier': 5},
+    'test': {'n_samples': 10000, 'perc_outlier': 5}
 }
 
 
@@ -44,6 +43,7 @@ def runner_fit_predict():
     loglevel = getattr(logging, args.logging.upper(), None)
     logging.basicConfig(level=loglevel)
     log_root = Path(args.log_path).resolve()
+    log_root.mkdir(parents=True, exist_ok=True)
 
     try:
         run_fn = getattr(experiments, args.run_fn)
@@ -70,14 +70,12 @@ def runner_fit_predict():
         configs['dataset_name'] = dataset_path.name
 
         for idx, config in configs.iterrows():
-
             config = config.to_dict()
 
             logging.info(f'Starting {config["config_name"]}')
             logging.info(json.dumps(config, indent=2))
 
             log_dir = get_log_dir(log_root, config)
-
             for rs in DEFAULT_RANDOM_SEEDS:
 
                 set_seed(rs)
@@ -86,17 +84,37 @@ def runner_fit_predict():
                 logging.info('Created a new log directory')
                 logging.info(f'{log_rs_dir}\n')
 
-                log_rs_dir.mkdir(parents=True)
-                log_config(log_rs_dir, config)
+                config_rs = copy.deepcopy(config)
+                config_rs['config_name'] += '_{}'.format(rs)
+
+                log_rs_dir.mkdir()
+                log_config(log_rs_dir, config_rs)
 
                 try:
                     # Pass data
-                    run_fn(config, log_rs_dir, dataset,
+                    run_fn(config_rs, log_rs_dir, dataset,
                            DEFAULT_SAMPLE_PARAMS, DEFAULT_CONTAM_PERCS)
                 except Exception as e:
                     logging.exception(e)
 
-            # ToDO average!
+            #  We average results and save in another log dir
+            #  So that we can reuse report module for generating reports
+            log_ave_dir = log_root/(log_dir.name + '_AVE')
+            log_ave_dir.mkdir()
+            all_results = []
+            for log_dir in log_root.glob(log_dir.name + '*'):
+                try:
+                    with open(log_dir/'eval_results.json', 'r') as f:
+                        results = json.load(f)
+                except FileNotFoundError:
+                    continue
+                all_results.append(results)
+            ave_results = average_results(all_results)
+            config_ave = copy.deepcopy(config)
+            config_ave['config_name'] += '_AVE'
+            log_config(log_ave_dir, config_ave)
+            with open(log_ave_dir / 'eval_results.json', 'w') as f:
+                json.dump(jsonify(ave_results), f)
 
 
 def runner_predict():

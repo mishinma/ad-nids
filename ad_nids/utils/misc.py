@@ -95,3 +95,58 @@ def predict_batch(od, X, batch_size=64):
         else:
             pred = batch_pred
     return pred
+
+
+def average_results(results):
+
+    results_ave = dict()
+    results_ave['time_fit'] = np.mean(
+        np.array([r['time_fit'] for r in results]).astype(float),
+        axis=0
+    )
+    results_ave['time_score_train'] = np.mean(
+        np.array([r['time_score_train'] for r in results]).astype(float),
+        axis=0
+    )
+    results_ave['time_score_test'] = np.mean(
+        np.array([r['time_score_test'] for r in results]).astype(float),
+        axis=0
+    )
+    results_ave['train_cm'] = np.mean(
+        np.array([r['train_cm'] for r in results]).astype(float),
+        axis=0
+    ).tolist()
+    results_ave['train_prf1s'] = np.mean(
+        np.array([r['train_prf1s'] for r in results]).astype(float),
+        axis=0
+    ).tolist()
+    results_ave['test_cm'] = np.mean(
+        np.array([r['test_cm'] for r in results]).astype(float),
+        axis=0
+    ).tolist()
+    results_ave['test_prf1s'] = np.mean(
+        np.array([r['test_prf1s'] for r in results]).astype(float),
+        axis=0
+    ).tolist()
+    return results_ave
+
+
+def performance_asdict(cm, prf1s):
+
+    tn, fp, fn, tp = np.array(cm).ravel()
+
+    p = tp + fn
+    n = tn + fp
+
+    perf = dict(
+        p=p,
+        n=n,
+        tp=tp,
+        fp=fp,
+        fn=fn,
+        precision=round(prf1s[0], 2),
+        recall=round(prf1s[1], 2),
+        f1score=round(prf1s[2], 2),
+    )
+
+    return perf

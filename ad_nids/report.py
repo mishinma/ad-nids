@@ -5,14 +5,13 @@ import shutil
 import uuid
 import logging
 import json
-import numpy as np
 from pathlib import Path
 
 import pandas as pd
 from json2html import json2html
 
 from ad_nids.utils import int_to_roman
-
+from ad_nids.utils.misc import performance_asdict
 
 templates_path = Path(__file__).parent/'templates'
 
@@ -30,27 +29,6 @@ CONFIG_NOREPORT_FIELDS = [
     'dataset_name',
     'dataset_path',
 ]
-
-
-def performance_asdict(cm, prf1s):
-
-    tn, fp, fn, tp = np.array(cm).ravel()
-
-    p = tp + fn
-    n = tn + fp
-
-    perf = dict(
-        p=p,
-        n=n,
-        tp=tp,
-        fp=fp,
-        fn=fn,
-        precision=round(prf1s[0], 2),
-        recall=round(prf1s[1], 2),
-        f1score=round(prf1s[2], 2),
-    )
-
-    return perf
 
 
 def copy_to_static(loc_path, static_dir):
@@ -93,11 +71,17 @@ def create_experiment_report(log_path, static_path, exp_idx=1):
         return report
 
     # train performance
-    report = report.replace('{{THRESHOLD}}', '{:0.2f}'.format(results.get('threshold')))
-    report = report.replace('{{TIME_FIT}}',
-                            '{:0.2f}'.format(results.get('time_fit')))
-    report = report.replace('{{TIME_SCORE_TRAIN}}',
-                            '{:0.2f}'.format(results.get('time_score_train')))
+    if results.get('threshold') is not None:
+        report = report.replace('{{THRESHOLD}}', '{:0.2f}'.format(results['threshold']))
+
+    if results.get('time_fit') is not None:
+        report = report.replace('{{TIME_FIT}}',
+                                '{:0.2f}'.format(results['time_fit']))
+
+    if results.get('time_score_train') is not None:
+        report = report.replace('{{TIME_SCORE_TRAIN}}',
+                                '{:0.2f}'.format(results['time_score_train']))
+
     train_cm, train_prf1s = results.get('train_cm'), results.get('train_prf1s')
     if train_cm is not None:
         train_perf = performance_asdict(train_cm, train_prf1s)
