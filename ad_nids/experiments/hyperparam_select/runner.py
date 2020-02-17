@@ -6,16 +6,20 @@ import shutil
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from sklearn.model_selection import train_test_split
-from alibi_detect.datasets import Bunch
 
 import ad_nids
 import ad_nids.experiments.fit_predict_full as experiments
 from ad_nids.dataset import Dataset
-from ad_nids.report import create_experiments_report, create_experiments_per_dataset_report
 from ad_nids.utils.logging import get_log_dir, log_config
 
+
 DEFAULT_CONTAM_PERCS = [0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.5, 1, 2, 3, 5, 10, 15, 20, 30, 40, 50, 70]
+DEFAULT_RANDOM_SEEDS = [11, 22, 33, 44, 55]
+DEFAULT_SAMPLE_PARAMS = {
+    'train': {'n_samples': 40000},
+    'threshold': {'n_samples': 5000, 'perc_outlier': 5},
+    'test': {'n_samples': 5000, 'perc_outlier': 5}
+}
 
 
 def parser_fit_predict():
@@ -28,45 +32,9 @@ def parser_fit_predict():
                         help="experiment run function")
     parser.add_argument("--data_path", nargs='*',
                         help="data root path")
-    parser.add_argument("--report_path", type=str, default=None,
-                        help="report directory")
-    parser.add_argument("--contam_percs", default=None)
     parser.add_argument("-l", "--logging", type=str, default='INFO',
                         help="logging level")
     return parser
-
-
-def prepare_experiment_data(dataset_path):
-    logging.info('Loading the dataset...')
-    dataset = Dataset.from_path(dataset_path)
-
-    train_targets = dataset.train.iloc[:, -1].values
-    train_data_normal = dataset.train.iloc[train_targets == 0, :-1].values.astype(np.float32)
-    train_data_outlier = dataset.train.iloc[train_targets == 1, :-1].values.astype(np.float32)
-
-    train_data_normal, val_data = train_test_split(train_data_normal, test_size=0.1)
-
-    train_targets_normal = np.zeros((train_data_normal.shape[0],), dtype=train_targets.dtype)
-    train_targets_outlier = np.ones((train_data_outlier.shape[0],), dtype=train_targets.dtype)
-    val_targets = np.zeros((val_data.shape[0],), dtype=train_targets.dtype)
-
-    test_targets = dataset.test.iloc[:, -1].values
-    test_data = dataset.test.iloc[:, :-1].values.astype(np.float32)
-
-    train_normal_batch = Bunch(data=train_data_normal,
-                               target=train_targets_normal,
-                               target_names=['normal', 'outlier'])
-    train_outlier_batch = Bunch(data=train_data_outlier,
-                                target=train_targets_outlier,
-                                target_names=['normal', 'outlier'])
-    val_batch = Bunch(data=val_data,
-                      target=val_targets,
-                      target_names=['normal', 'outlier'])
-    test_batch = Bunch(data=test_data,
-                       target=test_targets,
-                       target_names=['normal', 'outlier'])
-
-    return train_normal_batch, train_outlier_batch, val_batch, test_batch
 
 
 def runner_fit_predict():
@@ -76,11 +44,6 @@ def runner_fit_predict():
     loglevel = getattr(logging, args.logging.upper(), None)
     logging.basicConfig(level=loglevel)
     log_root = Path(args.log_path).resolve()
-
-    if args.contam_percs is not None:
-        contam_percs = json.loads(args.contam_percs)
-    else:
-        contam_percs = DEFAULT_CONTAM_PERCS
 
     try:
         run_fn = getattr(experiments, args.run_fn)
@@ -100,7 +63,8 @@ def runner_fit_predict():
     for dataset_path in dataset_paths:
 
         logging.info(f'Loading dataset {dataset_path.name}')
-        experiment_data = prepare_experiment_data(dataset_path)
+        dataset = Dataset.from_path(dataset_path)
+
         configs = pd.read_csv(args.config_path)
         configs['dataset_path'] = str(dataset_path)
         configs['dataset_name'] = dataset_path.name
@@ -114,8 +78,8 @@ def runner_fit_predict():
 
             try:
                 # Pass data
-                run_fn(config, log_path, experiment_data, do_plot_frontier=True,
-                       contam_percs=contam_percs)
+                run_fn(config, log_path, dataset,
+                       DEFAULT_RANDOM_SEEDS, DEFAULT_SAMPLE_PARAMS, DEFAULT_CONTAM_PERCS)
             except Exception as e:
                 logging.exception(e)
 
