@@ -12,21 +12,18 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder, FunctionTransfo
 from sklearn.compose import ColumnTransformer
 
 from alibi_detect.od import OutlierAE
-from alibi_detect.utils.saving import load_detector, save_detector
+from alibi_detect.utils.saving import save_detector
 from alibi_detect.models.autoencoder import AE
 
 from ad_nids.ml import build_net, trainer
-from ad_nids.utils.misc import jsonify, concatenate_preds
-from ad_nids.utils.logging import log_plot_prf1_curve,\
-    log_plot_frontier, log_plot_instance_score
+from ad_nids.utils.misc import jsonify
+from ad_nids.utils.logging import log_plot_prf1_curve, log_plot_instance_score
 from ad_nids.utils.metrics import precision_recall_curve_scores, select_threshold
-from ad_nids.utils.misc import set_seed
-
 
 EXPERIMENT_NAME = 'ae'
 
 
-def _run_ae_single(config, log_dir, dataset, sample_params, contam_percs):
+def run_ae(config, log_dir, dataset, sample_params, contam_percs):
 
     n_train_samples = sample_params['train']['n_samples']
     n_threshold_samples = sample_params['threshold']['n_samples']
@@ -141,21 +138,3 @@ def _run_ae_single(config, log_dir, dataset, sample_params, contam_percs):
     log_plot_prf1_curve(log_dir, train_prf1_curve)
     log_plot_instance_score(log_dir, X_test_pred, y_test, od.threshold,
                             labels=['normal', 'outlier'])
-
-
-def run_ae(config, log_dir, dataset, random_seeds, sample_params, contam_percs):
-    logging.info(f'Starting {config["config_name"]}')
-    logging.info(json.dumps(config, indent=2))
-
-    # Create a directory to store experiment logs
-    logging.info('Created a new log directory')
-    logging.info(f'{log_dir}\n')
-
-    for rs in random_seeds:
-
-        logging.info('Starting RANDOM SEED {}'.format(rs))
-        set_seed(rs)
-
-        log_rs_dir = log_dir/str(rs)
-        log_rs_dir.mkdir()
-        _run_ae_single(config, log_rs_dir, dataset, sample_params, contam_percs)

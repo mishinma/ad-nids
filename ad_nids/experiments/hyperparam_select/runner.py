@@ -7,10 +7,10 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
-import ad_nids
 import ad_nids.experiments.fit_predict_full as experiments
 from ad_nids.dataset import Dataset
 from ad_nids.utils.logging import get_log_dir, log_config
+from ad_nids.utils.misc import set_seed
 
 
 DEFAULT_CONTAM_PERCS = [0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.5, 1, 2, 3, 5, 10, 15, 20, 30, 40, 50, 70]
@@ -72,16 +72,31 @@ def runner_fit_predict():
         for idx, config in configs.iterrows():
 
             config = config.to_dict()
-            log_path = get_log_dir(log_root, config)
-            log_path.mkdir(parents=True)
-            log_config(log_path, config)
 
-            try:
-                # Pass data
-                run_fn(config, log_path, dataset,
-                       DEFAULT_RANDOM_SEEDS, DEFAULT_SAMPLE_PARAMS, DEFAULT_CONTAM_PERCS)
-            except Exception as e:
-                logging.exception(e)
+            logging.info(f'Starting {config["config_name"]}')
+            logging.info(json.dumps(config, indent=2))
+
+            log_dir = get_log_dir(log_root, config)
+
+            for rs in DEFAULT_RANDOM_SEEDS:
+
+                set_seed(rs)
+                # Create a directory to store experiment logs
+                log_rs_dir = log_root/(log_dir.name + '_{}'.format(rs))
+                logging.info('Created a new log directory')
+                logging.info(f'{log_rs_dir}\n')
+
+                log_rs_dir.mkdir(parents=True)
+                log_config(log_rs_dir, config)
+
+                try:
+                    # Pass data
+                    run_fn(config, log_rs_dir, dataset,
+                           DEFAULT_SAMPLE_PARAMS, DEFAULT_CONTAM_PERCS)
+                except Exception as e:
+                    logging.exception(e)
+
+            # ToDO average!
 
 
 def runner_predict():
