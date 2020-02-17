@@ -10,6 +10,7 @@ class FEATURETYPE:
     def __init__(self):
         self.type = self.__class__.__name__
 
+
 class CATEGORICAL(FEATURETYPE):
 
     def __init__(self, values):
