@@ -53,9 +53,9 @@ def run_vae(config, log_dir, dataset, sample_params, contam_percs):
     ])
 
     preprocessor.fit(X_train)
-    X_train = preprocessor.transform(X_train)
-    X_threshold = preprocessor.transform(X_threshold)
-    X_test = preprocessor.transform(X_test)
+    X_train = preprocessor.transform(X_train).astype(np.float32)
+    X_threshold = preprocessor.transform(X_threshold).astype(np.float32)
+    X_test = preprocessor.transform(X_test).astype(np.float32)
 
     # Create a directory to store experiment logs
     logging.info(f'\n >>> tensorboard --host 0.0.0.0 --port 8888 --logdir {log_dir}\n')
