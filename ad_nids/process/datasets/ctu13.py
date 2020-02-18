@@ -143,14 +143,14 @@ def cleanup_ctu13(data_path):
         sc_flows.to_csv(sc_path, index=False)
 
 
-def create_report_scenario_ctu13(data, static_path):
+def create_report_scenario_ctu13(data, static_path, timestamp_col='timestamp'):
 
     report = ""
 
-    data['timestamp'] = pd.to_datetime(data['timestamp'])
+    data[timestamp_col] = pd.to_datetime(data[timestamp_col])
 
-    start_tstmp = data['timestamp'].iloc[0]
-    data.loc[:, 'sec'] = (data['timestamp'] - start_tstmp).dt.total_seconds()
+    start_tstmp = data[timestamp_col].iloc[0]
+    data.loc[:, 'sec'] = (data[timestamp_col] - start_tstmp).dt.total_seconds()
 
     num_flows = data.shape[0]
     report += '<h3>' + f'Num flows: {num_flows}' + ' </h3>'
