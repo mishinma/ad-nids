@@ -293,13 +293,13 @@ def _aggregate_flows_wkr(args):
     grp_name, grp = args
 
     flow_stats = {col_name: aggr_fn(grp)
-                  for col_name, aggr_fn in CTU_13_AGGR_FUNCTIONS.values()}
+                  for col_name, aggr_fn in CTU_13_AGGR_FUNCTIONS.items()}
     record = {
         'src_ip': grp_name[0],
         'time_window_start': grp_name[1],
         **flow_stats
     }
-
+    
     return record
 
 
@@ -315,13 +315,14 @@ def aggregate_flows_ctu13(data_path, out_path, processes=-1, frequency='T'):
 
     for sc_i in ALL_SCENARIOS:
         logging.info(f'Processing scenario {sc_i}')
-        sc_path = data_path / '{:02d}.csv'.format(sc_i)
-        sc_flows = pd.read_csv(sc_path)
-
         start_time = time.time()
 
-        out_path = out_path/sc_path.name
-        grouped = sc_flows.groupby(['src_ip', pd.Grouper(key='timestamp', freq=frequency)])
+        path = data_path / '{:02d}.csv'.format(sc_i)
+        out_path = out_path / path.name
+
+        flows = pd.read_csv(path)
+        flows['timestamp'] = pd.to_datetime(flows['timestamp'])
+        grouped = flows.groupby(['src_ip', pd.Grouper(key='timestamp', freq=frequency)])
         aggr_flows = aggregate_features_pool(grouped, _aggregate_flows_wkr, processes)
         aggr_flows = pd.DataFrame.from_records(aggr_flows, columns=CTU_13_AGGR_COLUMNS)
         aggr_flows.to_csv(out_path, index=False)
