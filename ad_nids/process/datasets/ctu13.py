@@ -118,6 +118,7 @@ def cleanup_ctu_flows(flows):
         for flag, name in TCP_FLAGS.items():
             flag_col = f'{d}_{name}_flag'
             tcp_state[flag_col] = tcp_state[f'{d}_state'].str.contains(flag).astype(np.int)
+    flows.loc[tcp_state.index, flag_cols] = tcp_state[flag_cols]
 
     flows['fwd_dir'] = flows['dir'].str.contains('>').astype(np.int)
     flows['bwd_dir'] = flows['dir'].str.contains('<').astype(np.int)
@@ -281,44 +282,44 @@ def create_dataset_ctu13(dataset_path,
     return dataset
 
 
-# def aggregate_ctu_data(root_path, aggr_path, processes=-1,
-#                        frequency='T', exist_ok=True):
-#
-#     if processes == -1:
-#         processes = mp.cpu_count() - 1
-#
-#     root_path = Path(root_path).resolve()
-#     aggr_path = Path(aggr_path).resolve()
-#
-#     scenarios = [s.name for s in root_path.iterdir()
-#                  if s.name in map(str, ALL_SCENARIOS)]
-#
-#     for scenario in scenarios:
-#         scenario_path = root_path/scenario
-#         scenario_out_path = aggr_path/scenario
-#         scenario_out_path.mkdir(parents=True, exist_ok=True)
-#
-#         logging.info("Processing scenario {}...".format(scenario))
-#         start_time = time.time()
-#
-#         flow_file = [f for f in scenario_path.iterdir()
-#                      if f.suffix == '.binetflow'][0]
-#
-#         out_name = "{}_aggr_{}.csv".format(flow_file, frequency)
-#         out_path = scenario_out_path/out_name
-#
-#         # Don't overwrite if exist_ok is set
-#         if out_path.exists() and exist_ok:
-#             logging.info("Found existing; no overwrite")
-#             continue
-#
-#         flows = pd.read_csv(scenario_path/flow_file)
-#         flows = format_ctu_flows(flows)
-#
-#         aggr_flows = aggregate_extract_features(flows, frequency, processes)
-#         aggr_flows.to_csv(out_path, index=False)
-#
-#         logging.info("Done {0:.2f}".format(time.time() - start_time))
+def aggregate_ctu_data(root_path, aggr_path, processes=-1,
+                       frequency='T', exist_ok=True):
+
+    if processes == -1:
+        processes = mp.cpu_count() - 1
+
+    root_path = Path(root_path).resolve()
+    aggr_path = Path(aggr_path).resolve()
+
+    scenarios = [s.name for s in root_path.iterdir()
+                 if s.name in map(str, ALL_SCENARIOS)]
+
+    for scenario in scenarios:
+        scenario_path = root_path/scenario
+        scenario_out_path = aggr_path/scenario
+        scenario_out_path.mkdir(parents=True, exist_ok=True)
+
+        logging.info("Processing scenario {}...".format(scenario))
+        start_time = time.time()
+
+        flow_file = [f for f in scenario_path.iterdir()
+                     if f.suffix == '.binetflow'][0]
+
+        out_name = "{}_aggr_{}.csv".format(flow_file, frequency)
+        out_path = scenario_out_path/out_name
+
+        # Don't overwrite if exist_ok is set
+        if out_path.exists() and exist_ok:
+            logging.info("Found existing; no overwrite")
+            continue
+
+        flows = pd.read_csv(scenario_path/flow_file)
+        flows = format_ctu_flows(flows)
+
+        aggr_flows = aggregate_extract_features(flows, frequency, processes)
+        aggr_flows.to_csv(out_path, index=False)
+
+        logging.info("Done {0:.2f}".format(time.time() - start_time))
 
 
 if __name__ == '__main__':
