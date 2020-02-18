@@ -195,15 +195,11 @@ class Dataset:
 
         data = self.train if train else self.test
 
-        # ToDo: drop cat features for now
-        categorical_features = self.meta.get('categorical_features', [])
-        binary_features = self.meta.get('binary_features', [])
-        data = data.drop(columns=categorical_features + binary_features)
-        if data.shape[1] < 1:
-            return
+        targets = data.loc[:, "target"]
 
-        targets = data.iloc[:, -1]
-        data = data.iloc[:, :-1]
+        # ToDo: only numerical features
+        data = data.select_dtypes(include=np.number)
+        data.drop(columns='target', inplace=True)
 
         batch = create_outlier_batch(data, targets, n_samples=1000, perc_outlier=10)
 
