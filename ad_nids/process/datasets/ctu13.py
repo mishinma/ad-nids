@@ -244,10 +244,15 @@ def create_dataset_ctu13(dataset_path,
 
     if frequency is not None:
         name += '_AGGR_{}'.format(frequency)
-        # TOdo ad this
-        feature_columns = []  # change to aggr!
-        meta_columns = CTU_13_META_COLUMNS
-        features_info = {}
+        feature_columns = list(CTU_13_AGGR_FUNCTIONS.keys())
+        meta_columns = CTU_13_AGGR_META_COLUMNS
+        # all numerical
+        features_info = {
+            'categorical_feature_map': {},
+            'categorical_features': [],
+            'binary_features': [],
+            'numerical_features': list(CTU_13_AGGR_FUNCTIONS.keys())
+        }
     else:
         feature_columns = list(CTU_13_FEATURES.keys())
         meta_columns = CTU_13_META_COLUMNS
