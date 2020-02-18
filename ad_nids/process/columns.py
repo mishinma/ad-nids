@@ -41,6 +41,7 @@ TCP_FLAGS = {
     'E': 'ece'
 }
 
+
 FLOW_COLUMNS = [
     'ts',   # timestamp of the start of a flow
     'td',   # duration of flow
@@ -138,6 +139,9 @@ CTU_13_COLUMNS = [
     'target'
 ]
 
+CTU_13_FWD_FLAGS_COLUMNS = [f'fwd_{f}_flag' for f in TCP_FLAGS.values()]
+CTU_13_BWD_FLAGS_COLUMNS = [f'bwd_{f}_flag' for f in TCP_FLAGS.values()]
+
 CTU_13_FEATURES = {
     'proto':  CATEGORICAL(['tcp', 'udp', 'icmp', 'other']),
     'dur': NUMERICAL(),
@@ -197,7 +201,9 @@ CTU_13_META_COLUMNS = [
 
 # numerical:  mean, min, max, std, median
 # categorical: num_unique, entropy
-CTU_13_AGGR_FEATURES = [
+CTU_13_AGGR_COLUMNS = [
+    'src_ip',
+    'time_window_start',
     'total_cnt',
     'dur_mean',
     'dur_min',
@@ -220,19 +226,51 @@ CTU_13_AGGR_FEATURES = [
     'tot_byts_max',
     'tot_byts_std',
     'tot_byts_median',
-    'tot_byts_mean',
-    'tot_byts_min',
-    'tot_byts_max',
-    'tot_byts_std',
-    'tot_byts_median',
     'src_byts_mean',
     'src_byts_min',
     'src_byts_max',
     'src_byts_std',
     'src_byts_median',
+    'target',
 ]
 
-CTU_13_AGGR_META = []
+
+CTU_13_AGGR_FUNCTIONS = {
+    'total_cnt': lambda f: f.shape[0],
+    'dur_mean': lambda f: f['dur'].mean(),
+    'dur_min': lambda f: f['dur'].min(),
+    'dur_max': lambda f: f['dur'].max(),
+    'dur_std': lambda f: f['dur'].std(),
+    'dur_median': lambda f: f['dur'].median(),
+    'proto_entropy': lambda f: entropy(f['proto'].value_counts()),
+    'proto_nuniq': lambda f: f['proto'].unique().shape[0],
+    'fwd_flag_entropy': lambda f: entropy(f[CTU_13_FWD_FLAGS_COLUMNS].sum()),
+    'fwd_flag_nuniq': lambda f: np.sum(f[CTU_13_FWD_FLAGS_COLUMNS].sum() > 0),
+    'bwd_flag_entropy': lambda f: entropy(f[CTU_13_BWD_FLAGS_COLUMNS].sum()),
+    'bwd_flag_nuniq': lambda f: np.sum(f[CTU_13_BWD_FLAGS_COLUMNS].sum() > 0),
+    'tot_pkts_mean': lambda f: f['tot_pkts'].mean(),
+    'tot_pkts_min': lambda f: f['tot_pkts'].min(),
+    'tot_pkts_max': lambda f: f['tot_pkts'].max(),
+    'tot_pkts_std': lambda f: f['tot_pkts'].std(),
+    'tot_pkts_median': lambda f: f['tot_pkts'].median(),
+    'tot_byts_mean': lambda f: f['tot_byts'].mean(),
+    'tot_byts_min': lambda f: f['tot_byts'].min(),
+    'tot_byts_max': lambda f: f['tot_byts'].max(),
+    'tot_byts_std': lambda f: f['tot_byts'].std(),
+    'tot_byts_median': lambda f: f['tot_byts'].median(),
+    'src_byts_mean': lambda f: f['src_byts'].mean(),
+    'src_byts_min': lambda f: f['src_byts'].min(),
+    'src_byts_max': lambda f: f['src_byts'].max(),
+    'src_byts_std': lambda f: f['src_byts'].std(),
+    'src_byts_median': lambda f: f['src_byts'].median(),
+    'target': lambda f: np.int(f['target'].sum() > 0)
+}
+
+
+CTU_13_AGGR_META_COLUMNS = [
+    'src_ip',
+    'time_window_start',
+]
 
 
 """
@@ -254,6 +292,7 @@ UGR_COLUMNS = [
     'byt',  # their corresponding num of bytes
     'lbl'
 ]
+
 
 """
 ########## CIC-IDS  ############

@@ -19,10 +19,11 @@ import seaborn as sns
 
 from ad_nids.utils.exception import DownloadError
 from ad_nids.dataset import Dataset
-from ad_nids.process.aggregate import aggregate_extract_features
+from ad_nids.process.aggregate import aggregate_features_pool
 from ad_nids.process.columns import CTU_13_ORIG_COLUMN_MAPPING, TCP_FLAGS, CTU_13_PROTOS, \
     CTU_13_COLUMNS, CTU_13_FEATURES, CTU_13_META_COLUMNS, CTU_13_BINARY_FEATURES, \
-    CTU_13_CATEGORICAL_FEATURE_MAP, CTU_13_NUMERICAL_FEATURES
+    CTU_13_CATEGORICAL_FEATURE_MAP, CTU_13_NUMERICAL_FEATURES, \
+    CTU_13_AGGR_COLUMNS, CTU_13_AGGR_FUNCTIONS, CTU_13_AGGR_META_COLUMNS
 from ad_nids.report import BASE
 
 
@@ -282,41 +283,42 @@ def create_dataset_ctu13(dataset_path,
     return dataset
 
 
-def aggregate_ctu_data(root_path, aggr_path, processes=-1,
-                       frequency='T', exist_ok=True):
+def _aggregate_flows_wkr(args):
+
+    grp_name, grp = args
+
+    flow_stats = {col_name: aggr_fn(grp)
+                  for col_name, aggr_fn in CTU_13_AGGR_FUNCTIONS.values()}
+    record = {
+        'src_ip': grp_name[0],
+        'time_window_start': grp_name[1],
+        **flow_stats
+    }
+
+    return record
+
+
+def aggregate_flows_ctu13(data_path, out_path, processes=-1, frequency='T'):
 
     if processes == -1:
         processes = mp.cpu_count() - 1
 
-    root_path = Path(root_path).resolve()
-    aggr_path = Path(aggr_path).resolve()
+    logging.info('Aggregating the data')
+    data_path = Path(data_path).resolve()
+    out_path = Path(out_path).resolve()
+    out_path.mkdir(exist_ok=True)
 
-    scenarios = [s.name for s in root_path.iterdir()
-                 if s.name in map(str, ALL_SCENARIOS)]
+    for sc_i in ALL_SCENARIOS:
+        logging.info(f'Processing scenario {sc_i}')
+        sc_path = data_path / '{:02d}.csv'.format(sc_i)
+        sc_flows = pd.read_csv(sc_path)
 
-    for scenario in scenarios:
-        scenario_path = root_path/scenario
-        scenario_out_path = aggr_path/scenario
-        scenario_out_path.mkdir(parents=True, exist_ok=True)
-
-        logging.info("Processing scenario {}...".format(scenario))
         start_time = time.time()
 
-        flow_file = [f for f in scenario_path.iterdir()
-                     if f.suffix == '.binetflow'][0]
-
-        out_name = "{}_aggr_{}.csv".format(flow_file, frequency)
-        out_path = scenario_out_path/out_name
-
-        # Don't overwrite if exist_ok is set
-        if out_path.exists() and exist_ok:
-            logging.info("Found existing; no overwrite")
-            continue
-
-        flows = pd.read_csv(scenario_path/flow_file)
-        flows = format_ctu_flows(flows)
-
-        aggr_flows = aggregate_extract_features(flows, frequency, processes)
+        out_path = out_path/sc_path.name
+        grouped = sc_flows.groupby(['src_ip', pd.Grouper(key='timestamp', freq=frequency)])
+        aggr_flows = aggregate_features_pool(grouped, _aggregate_flows_wkr, processes)
+        aggr_flows = pd.DataFrame.from_records(aggr_flows, columns=CTU_13_AGGR_COLUMNS)
         aggr_flows.to_csv(out_path, index=False)
 
         logging.info("Done {0:.2f}".format(time.time() - start_time))

@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 
 from ad_nids.dataset import Dataset, create_meta
-from ad_nids.process.aggregate import aggregate_extract_features
+from ad_nids.process.aggregate import aggregate_features_pool
 from ad_nids.process.columns import UGR_COLUMNS, FLOW_COLUMNS, FLOW_STATS
 from ad_nids.process.process_parser import get_argparser
 from ad_nids.utils import yyyy_mm_dd2mmdd
@@ -169,7 +169,7 @@ def aggregate_ugr_data(split_root_path, aggr_path, processes=-1,
             flows = pd.read_csv(flow_path)
             flows = format_ugr_flows(flows)
 
-            aggr_flows = aggregate_extract_features(flows, frequency, processes)
+            aggr_flows = aggregate_features_pool(flows, frequency, processes)
             aggr_flows.to_csv(out_path, index=False)
 
         logging.info("Done {0:.2f}".format(time.time() - start_time))
