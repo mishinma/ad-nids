@@ -97,6 +97,7 @@ def runner_fit_predict():
                 except Exception as e:
                     logging.exception(e)
 
+            logging.info('Averaging the results for {}'.format(log_dir.name))
             #  We average results and save in another log dir
             #  So that we can reuse report module for generating reports
             log_ave_dir = log_root/(log_dir.name + '_AVE')
