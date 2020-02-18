@@ -25,7 +25,7 @@ from ad_nids.utils.metrics import precision_recall_curve_scores, select_threshol
 EXPERIMENT_NAME = 'aegmm'
 
 
-def run_ae(config, log_dir, dataset, sample_params, contam_percs):
+def run_aegmm(config, log_dir, dataset, sample_params, contam_percs):
 
     n_train_samples = sample_params['train']['n_samples']
     n_threshold_samples = sample_params['threshold']['n_samples']
@@ -96,7 +96,7 @@ def run_ae(config, log_dir, dataset, sample_params, contam_percs):
         w_energy=.1,
         w_cov_diag=.005
     )
-    trainer(od.aegmm, loss_aegmm, X_train, X_val=X_val, loss_fn_kwargs=loss_fn_kwargs,
+    trainer(od.aegmm, loss_aegmm, X_train, loss_fn_kwargs=loss_fn_kwargs,
             epochs=config['num_epochs'], batch_size=config['batch_size'],
             optimizer=optimizer, log_dir=log_dir,
             checkpoint=True, checkpoint_freq=5)
