@@ -143,6 +143,43 @@ def cleanup_ctu13(data_path):
         sc_flows.to_csv(sc_path, index=False)
 
 
+def create_mock_ctu13(data_path, mock_path, num_ips_sample=3, max_sample_size=1000,
+                      mock_scenarios=None):
+
+    if mock_scenarios is None:
+        mock_scenarios = [2, 3, 9]
+
+    mock_path.mkdir(parents=True, exist_ok=True)
+
+    for sc_i in mock_scenarios:
+        logging.info(f'Processing scenario {sc_i}')
+        path = data_path / '{:02d}.csv'.format(sc_i)
+        flows = pd.read_csv(path)
+
+        botnet_ips = flows.loc[flows['target'] == 1, 'src_ip'].unique()
+        normal_ips = flows.loc[flows['target'] == 0, 'src_ip'].unique()
+
+        if len(botnet_ips) > num_ips_sample:
+            botnet_ips = np.random.choice(botnet_ips, num_ips_sample, replace=False)
+        if len(normal_ips) > num_ips_sample:
+            normal_ips = np.random.choice(normal_ips, num_ips_sample, replace=False)
+
+        sampled_ips = list(set(botnet_ips).union(set(normal_ips)))
+        sampled_flows = []
+        for ip in sampled_ips:
+            sample = flows[flows['src_ip'] == ip]
+            sample = sample.iloc[:max_sample_size]
+            sampled_flows.append(sample)
+
+        # Take some random flows
+        sampled_flows.append(flows.iloc[:max_sample_size])
+        sampled_flows = pd.concat(sampled_flows).sort_values(by='timestamp')
+
+        out_path = mock_path/'{:02d}.csv'.format(sc_i)
+        sampled_flows.to_csv(out_path, index=False)
+
+
+
 def create_report_scenario_ctu13(data, static_path, timestamp_col='timestamp'):
 
     report = ""
@@ -303,22 +340,26 @@ def _aggregate_flows_wkr(args):
     return record
 
 
-def aggregate_flows_ctu13(data_path, out_path, processes=-1, frequency='T'):
+def aggregate_flows_ctu13(data_path, aggr_path, processes=-1, frequency='T'):
 
     if processes == -1:
         processes = mp.cpu_count() - 1
 
     logging.info('Aggregating the data')
     data_path = Path(data_path).resolve()
-    out_path = Path(out_path).resolve()
-    out_path.mkdir(exist_ok=True)
+    aggr_path = Path(aggr_path).resolve()
+    aggr_path.mkdir(exist_ok=True)
 
     for sc_i in ALL_SCENARIOS:
         logging.info(f'Processing scenario {sc_i}')
         start_time = time.time()
 
         path = data_path / '{:02d}.csv'.format(sc_i)
-        out_path = out_path / path.name
+        if not path.exists():
+            logging.warning(f'Scenario {sc_i} does not exist!')
+            continue
+
+        out_path = aggr_path / path.name
 
         flows = pd.read_csv(path)
         flows['timestamp'] = pd.to_datetime(flows['timestamp'])
@@ -326,6 +367,7 @@ def aggregate_flows_ctu13(data_path, out_path, processes=-1, frequency='T'):
         aggr_flows = aggregate_features_pool(grouped, _aggregate_flows_wkr, processes)
         aggr_flows = pd.DataFrame.from_records(aggr_flows, columns=CTU_13_AGGR_COLUMNS)
         aggr_flows = aggr_flows.sort_values(by='time_window_start').reset_index(drop=True)
+        aggr_flows = aggr_flows.fillna(0)
         aggr_flows.to_csv(out_path, index=False)
 
         logging.info("Done {0:.2f}".format(time.time() - start_time))
