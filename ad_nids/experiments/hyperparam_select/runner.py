@@ -110,12 +110,13 @@ def runner_fit_predict():
                 except FileNotFoundError:
                     continue
                 all_results.append(results)
-            ave_results = average_results(all_results)
-            config_ave = copy.deepcopy(config)
-            config_ave['config_name'] += '_AVE'
-            log_config(log_ave_dir, config_ave)
-            with open(log_ave_dir / 'eval_results.json', 'w') as f:
-                json.dump(jsonify(ave_results), f)
+            if all_results:
+                ave_results = average_results(all_results)
+                config_ave = copy.deepcopy(config)
+                config_ave['config_name'] += '_AVE'
+                log_config(log_ave_dir, config_ave)
+                with open(log_ave_dir / 'eval_results.json', 'w') as f:
+                    json.dump(jsonify(ave_results), f)
 
 
 def runner_predict():
