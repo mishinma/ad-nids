@@ -68,38 +68,39 @@ def run_aegmm(config, log_dir, dataset, sample_params, contam_percs):
     latent_dim = config['latent_dim']
     n_gmm = config['n_gmm']
 
-    encoder_hidden_dims = json.loads(config['encoder_net']) + [latent_dim]
-    encoder_activations = [tf.nn.tanh] * (len(encoder_hidden_dims) - 1) + [None]
-    encoder_net = build_net(input_dim, encoder_hidden_dims, encoder_activations)
-
-    decoder_hidden_dims = json.loads(config['decoder_net']) + [input_dim]
-    decoder_activations = [tf.nn.tanh] * (len(decoder_hidden_dims) - 1) + [None]
-    decoder_net = build_net(latent_dim, decoder_hidden_dims, decoder_activations)
-
-    gmm_hidden_dims = json.loads(config['gmm_density_net']) + [n_gmm]
-    gmm_activations = [tf.nn.tanh] * (len(gmm_hidden_dims) - 1) + [tf.nn.softmax]
-    gmm_net = build_net(latent_dim + 2, gmm_hidden_dims, gmm_activations)
-
-    # initialize outlier detector
-    od = OutlierAEGMM(threshold=0.0,  # threshold for outlier score
-                      encoder_net=encoder_net,  # can also pass AEGMM model instead
-                      decoder_net=decoder_net,  # of separate encoder, decoder
-                      gmm_density_net=gmm_net,  # and gmm density net
-                      n_gmm=n_gmm,
-                      recon_features=eucl_cosim_features)  # fn used to derive features
-    # from the reconstructed
-    # instances based on cosine
-    # similarity and Eucl distance
-
-    optimizer = tf.keras.optimizers.Adam(learning_rate=config['learning_rate'])
-
-    loss_fn_kwargs = dict(
-        w_energy=.1,
-        w_cov_diag=.005
-    )
     i_retry = 0
 
     while True:
+
+        encoder_hidden_dims = json.loads(config['encoder_net']) + [latent_dim]
+        encoder_activations = [tf.nn.tanh] * (len(encoder_hidden_dims) - 1) + [None]
+        encoder_net = build_net(input_dim, encoder_hidden_dims, encoder_activations)
+
+        decoder_hidden_dims = json.loads(config['decoder_net']) + [input_dim]
+        decoder_activations = [tf.nn.tanh] * (len(decoder_hidden_dims) - 1) + [None]
+        decoder_net = build_net(latent_dim, decoder_hidden_dims, decoder_activations)
+
+        gmm_hidden_dims = json.loads(config['gmm_density_net']) + [n_gmm]
+        gmm_activations = [tf.nn.tanh] * (len(gmm_hidden_dims) - 1) + [tf.nn.softmax]
+        gmm_net = build_net(latent_dim + 2, gmm_hidden_dims, gmm_activations)
+
+        # initialize outlier detector
+        od = OutlierAEGMM(threshold=0.0,  # threshold for outlier score
+                          encoder_net=encoder_net,  # can also pass AEGMM model instead
+                          decoder_net=decoder_net,  # of separate encoder, decoder
+                          gmm_density_net=gmm_net,  # and gmm density net
+                          n_gmm=n_gmm,
+                          recon_features=eucl_cosim_features)  # fn used to derive features
+        # from the reconstructed
+        # instances based on cosine
+        # similarity and Eucl distance
+
+        optimizer = tf.keras.optimizers.Adam(learning_rate=config['learning_rate'])
+
+        loss_fn_kwargs = dict(
+            w_energy=.1,
+            w_cov_diag=.005
+        )
 
         try:
             trainer(od.aegmm, loss_aegmm, X_train, loss_fn_kwargs=loss_fn_kwargs,
