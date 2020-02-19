@@ -114,7 +114,7 @@ def run_aegmm(config, log_dir, dataset, sample_params, contam_percs):
 
         if i_retry == NUM_RETRY:
             raise Exception('Model did not converge')
-            
+
 
     # set GMM parameters
     x_recon, z, gamma = od.aegmm(X_train)
@@ -156,6 +156,7 @@ def run_aegmm(config, log_dir, dataset, sample_params, contam_percs):
     logging.info(f'Done (test): {timer() - se}')
 
     eval_results = {
+        'num_tries': i_retry,
         'threshold': od.threshold,
         'train_prf1_curve': train_prf1_curve,
         'train_prf1s': train_prf1s,
