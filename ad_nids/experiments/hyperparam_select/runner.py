@@ -14,7 +14,7 @@ from ad_nids.utils.misc import set_seed, average_results, jsonify
 
 
 DEFAULT_CONTAM_PERCS = [0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.5, 1, 2, 3, 5, 10, 15, 20, 30, 40, 50, 70]
-DEFAULT_RANDOM_SEEDS = [11, 22, 33, 44, 55]
+DEFAULT_RANDOM_SEEDS = [11, 33, 55]
 DEFAULT_SAMPLE_PARAMS = {
     'train': {'n_samples': 400000},
     'threshold': {'n_samples': 10000, 'perc_outlier': 5},
@@ -30,6 +30,8 @@ def parser_fit_predict():
                         help="data root path")
     parser.add_argument("--config_path", nargs='*',
                         help="directory with config files")
+    parser.add_argument("--seeds", nargs='*',
+                        help="random seeds")
     parser.add_argument("-l", "--logging", type=str, default='INFO',
                         help="logging level")
     return parser
@@ -61,6 +63,10 @@ def runner_fit_predict():
             dataset_paths += [p for p in data_path.iterdir()
                               if Dataset.is_dataset(p)]
 
+    random_seeds = [int(s) for s in args.seeds]
+    if not random_seeds:
+        random_seeds = DEFAULT_RANDOM_SEEDS
+
     for dataset_path in dataset_paths:
 
         logging.info(f'Loading dataset {dataset_path.name}')
@@ -86,8 +92,8 @@ def runner_fit_predict():
                 logging.info(json.dumps(config, indent=2))
 
                 log_dir = get_log_dir(log_root, config)
-                for rs in DEFAULT_RANDOM_SEEDS:
 
+                for rs in random_seeds:
                     set_seed(rs)
                     # Create a directory to store experiment logs
                     log_rs_dir = log_root/(log_dir.name + '_{}'.format(rs))
