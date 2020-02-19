@@ -90,12 +90,24 @@ def runner_fit_predict():
                 log_rs_dir.mkdir()
                 log_config(log_rs_dir, config_rs)
 
-                try:
-                    # Pass data
-                    run_fn(config_rs, log_rs_dir, dataset,
-                           DEFAULT_SAMPLE_PARAMS, DEFAULT_CONTAM_PERCS)
-                except Exception as e:
-                    logging.exception(e)
+                num_tries = config_rs.get('num_tries', 1)
+                i_run = 0
+
+                while True:
+                    i_run += 1
+                    try:
+                        # Pass data
+                        run_fn(config_rs, log_rs_dir, dataset,
+                               DEFAULT_SAMPLE_PARAMS, DEFAULT_CONTAM_PERCS)
+                    except Exception as e:
+                        logging.exception(e)
+                    else:
+                        break
+                    if i_run >= num_tries:
+                        logging.warning('Model did NOT converge!')
+                        break
+                with open(log_rs_dir/f'{i_run}.try', 'w') as f:
+                    pass
 
             logging.info('Averaging the results for {}'.format(log_dir.name))
             #  We average results and save in another log dir
