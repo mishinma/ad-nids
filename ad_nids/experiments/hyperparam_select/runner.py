@@ -63,9 +63,10 @@ def runner_fit_predict():
             dataset_paths += [p for p in data_path.iterdir()
                               if Dataset.is_dataset(p)]
 
-    random_seeds = [int(s) for s in args.seeds]
-    if not random_seeds:
+    if args.seeds is None:
         random_seeds = DEFAULT_RANDOM_SEEDS
+    else:
+        random_seeds = [int(s) for s in args.seeds]
 
     for dataset_path in dataset_paths:
 
@@ -129,8 +130,6 @@ def runner_fit_predict():
                 logging.info('Averaging the results for {}'.format(log_dir.name))
                 #  We average results and save in another log dir
                 #  So that we can reuse report module for generating reports
-                log_ave_dir = log_root/(log_dir.name + '_AVE')
-                log_ave_dir.mkdir()
                 all_results = []
                 for log_dir in log_root.glob(log_dir.name + '*'):
                     try:
@@ -140,6 +139,8 @@ def runner_fit_predict():
                         continue
                     all_results.append(results)
                 if all_results:
+                    log_ave_dir = log_root / (log_dir.name + '_AVE')
+                    log_ave_dir.mkdir()
                     ave_results = average_results(all_results)
                     config_ave = copy.deepcopy(config)
                     config_ave['config_name'] += '_AVE'
