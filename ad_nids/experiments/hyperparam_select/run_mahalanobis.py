@@ -20,7 +20,7 @@ from ad_nids.utils.metrics import precision_recall_curve_scores, select_threshol
 EXPERIMENT_NAME = 'mahalanobis'
 
 
-def run_if(config, log_dir, dataset, sample_params, contam_percs):
+def run_mahalanobis(config, log_dir, dataset, sample_params, contam_percs):
 
     n_train_samples = sample_params['train']['n_samples']
     n_threshold_samples = sample_params['threshold']['n_samples']
