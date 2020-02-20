@@ -52,13 +52,12 @@ def run_mahalanobis(config, log_dir, dataset, sample_params, contam_percs):
     logging.info('Fitting the model...')
     se = timer()
     od = Mahalanobis(
-        threshold=0.0,
+        threshold=None,
         n_components=config['n_components'],
         std_clip=config['std_clip'],
         start_clip=config['start_clip']
     )
 
-    od.fit(X_train)
     time_fit = timer() - se
     logging.info(f'Done: {time_fit}')
 
@@ -66,8 +65,7 @@ def run_mahalanobis(config, log_dir, dataset, sample_params, contam_percs):
     # Select a threshold that maximises F1 Score
     logging.info(f'Selecting the optimal threshold...')
     se = timer()
-    X_threshold_pred = od.predict(X_threshold)  # feature and instance lvl
-    score_threshold = X_threshold_pred['data']['instance_score']
+    score_threshold = od.score(X_threshold)  # feature and instance lvl
     contam_percs = np.array(contam_percs)
     train_prf1_curve = precision_recall_curve_scores(
         y_threshold, score_threshold, 100 - contam_percs)
@@ -76,7 +74,6 @@ def run_mahalanobis(config, log_dir, dataset, sample_params, contam_percs):
         train_prf1_curve['f1scores'])
     od.threshold = best_threshold
     y_threshold_pred = (score_threshold > od.threshold).astype(int)
-    X_threshold_pred['data']['is_outlier'] = y_threshold_pred
     time_score_train = timer() - se
 
     train_cm = confusion_matrix(y_threshold, y_threshold_pred)
