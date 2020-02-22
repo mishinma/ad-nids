@@ -36,7 +36,7 @@ def parser_fit_predict():
 def prepare_experiment_data(dataset):
 
     X_train = dataset.train.loc[dataset.train["target"] == 0]
-    X_train = X_train.drop(['target'])
+    X_train = X_train.drop(columns=['target'])
     y_train = np.zeros((X_train.shape[0],), dtype=np.int)
 
     X_threshold, y_threshold = dataset.create_outlier_batch(train=True,
@@ -155,7 +155,7 @@ def runner_fit_predict():
 
                 with open(log_dir / f'{i_run}.try', 'w') as f:
                     pass
-                with open('transformer.pickle', 'wb') as f:
+                with open(log_dir / 'transformer.pickle', 'wb') as f:
                     pickle.dump(preprocessor, f)
                 log_config(log_dir, config)
 
