@@ -16,6 +16,7 @@ def trainer(model: tf.keras.Model,
             optimizer: tf.keras.optimizers = tf.keras.optimizers.Adam(learning_rate=1e-3),
             loss_fn_kwargs: dict = None,
             epochs: int = 20,
+            epoch_size: int = None,
             batch_size: int = 64,
             buffer_size: int = 1024,
             verbose: bool = True,
@@ -63,8 +64,12 @@ def trainer(model: tf.keras.Model,
     """
 
     train_data = tf.data.Dataset.from_tensor_slices(X_train)
-    train_data = train_data.shuffle(buffer_size=buffer_size).batch(batch_size)
-    n_minibatch = int(np.ceil(X_train.shape[0] / batch_size))
+    train_data = train_data.batch(batch_size)
+
+    if epoch_size is None:
+        n_minibatch = int(np.ceil(X_train.shape[0] / batch_size))
+    else:
+        n_minibatch = epoch_size
 
     do_validation = X_val is not None
 
@@ -79,6 +84,8 @@ def trainer(model: tf.keras.Model,
     # iterate over epochs
     for epoch in range(epochs):
 
+        train_data = train_data.shuffle(buffer_size=buffer_size)
+
         if verbose:
             pbar = tf.keras.utils.Progbar(n_minibatch, 1)
 
@@ -88,6 +95,9 @@ def trainer(model: tf.keras.Model,
 
         # iterate over the batches of the dataset
         for step, X_train_batch in enumerate(train_data):
+
+            if step > n_minibatch:
+                return
 
             with tf.GradientTape() as tape:
                 preds = model(X_train_batch)

@@ -61,8 +61,8 @@ def run_ae(config, log_dir, experiment_data, contam_percs=None, load_outlier_det
         optimizer = tf.keras.optimizers.Adam(learning_rate=config['learning_rate'])
         mse = tf.losses.MeanSquaredError()
         trainer(od.ae, mse, X_train, X_val=X_threshold[y_threshold == 0],
-                epochs=config['num_epochs'], batch_size=config['batch_size'],
-                optimizer=optimizer, log_dir=log_dir,
+                epochs=config['num_epochs'], epoch_size=config['epoch_size'],
+                batch_size=config['batch_size'], optimizer=optimizer, log_dir=log_dir,
                 checkpoint=True, checkpoint_freq=5)
         time_fit = timer() - se
         logging.info(f'Done: {time_fit}')
