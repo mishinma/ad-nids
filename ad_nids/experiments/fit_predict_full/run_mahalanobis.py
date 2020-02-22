@@ -56,8 +56,7 @@ def run_mahalanobis(config, log_dir, experiment_data, contam_percs=None, load_ou
     # Select a threshold that maximises F1 Score
     logging.info(f'Selecting the optimal threshold...')
     se = timer()
-    X_threshold_pred = od.predict(X_threshold)  # feature and instance lvl
-    score_threshold = X_threshold_pred['data']['instance_score']
+    score_threshold = od.score(X_threshold)  # feature and instance lvl
     contam_percs = np.array(contam_percs)
     train_prf1_curve = precision_recall_curve_scores(
         y_threshold, score_threshold, 100 - contam_percs)
@@ -66,7 +65,6 @@ def run_mahalanobis(config, log_dir, experiment_data, contam_percs=None, load_ou
         train_prf1_curve['f1scores'])
     od.threshold = best_threshold
     y_threshold_pred = (score_threshold > od.threshold).astype(int)
-    X_threshold_pred['data']['is_outlier'] = y_threshold_pred
     time_score_train = timer() - se
 
     train_cm = confusion_matrix(y_threshold, y_threshold_pred)
@@ -104,7 +102,6 @@ def run_mahalanobis(config, log_dir, experiment_data, contam_percs=None, load_ou
     with open(log_dir / 'eval_results.json', 'w') as f:
         json.dump(jsonify(eval_results), f)
     log_preds(log_dir, 'test', X_test_pred, y_test)
-    log_preds(log_dir, 'train', X_threshold_pred, y_threshold)
     log_plot_prf1_curve(log_dir, train_prf1_curve)
     # ToDo: subsample
     log_plot_instance_score(log_dir, X_test_pred, y_test, od.threshold,
