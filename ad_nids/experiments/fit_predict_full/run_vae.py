@@ -8,7 +8,6 @@ import numpy as np
 import tensorflow as tf
 
 from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
-from sklearn.preprocessing import StandardScaler
 
 from alibi_detect.od import OutlierVAE
 from alibi_detect.models.losses import elbo
@@ -16,45 +15,22 @@ from alibi_detect.models.autoencoder import VAE
 from alibi_detect.utils.saving import load_detector, save_detector
 
 from ad_nids.ml import build_net, trainer
-from ad_nids.utils.misc import jsonify, concatenate_preds
+from ad_nids.utils.misc import jsonify
 from ad_nids.utils.logging import log_plot_prf1_curve,\
-    log_plot_frontier, log_plot_instance_score
+    log_plot_frontier, log_plot_instance_score, log_preds
 from ad_nids.utils.metrics import precision_recall_curve_scores, select_threshold, \
     cov_elbo_type
 
 EXPERIMENT_NAME = 'vae'
-# Todo: should be a property of a dataset
 
 
-def run_vae(config, log_dir, experiment_data,
-            do_plot_frontier=False, contam_percs=None, load_outlier_detector=False):
-    logging.info(f'Starting {config["config_name"]}')
-    logging.info(json.dumps(config, indent=2))
-
-    if config["experiment_name"] != EXPERIMENT_NAME:
-        logging.warning(
-            'Experiment name mismatch. Expected {}, got {}.'.format(
-                EXPERIMENT_NAME, config['experiment_name'])
-        )
+def run_vae(config, log_dir, experiment_data, contam_percs=None, load_outlier_detector=False):
 
     # data
-    train_normal_batch, train_outlier_batch, val_batch, test_batch = experiment_data
+    train_normal_batch, threshold_batch, test_batch = experiment_data
     X_train, y_train = train_normal_batch.data, train_normal_batch.target
-    X_train_outlier, y_train_outlier = train_outlier_batch.data, train_outlier_batch.target
-    X_val, y_val = val_batch.data, val_batch.target
+    X_threshold, y_threshold = threshold_batch.data, threshold_batch.target
     X_test, y_test = test_batch.data, test_batch.target
-
-    if config['data_standardization']:
-        scaler = StandardScaler().fit(X_train)
-        X_train = scaler.transform(X_train)
-        X_train_outlier = scaler.transform(X_train_outlier)
-        X_val = scaler.transform(X_val)
-        X_test = scaler.transform(X_test)
-
-    # Create a directory to store experiment logs
-    logging.info('Created a new log directory\n')
-    logging.info(f'{log_dir}\n')
-    logging.info(f'\n >>> tensorboard --host 0.0.0.0 --port 8888 --logdir {log_dir}\n')
 
     if load_outlier_detector:
         # Load the model
@@ -89,7 +65,7 @@ def run_vae(config, log_dir, experiment_data,
 
         loss_fn_kwargs = {}
         loss_fn_kwargs.update(cov_elbo_type(cov_elbo=dict(sim=.1), X=X_train))
-        trainer(od.vae, elbo, X_train, X_val=X_val, loss_fn_kwargs=loss_fn_kwargs,
+        trainer(od.vae, elbo, X_train, X_val=X_threshold[y_threshold == 0], loss_fn_kwargs=loss_fn_kwargs,
                 epochs=config['num_epochs'], batch_size=config['batch_size'],
                 optimizer=optimizer, log_dir=log_dir,
                 checkpoint=True, checkpoint_freq=5)
@@ -100,10 +76,7 @@ def run_vae(config, log_dir, experiment_data,
     # Select a threshold that maximises F1 Score
     logging.info(f'Selecting the optimal threshold...')
     se = timer()
-    X_threshold_pred = od.predict(X_train)  # feature and instance lvl
-    X_threshold_outlier_pred = od.predict(X_train_outlier)
-    X_threshold_pred = concatenate_preds(X_threshold_pred, X_threshold_outlier_pred)
-    y_threshold = np.concatenate([y_train, y_train_outlier])
+    X_threshold_pred = od.predict(X_threshold)  # feature and instance lvl
     iscore_threshold = X_threshold_pred['data']['instance_score']
     contam_percs = np.array(contam_percs)
     train_prf1_curve = precision_recall_curve_scores(
@@ -152,16 +125,9 @@ def run_vae(config, log_dir, experiment_data,
     with open(log_dir / 'eval_results.json', 'w') as f:
         json.dump(jsonify(eval_results), f)
     log_plot_prf1_curve(log_dir, train_prf1_curve)
-    # log_preds(log_dir, 'test', X_test_pred, y_test)
-    # log_preds(log_dir, 'train', X_threshold_pred, y_threshold)
+    log_preds(log_dir, 'test', X_test_pred, y_test)
+    log_preds(log_dir, 'train', X_threshold_pred, y_threshold)
 
     # ToDo: subsample
     log_plot_instance_score(log_dir, X_test_pred, y_test, od.threshold,
                             labels=test_batch.target_names)
-    if do_plot_frontier:
-        input_dim = X_train.shape[1]
-        X_threshold = np.concatenate([X_train, X_train_outlier])
-        if input_dim == 2:
-            log_plot_frontier(log_dir, od, X_threshold, y_threshold, X_test, y_test)
-        else:
-            logging.warning(f"Cannot plot frontier for {input_dim} dims")

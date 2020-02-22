@@ -7,7 +7,7 @@ from timeit import default_timer as timer
 import numpy as np
 from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
 
-from alibi_detect.od import IForest
+from alibi_detect.od import Mahalanobis
 from alibi_detect.utils.saving import load_detector, save_detector
 
 from ad_nids.utils.misc import jsonify
@@ -15,10 +15,10 @@ from ad_nids.utils.logging import log_plot_prf1_curve,\
     log_plot_frontier, log_plot_instance_score, log_preds
 from ad_nids.utils.metrics import precision_recall_curve_scores, select_threshold
 
-EXPERIMENT_NAME = 'if'
+EXPERIMENT_NAME = 'mahalanobis'
 
 
-def run_if(config, log_dir, experiment_data, contam_percs=None, load_outlier_detector=False):
+def run_mahalanobis(config, log_dir, experiment_data, contam_percs=None, load_outlier_detector=False):
 
     # data
     train_normal_batch, threshold_batch, test_batch = experiment_data
@@ -42,8 +42,13 @@ def run_if(config, log_dir, experiment_data, contam_percs=None, load_outlier_det
         # Train the model on normal data
         logging.info('Fitting the model...')
         se = timer()
-        od = IForest(threshold=0.0, n_estimators=config['n_estimators'])
-        od.fit(X_train)
+        od = Mahalanobis(
+            threshold=None,
+            n_components=config['n_components'],
+            std_clip=config['std_clip'],
+            start_clip=config['start_clip']
+        )
+        od.score(X_train)
         time_fit = timer() - se
         logging.info(f'Done: {time_fit}')
 
