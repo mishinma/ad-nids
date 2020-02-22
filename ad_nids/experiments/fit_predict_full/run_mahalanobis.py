@@ -48,7 +48,6 @@ def run_mahalanobis(config, log_dir, experiment_data, contam_percs=None, load_ou
             std_clip=config['std_clip'],
             start_clip=config['start_clip']
         )
-        od.score(X_train)
         time_fit = timer() - se
         logging.info(f'Done: {time_fit}')
 
