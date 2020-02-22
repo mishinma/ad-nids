@@ -225,7 +225,7 @@ def create_report_scenario_ctu13(data, static_path, timestamp_col='timestamp'):
     return report
 
 
-def create_data_report_ctu13(dataset_path, report_path):
+def create_data_report_ctu13(dataset_path, report_path, timestamp_col='timestamp'):
 
     dataset_path = Path(dataset_path).resolve()
     static_path = report_path/'static'
@@ -239,7 +239,7 @@ def create_data_report_ctu13(dataset_path, report_path):
         print(name)
 
         data = pd.read_csv(path)
-        path_report = create_report_scenario_ctu13(data, static_path)
+        path_report = create_report_scenario_ctu13(data, static_path, timestamp_col=timestamp_col)
 
         report += f'<h1> {name} </h1></br>'
         report += path_report
