@@ -50,11 +50,14 @@ def collect_plots(plot_paths, static_path):
 def create_experiment_report(log_path, static_path, exp_idx=1):
     """ Create a simple HTML doc with summary. """
 
-    with open(log_path / 'config.json', 'r') as f:
-        config = json.load(f)
-
     report = EXPERIMENT
     report = report.replace('{{EXPERIMENT_I}}}', int_to_roman(exp_idx))
+    try:
+        with open(log_path / 'config.json', 'r') as f:
+            config = json.load(f)
+    except FileNotFoundError:
+        return report
+
     report = report.replace('{{ALGORITHM}}', config['experiment_name'].upper())
     report = report.replace('{{DATASET_NAME}}', config['dataset_name'])
     report = report.replace('{{CONFIG_NAME}}', config['config_name'])
@@ -114,9 +117,13 @@ def create_experiments_per_dataset_report(log_paths, static_path):
 
     dataset2logs = {}
     for log_path in log_paths:
-        with open(log_path / 'config.json', 'r') as f:
-            config = json.load(f)
-        dataset2logs.setdefault(config['dataset_name'], []).append((log_path, config))
+        try:
+            with open(log_path / 'config.json', 'r') as f:
+                config = json.load(f)
+        except FileNotFoundError:
+            logging.warning(f'Skipping. No config found {log_path}')
+        else:
+            dataset2logs.setdefault(config['dataset_name'], []).append((log_path, config))
 
     dataset_names_sorted = sorted(dataset2logs.keys())
     for logs in dataset2logs.values():
