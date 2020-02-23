@@ -288,7 +288,7 @@ def create_dataset_ctu13(dataset_path,
             'categorical_feature_map': {},
             'categorical_features': [],
             'binary_features': [],
-            'numerical_features': list(CTU_13_AGGR_FUNCTIONS.keys())
+            'numerical_features': [k for k in CTU_13_AGGR_FUNCTIONS.keys() if k != 'target']
         }
     else:
         feature_columns = list(CTU_13_FEATURES.keys())
