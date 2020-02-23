@@ -130,6 +130,7 @@ def runner_fit_predict():
                 i_run = 0
 
                 log_dir = get_log_dir(log_root, config)
+
                 while True:
                     logging.info(f'Starting {config["config_name"]}')
                     logging.info(json.dumps(config, indent=2))
@@ -149,8 +150,10 @@ def runner_fit_predict():
                         shutil.rmtree(str(log_dir))
                     else:
                         break
+
                     if i_run >= num_tries:
                         logging.warning('Model did NOT converge!')
+                        log_dir.mkdir()
                         break
 
                 with open(log_dir / f'{i_run}.try', 'w') as f:
