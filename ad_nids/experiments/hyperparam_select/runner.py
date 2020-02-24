@@ -176,7 +176,8 @@ def runner_fit_predict():
 
                         try:
                             # Pass data
-                            run_fn(config, log_dir, experiment_data, DEFAULT_CONTAM_PERCS, i_run=i_run)
+                            run_fn(config, log_dir, experiment_data,
+                                   contam_percs=DEFAULT_CONTAM_PERCS, i_run=i_run)
                         except Exception as e:
                             logging.exception(e)
                         else:

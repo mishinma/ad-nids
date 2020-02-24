@@ -24,7 +24,8 @@ from ad_nids.utils.metrics import precision_recall_curve_scores, select_threshol
 EXPERIMENT_NAME = 'vae'
 
 
-def run_vae(config, log_dir, experiment_data, i_run=0, contam_percs=None, load_outlier_detector=False):
+def run_vae(config, log_dir, experiment_data, contam_percs=None,
+            load_outlier_detector=False, i_run=0):
 
     # data
     train_normal_batch, threshold_batch, test_batch = experiment_data
