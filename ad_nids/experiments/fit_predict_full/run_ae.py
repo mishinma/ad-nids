@@ -22,7 +22,8 @@ from ad_nids.utils.metrics import precision_recall_curve_scores, select_threshol
 EXPERIMENT_NAME = 'ae'
 
 
-def run_ae(config, log_dir, experiment_data, contam_percs=None, load_outlier_detector=False):
+def run_ae(config, log_dir, experiment_data,
+           contam_percs=None, load_outlier_detector=False, i_run=0):
 
     # data
     train_normal_batch, threshold_batch, test_batch = experiment_data
@@ -60,9 +61,10 @@ def run_ae(config, log_dir, experiment_data, contam_percs=None, load_outlier_det
         od = OutlierAE(threshold=0.0, ae=ae)
         optimizer = tf.keras.optimizers.Adam(learning_rate=config['learning_rate'])
         mse = tf.losses.MeanSquaredError()
+        i_run_log_dir = log_dir/str(i_run)
         trainer(od.ae, mse, X_train, X_val=X_threshold[y_threshold == 0],
                 epochs=config['num_epochs'], epoch_size=config['epoch_size'],
-                batch_size=config['batch_size'], optimizer=optimizer, log_dir=log_dir,
+                batch_size=config['batch_size'], optimizer=optimizer, log_dir=i_run_log_dir,
                 checkpoint=True, checkpoint_freq=5)
         time_fit = timer() - se
         logging.info(f'Done: {time_fit}')

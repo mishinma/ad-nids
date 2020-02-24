@@ -1,4 +1,5 @@
 import os
+import logging
 
 import numpy as np
 import tensorflow as tf
@@ -74,6 +75,7 @@ def trainer(model: tf.keras.Model,
     do_validation = X_val is not None
 
     if log_dir is not None:
+        logging.info(f'\n >>> tensorboard --host 0.0.0.0 --port 4000 --logdir {log_dir}\n')
         train_log_dir = os.path.join(log_dir, 'train')
         train_summary_writer = tf.summary.create_file_writer(train_log_dir)
 

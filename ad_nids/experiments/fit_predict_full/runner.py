@@ -40,8 +40,8 @@ def prepare_experiment_data(dataset):
     y_train = np.zeros((X_train.shape[0],), dtype=np.int)
 
     X_threshold, y_threshold = dataset.create_outlier_batch(train=True,
-                                                                 n_samples=THRESHOLD_BATCH_N_SAMPLES,
-                                                                 perc_outlier=THRESHOLD_BATCH_PERC_OUTLIER)
+                                                             n_samples=THRESHOLD_BATCH_N_SAMPLES,
+                                                             perc_outlier=THRESHOLD_BATCH_PERC_OUTLIER)
     X_test = dataset.test.drop(columns=['target'])
     y_test = dataset.test['target'].values
 
@@ -76,11 +76,15 @@ def prepare_experiment_data(dataset):
 
 
 def runner_fit_predict():
+
     parser = parser_fit_predict()
     args = parser.parse_args()
 
     loglevel = getattr(logging, args.logging.upper(), None)
     logging.basicConfig(level=loglevel)
+    logger = logging.getLogger()
+    ch = logging.StreamHandler()
+    logger.addHandler(ch)
     log_root = Path(args.log_path).resolve()
     log_root.mkdir(parents=True, exist_ok=True)
 
@@ -130,38 +134,39 @@ def runner_fit_predict():
                 i_run = 0
 
                 log_dir = get_log_dir(log_root, config)
+                log_dir.mkdir()
+                with open(log_dir / 'transformer.pickle', 'wb') as f:
+                    pickle.dump(preprocessor, f)
+                log_config(log_dir, config)
+
+                # Create a directory to store experiment logs
+                logging.info('Created a new log directory\n')
+                logging.info(f'{log_dir}\n')
 
                 while True:
                     logging.info(f'Starting {config["config_name"]}')
                     logging.info(json.dumps(config, indent=2))
                     logging.info(f'RUN: {i_run}')
-                    i_run += 1
-                    log_dir.mkdir()
-                    # Create a directory to store experiment logs
-                    logging.info('Created a new log directory\n')
-                    logging.info(f'{log_dir}\n')
-                    logging.info(f'\n >>> tensorboard --host 0.0.0.0 --port 8888 --logdir {log_dir}\n')
+                    i_run_log_dir = log_dir / str(i_run)
+                    i_run_log_dir.mkdir()
+
+                    fh = logging.FileHandler(i_run_log_dir/'run.log')
+                    logger.addHandler(fh)
 
                     try:
                         # Pass data
-                        run_fn(config, log_dir, experiment_data, DEFAULT_CONTAM_PERCS)
+                        run_fn(config, log_dir, experiment_data, DEFAULT_CONTAM_PERCS, i_run=i_run)
                     except Exception as e:
                         logging.exception(e)
-                        shutil.rmtree(str(log_dir))
                     else:
+                        logger.removeHandler(fh)
                         break
 
+                    i_run += 1
                     if i_run >= num_tries:
                         logging.warning('Model did NOT converge!')
-                        log_dir.mkdir()
+                        logger.removeHandler(fh)
                         break
-
-                with open(log_dir / f'{i_run}.try', 'w') as f:
-                    pass
-                with open(log_dir / 'transformer.pickle', 'wb') as f:
-                    pickle.dump(preprocessor, f)
-                log_config(log_dir, config)
-
 
 def runner_predict():
     pass

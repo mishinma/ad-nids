@@ -7,9 +7,6 @@ from timeit import default_timer as timer
 import numpy as np
 
 from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
-from sklearn.preprocessing import StandardScaler, OneHotEncoder, FunctionTransformer
-from sklearn.compose import ColumnTransformer
-
 from alibi_detect.od import IForest
 from alibi_detect.utils.saving import save_detector
 
@@ -20,33 +17,13 @@ from ad_nids.utils.metrics import precision_recall_curve_scores, select_threshol
 EXPERIMENT_NAME = 'if'
 
 
-def run_if(config, log_dir, dataset, sample_params, contam_percs):
+def run_if(config, log_dir, experiment_data, contam_percs, i_run=0):
 
-    n_train_samples = sample_params['train']['n_samples']
-    n_threshold_samples = sample_params['threshold']['n_samples']
-    perc_threshold_outlier = sample_params['threshold']['perc_outlier']
-    n_test_samples = sample_params['test']['n_samples']
-    perc_test_outlier = sample_params['test']['perc_outlier']
-
-    X_train, y_train = dataset.create_outlier_batch(train=True, n_samples=n_train_samples,
-                                                    perc_outlier=0)
-    X_threshold, y_threshold = dataset.create_outlier_batch(train=True, n_samples=n_threshold_samples,
-                                                            perc_outlier=perc_threshold_outlier)
-    X_test, y_test = dataset.create_outlier_batch(train=True, n_samples=n_test_samples,
-                                                  perc_outlier=perc_test_outlier)
-
-    # ToDO only use numerical features
-    numeric_features = dataset.meta['numerical_features']
-
-    # normalize
-    preprocessor = ColumnTransformer([
-        ('num', StandardScaler(), numeric_features),
-    ])
-
-    preprocessor.fit(X_train)
-    X_train = preprocessor.transform(X_train).astype(np.float32)
-    X_threshold = preprocessor.transform(X_threshold).astype(np.float32)
-    X_test = preprocessor.transform(X_test).astype(np.float32)
+    # data
+    train_normal_batch, threshold_batch, test_batch = experiment_data
+    X_train, y_train = train_normal_batch.data, train_normal_batch.target
+    X_threshold, y_threshold = threshold_batch.data, threshold_batch.target
+    X_test, y_test = test_batch.data, test_batch.target
 
     # Train the model on normal data
     logging.info('Fitting the model...')

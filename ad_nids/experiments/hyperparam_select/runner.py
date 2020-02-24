@@ -3,9 +3,15 @@ import logging
 import json
 import copy
 import shutil
+import pickle
 
+import numpy as np
 import pandas as pd
 from pathlib import Path
+
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, FunctionTransformer
+from sklearn.compose import ColumnTransformer
+from alibi_detect.datasets import Bunch
 
 import ad_nids.experiments.hyperparam_select as experiments
 from ad_nids.dataset import Dataset
@@ -37,12 +43,62 @@ def parser_fit_predict():
     return parser
 
 
+def prepare_experiment_data(dataset, random_seed, sample_params):
+    set_seed(random_seed)
+
+    n_train_samples = sample_params['train']['n_samples']
+    n_threshold_samples = sample_params['threshold']['n_samples']
+    perc_threshold_outlier = sample_params['threshold']['perc_outlier']
+    n_test_samples = sample_params['test']['n_samples']
+    perc_test_outlier = sample_params['test']['perc_outlier']
+
+    X_train, y_train = dataset.create_outlier_batch(train=True, n_samples=n_train_samples,
+                                                    perc_outlier=0)
+    X_threshold, y_threshold = dataset.create_outlier_batch(train=True, n_samples=n_threshold_samples,
+                                                            perc_outlier=perc_threshold_outlier)
+    X_test, y_test = dataset.create_outlier_batch(train=True, n_samples=n_test_samples,
+                                                  perc_outlier=perc_test_outlier)
+
+    numeric_features = dataset.meta['numerical_features']
+    binary_features = dataset.meta['binary_features']
+    categorical_feature_map = dataset.meta['categorical_feature_map']
+
+    # normalize
+    preprocessor = ColumnTransformer([
+        ('cat', OneHotEncoder(categories=list(categorical_feature_map.values())),
+         list(categorical_feature_map.keys())),
+        ('bin', FunctionTransformer(), binary_features),
+        ('num', StandardScaler(), numeric_features),
+    ])
+
+    preprocessor.fit(X_train)
+    X_train = preprocessor.transform(X_train).astype(np.float32)
+    X_threshold = preprocessor.transform(X_threshold).astype(np.float32)
+    X_test = preprocessor.transform(X_test).astype(np.float32)
+
+    train_normal_batch = Bunch(data=X_train,
+                               target=y_train,
+                               target_names=['normal', 'outlier'])
+    threshold_batch = Bunch(data=X_threshold,
+                            target=y_threshold,
+                            target_names=['normal', 'outlier'])
+    test_batch = Bunch(data=X_test,
+                       target=y_test,
+                       target_names=['normal', 'outlier'])
+
+    return (train_normal_batch, threshold_batch, test_batch), preprocessor
+
+
 def runner_fit_predict():
+
     parser = parser_fit_predict()
     args = parser.parse_args()
 
     loglevel = getattr(logging, args.logging.upper(), None)
     logging.basicConfig(level=loglevel)
+    logger = logging.getLogger()
+    ch = logging.StreamHandler()
+    logger.addHandler(ch)
     log_root = Path(args.log_path).resolve()
     log_root.mkdir(parents=True, exist_ok=True)
 
@@ -73,80 +129,86 @@ def runner_fit_predict():
         logging.info(f'Loading dataset {dataset_path.name}')
         dataset = Dataset.from_path(dataset_path)
 
-        for config_path in config_paths:
+        for rs in random_seeds:
 
-            configs = pd.read_csv(config_path)
-            configs['dataset_path'] = str(dataset_path)
-            configs['dataset_name'] = dataset_path.name
+            experiment_data, preprocessor = prepare_experiment_data(dataset, rs, DEFAULT_SAMPLE_PARAMS)
 
-            for idx, config in configs.iterrows():
+            for config_path in config_paths:
 
-                run_fn = config.get('run_fn', 'no_fn')
-                try:
-                    run_fn = getattr(experiments, run_fn)
-                except AttributeError as e:
-                    logging.error(f"No such function {run_fn}")
-                    continue
+                configs = pd.read_csv(config_path)
+                configs['dataset_path'] = str(dataset_path)
+                configs['dataset_name'] = dataset_path.name
+                configs['random_seed'] = rs
+                configs['config_name'] += '_{}'.format(rs)
 
-                config = config.to_dict()
-                logging.info(f'Starting {config["config_name"]}')
-                logging.info(json.dumps(config, indent=2))
+                for idx, config in configs.iterrows():
 
-                log_dir = get_log_dir(log_root, config)
+                    try:
+                        run_fn = getattr(experiments, config['run_fn'])
+                    except AttributeError as e:
+                        logging.error(f"No such function {run_fn}")
+                        continue
 
-                for rs in random_seeds:
-                    set_seed(rs)
-                    # Create a directory to store experiment logs
-                    log_rs_dir = log_root/(log_dir.name + '_{}'.format(rs))
+                    config = config.to_dict()
+                    logging.info(f'Starting {config["config_name"]}')
+                    logging.info(json.dumps(config, indent=2))
+
+                    log_dir = get_log_dir(log_root, config)
+
                     logging.info('Created a new log directory')
-                    logging.info(f'{log_rs_dir}\n')
-
-                    config_rs = copy.deepcopy(config)
-                    config_rs['config_name'] += '_{}'.format(rs)
-
-                    num_tries = config_rs.get('num_tries', 1)
+                    logging.info(f'{log_dir}\n')
+                    log_dir.mkdir()
+                    with open(log_dir / 'transformer.pickle', 'wb') as f:
+                        pickle.dump(preprocessor, f)
+                    log_config(log_dir, config)
+                    num_tries = config.get('num_tries', 1)
                     i_run = 0
 
                     while True:
-                        i_run += 1
-                        if log_rs_dir.exists():
-                            shutil.rmtree(str(log_rs_dir))
-                        log_rs_dir.mkdir()
-                        log_config(log_rs_dir, config_rs)
+                        logging.info(f'Starting {config["config_name"]}')
+                        logging.info(json.dumps(config, indent=2))
+                        logging.info(f'RUN: {i_run}')
+                        i_run_log_dir = log_dir / str(i_run)
+                        i_run_log_dir.mkdir()
+
+                        fh = logging.FileHandler(i_run_log_dir / 'run.log')
+                        logger.addHandler(fh)
+
                         try:
                             # Pass data
-                            run_fn(config_rs, log_rs_dir, dataset,
-                                   DEFAULT_SAMPLE_PARAMS, DEFAULT_CONTAM_PERCS)
+                            run_fn(config, log_dir, experiment_data, DEFAULT_CONTAM_PERCS, i_run=i_run)
                         except Exception as e:
                             logging.exception(e)
                         else:
+                            logger.removeHandler(fh)
                             break
+
+                        i_run += 1
                         if i_run >= num_tries:
                             logging.warning('Model did NOT converge!')
+                            logger.removeHandler(fh)
                             break
-                    with open(log_rs_dir/f'{i_run}.try', 'w') as f:
-                        pass
 
-                logging.info('Averaging the results for {}'.format(log_dir.name))
-                #  We average results and save in another log dir
-                #  So that we can reuse report module for generating reports
-                all_results = []
-                for log_dir in log_root.glob(log_dir.name + '*'):
-                    try:
-                        with open(log_dir/'eval_results.json', 'r') as f:
-                            results = json.load(f)
-                    except FileNotFoundError:
-                        continue
-                    all_results.append(results)
-                if all_results:
-                    log_ave_dir = log_root / (log_dir.name + '_AVE')
-                    log_ave_dir.mkdir()
-                    ave_results = average_results(all_results)
-                    config_ave = copy.deepcopy(config)
-                    config_ave['config_name'] += '_AVE'
-                    log_config(log_ave_dir, config_ave)
-                    with open(log_ave_dir / 'eval_results.json', 'w') as f:
-                        json.dump(jsonify(ave_results), f)
+    # logging.info('Averaging the results for {}'.format(log_dir.name))
+    # #  We average results and save in another log dir
+    # #  So that we can reuse report module for generating reports
+    # all_results = []
+    # for log_dir in log_root.glob(log_dir.name + '*'):
+    #     try:
+    #         with open(log_dir/'eval_results.json', 'r') as f:
+    #             results = json.load(f)
+    #     except FileNotFoundError:
+    #         continue
+    #     all_results.append(results)
+    # if all_results:
+    #     log_ave_dir = log_root / (log_dir.name + '_AVE')
+    #     log_ave_dir.mkdir()
+    #     ave_results = average_results(all_results)
+    #     config_ave = copy.deepcopy(config)
+    #     config_ave['config_name'] += '_AVE'
+    #     log_config(log_ave_dir, config_ave)
+    #     with open(log_ave_dir / 'eval_results.json', 'w') as f:
+    #         json.dump(jsonify(ave_results), f)
 
 
 def runner_predict():

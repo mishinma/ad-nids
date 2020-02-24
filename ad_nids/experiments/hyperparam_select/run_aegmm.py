@@ -8,9 +8,6 @@ import numpy as np
 import tensorflow as tf
 
 from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
-from sklearn.preprocessing import StandardScaler, OneHotEncoder, FunctionTransformer
-from sklearn.compose import ColumnTransformer
-
 from alibi_detect.od import OutlierAEGMM
 from alibi_detect.models.autoencoder import eucl_cosim_features
 from alibi_detect.models.gmm import gmm_params
@@ -25,40 +22,13 @@ from ad_nids.utils.metrics import precision_recall_curve_scores, select_threshol
 EXPERIMENT_NAME = 'aegmm'
 
 
-def run_aegmm(config, log_dir, dataset, sample_params, contam_percs):
+def run_aegmm(config, log_dir, experiment_data, contam_percs, i_run=0):
 
-    n_train_samples = sample_params['train']['n_samples']
-    n_threshold_samples = sample_params['threshold']['n_samples']
-    perc_threshold_outlier = sample_params['threshold']['perc_outlier']
-    n_test_samples = sample_params['test']['n_samples']
-    perc_test_outlier = sample_params['test']['perc_outlier']
-
-    X_train, y_train = dataset.create_outlier_batch(train=True, n_samples=n_train_samples,
-                                                    perc_outlier=0)
-    X_threshold, y_threshold = dataset.create_outlier_batch(train=True, n_samples=n_threshold_samples,
-                                                            perc_outlier=perc_threshold_outlier)
-    X_test, y_test = dataset.create_outlier_batch(train=True, n_samples=n_test_samples,
-                                                  perc_outlier=perc_test_outlier)
-
-    numeric_features = dataset.meta['numerical_features']
-    binary_features = dataset.meta['binary_features']
-    categorical_feature_map = dataset.meta['categorical_feature_map']
-
-    # normalize
-    preprocessor = ColumnTransformer([
-        ('cat', OneHotEncoder(categories=list(categorical_feature_map.values())),
-         list(categorical_feature_map.keys())),
-        ('bin', FunctionTransformer(), binary_features),
-        ('num', StandardScaler(), numeric_features),
-    ])
-
-    preprocessor.fit(X_train)
-    X_train = preprocessor.transform(X_train).astype(np.float32)
-    X_threshold = preprocessor.transform(X_threshold).astype(np.float32)
-    X_test = preprocessor.transform(X_test).astype(np.float32)
-
-    # Create a directory to store experiment logs
-    logging.info(f'\n >>> tensorboard --host 0.0.0.0 --port 8888 --logdir {log_dir}\n')
+    # data
+    train_normal_batch, threshold_batch, test_batch = experiment_data
+    X_train, y_train = train_normal_batch.data, train_normal_batch.target
+    X_threshold, y_threshold = threshold_batch.data, threshold_batch.target
+    X_test, y_test = test_batch.data, test_batch.target
 
     # Train the model on normal data
     logging.info('Fitting the model...')
@@ -96,10 +66,10 @@ def run_aegmm(config, log_dir, dataset, sample_params, contam_percs):
         w_energy=.1,
         w_cov_diag=.005
     )
-
+    i_run_log_dir = log_dir / str(i_run)
     trainer(od.aegmm, loss_aegmm, X_train, loss_fn_kwargs=loss_fn_kwargs,
             epochs=config['num_epochs'], batch_size=config['batch_size'],
-            optimizer=optimizer, log_dir=log_dir,
+            optimizer=optimizer, log_dir=i_run_log_dir ,
             checkpoint=True, checkpoint_freq=5)
 
     # set GMM parameters

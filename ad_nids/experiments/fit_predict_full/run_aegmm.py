@@ -25,7 +25,7 @@ from ad_nids.utils.metrics import precision_recall_curve_scores, select_threshol
 EXPERIMENT_NAME = 'aegmm'
 
 
-def run_aegmm(config, log_dir, experiment_data,  contam_percs=None, load_outlier_detector=False):
+def run_aegmm(config, log_dir, experiment_data, i_run=0,  contam_percs=None, load_outlier_detector=False):
 
     # data
     train_normal_batch, threshold_batch, test_batch = experiment_data
@@ -81,9 +81,10 @@ def run_aegmm(config, log_dir, experiment_data,  contam_percs=None, load_outlier
             w_energy=.1,
             w_cov_diag=.005
         )
+        i_run_log_dir = log_dir / str(i_run)
         trainer(od.aegmm, loss_aegmm, X_train, X_val=X_threshold[y_threshold == 0], loss_fn_kwargs=loss_fn_kwargs,
                 epochs=config['num_epochs'], epoch_size=config['epoch_size'],
-                batch_size=config['batch_size'], optimizer=optimizer, log_dir=log_dir,
+                batch_size=config['batch_size'], optimizer=optimizer, log_dir=i_run_log_dir,
                 checkpoint=True, checkpoint_freq=5)
         # set GMM parameters
         x_recon, z, gamma = od.aegmm(X_train)
