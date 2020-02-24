@@ -365,7 +365,9 @@ def aggregate_flows_ctu13(data_path, aggr_path, processes=-1, frequency='T'):
         flows['timestamp'] = pd.to_datetime(flows['timestamp'])
         grouped = flows.groupby(['src_ip', pd.Grouper(key='timestamp', freq=frequency)])
         aggr_flows = aggregate_features_pool(grouped, _aggregate_flows_wkr, processes)
-        aggr_flows = pd.DataFrame.from_records(aggr_flows, columns=CTU_13_AGGR_COLUMNS)
+        aggr_flows = pd.DataFrame.from_records(aggr_flows)
+        aggr_flows['scenario'] = sc_i
+        aggr_flows = aggr_flows[CTU_13_AGGR_COLUMNS]
         aggr_flows = aggr_flows.sort_values(by='time_window_start').reset_index(drop=True)
         aggr_flows = aggr_flows.fillna(0)
         aggr_flows.to_csv(out_path, index=False)
