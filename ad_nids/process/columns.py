@@ -135,6 +135,7 @@ CTU_13_COLUMNS = [
     'tot_pkts',
     'tot_byts',
     'src_byts',
+    'scenario',
     'label',
     'target'
 ]
@@ -196,6 +197,7 @@ CTU_13_META_COLUMNS = [
     'proto',  # tcp, udp, icmp or other; categorical
     'dir',
     'state',
+    'scenario',
     'label',
 ]
 
@@ -237,6 +239,7 @@ CTU_13_AGGR_COLUMNS = [
     'src_byts_max',
     'src_byts_std',
     'src_byts_median',
+    'scenario',
     'target',
 ]
 
@@ -282,6 +285,7 @@ CTU_13_AGGR_FUNCTIONS = {
 CTU_13_AGGR_META_COLUMNS = [
     'src_ip',
     'time_window_start',
+    'scenario'
 ]
 
 

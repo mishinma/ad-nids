@@ -139,6 +139,7 @@ def cleanup_ctu13(data_path):
         logging.info(f'Processing scenario {sc_i}')
         sc_path = data_path/'{:02d}.csv'.format(sc_i)
         sc_flows = pd.read_csv(sc_path)
+        sc_flows['scenario'] = sc_i
         sc_flows = cleanup_ctu_flows(sc_flows)
         sc_flows.to_csv(sc_path, index=False)
 
@@ -177,7 +178,6 @@ def create_mock_ctu13(data_path, mock_path, num_ips_sample=3, max_sample_size=10
 
         out_path = mock_path/'{:02d}.csv'.format(sc_i)
         sampled_flows.to_csv(out_path, index=False)
-
 
 
 def create_report_scenario_ctu13(data, static_path, timestamp_col='timestamp'):
