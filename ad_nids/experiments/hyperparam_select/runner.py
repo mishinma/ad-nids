@@ -89,8 +89,8 @@ def prepare_experiment_data(dataset, random_seed, sample_params):
     return (train_normal_batch, threshold_batch, test_batch), preprocessor
 
 
-def average_logs(log_root):
-    
+def average_logs(log_root, log_root_ave):
+
     logging.info('Averaging the results in '.format(log_root))
     #  We average results and save in another log dir
     #  So that we can reuse report module for generating reports
@@ -118,7 +118,7 @@ def average_logs(log_root):
                 continue
             all_results.append(results)
 
-        log_ave_dir = log_root / ('_'.join(log_dirs[0].name.split('_')[:-1] + ['AVE']))
+        log_ave_dir = log_root_ave / ('_'.join(log_dirs[0].name.split('_')[:-1] + ['AVE']))
         with open(log_dirs[0] / 'config.json', 'r') as f:
             config_ave = json.load(f)
         log_ave_dir.mkdir()
@@ -229,7 +229,10 @@ def runner_fit_predict():
                             logging.warning('Model did NOT converge!')
                             logger.removeHandler(fh)
                             break
-    average_logs(log_root)
+
+    log_root_ave = log_root.parent/log_root.name + '_AVE'
+    log_root_ave.mkdir(exist_ok=True)
+    average_logs(log_root, log_root_ave)
 
 
 def runner_predict():

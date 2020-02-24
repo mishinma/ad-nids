@@ -14,10 +14,12 @@ from alibi_detect.datasets import Bunch
 import ad_nids.experiments.fit_predict_full as experiments
 from ad_nids.dataset import Dataset
 from ad_nids.utils.logging import get_log_dir, log_config
+from ad_nids.utils.misc import set_seed
 
 DEFAULT_CONTAM_PERCS = [0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.5, 1, 2, 3, 5, 10, 15, 20, 30, 40, 50, 70]
 THRESHOLD_BATCH_N_SAMPLES = 10000
 THRESHOLD_BATCH_PERC_OUTLIER = 5
+PREPARE_DATA_RANDOM_SEED = 42
 
 
 def parser_fit_predict():
@@ -109,6 +111,7 @@ def runner_fit_predict():
 
         logging.info(f'Loading dataset {dataset_path.name}')
         dataset = Dataset.from_path(dataset_path)
+        set_seed(PREPARE_DATA_RANDOM_SEED)
         experiment_data, preprocessor = prepare_experiment_data(dataset)
 
         for config_path in config_paths:
@@ -168,6 +171,7 @@ def runner_fit_predict():
                         logging.warning('Model did NOT converge!')
                         logger.removeHandler(fh)
                         break
+
 
 def runner_predict():
     pass
