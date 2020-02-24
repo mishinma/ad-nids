@@ -89,6 +89,46 @@ def prepare_experiment_data(dataset, random_seed, sample_params):
     return (train_normal_batch, threshold_batch, test_batch), preprocessor
 
 
+def average_logs(log_root):
+    
+    logging.info('Averaging the results in '.format(log_root))
+    #  We average results and save in another log dir
+    #  So that we can reuse report module for generating reports
+    config2logs = {}
+
+    for log_dir in log_root.iterdir():
+
+        try:
+            with open(log_dir/'config.json', 'r') as f:
+                config = json.load(f)
+        except FileNotFoundError:
+            continue
+
+        config_name = 'conf_' + config['config_name'].split('_')[1]  # exclude random seed
+        config2logs.setdefault(config_name, []).append(log_dir)
+
+    for config_name, log_dirs in config2logs.items():
+
+        all_results = []
+        for log_dir in log_dirs:
+            try:
+                with open(log_dir/'eval_results.json', 'r') as f:
+                            results = json.load(f)
+            except FileNotFoundError:
+                continue
+            all_results.append(results)
+
+        log_ave_dir = log_root / ('_'.join(log_dirs[0].name.split('_')[:-1] + ['AVE']))
+        with open(log_dirs[0] / 'config.json', 'r') as f:
+            config_ave = json.load(f)
+        log_ave_dir.mkdir()
+        ave_results = average_results(all_results)
+        config_ave['config_name'] = config_name + '_AVE'
+        log_config(log_ave_dir, config_ave)
+        with open(log_ave_dir / 'eval_results.json', 'w') as f:
+            json.dump(jsonify(ave_results), f)
+
+
 def runner_fit_predict():
 
     parser = parser_fit_predict()
@@ -189,27 +229,7 @@ def runner_fit_predict():
                             logging.warning('Model did NOT converge!')
                             logger.removeHandler(fh)
                             break
-
-    # logging.info('Averaging the results for {}'.format(log_dir.name))
-    # #  We average results and save in another log dir
-    # #  So that we can reuse report module for generating reports
-    # all_results = []
-    # for log_dir in log_root.glob(log_dir.name + '*'):
-    #     try:
-    #         with open(log_dir/'eval_results.json', 'r') as f:
-    #             results = json.load(f)
-    #     except FileNotFoundError:
-    #         continue
-    #     all_results.append(results)
-    # if all_results:
-    #     log_ave_dir = log_root / (log_dir.name + '_AVE')
-    #     log_ave_dir.mkdir()
-    #     ave_results = average_results(all_results)
-    #     config_ave = copy.deepcopy(config)
-    #     config_ave['config_name'] += '_AVE'
-    #     log_config(log_ave_dir, config_ave)
-    #     with open(log_ave_dir / 'eval_results.json', 'w') as f:
-    #         json.dump(jsonify(ave_results), f)
+    average_logs(log_root)
 
 
 def runner_predict():
