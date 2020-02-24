@@ -70,7 +70,7 @@ def trainer(model: tf.keras.Model,
     if epoch_size is None:
         n_minibatch = int(np.ceil(X_train.shape[0] / batch_size))
     else:
-        n_minibatch = epoch_size
+        n_minibatch = int(epoch_size)
 
     do_validation = X_val is not None
 
