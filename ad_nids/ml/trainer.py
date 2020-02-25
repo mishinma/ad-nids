@@ -98,7 +98,7 @@ def trainer(model: tf.keras.Model,
         # iterate over the batches of the dataset
         for step, X_train_batch in enumerate(train_data):
 
-            if step > n_minibatch:
+            if step >=   n_minibatch:
                 break
 
             with tf.GradientTape() as tape:

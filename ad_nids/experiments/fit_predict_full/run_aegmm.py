@@ -9,6 +9,7 @@ import numpy as np
 import tensorflow as tf
 
 from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
+from tensorflow.keras.layers import Dense, InputLayer, Dropout
 
 from alibi_detect.od import OutlierAEGMM
 from alibi_detect.models.autoencoder import eucl_cosim_features
@@ -61,9 +62,15 @@ def run_aegmm(config, log_dir, experiment_data, contam_percs=None,
         decoder_activations = [tf.nn.tanh] * (len(decoder_hidden_dims) - 1) + [None]
         decoder_net = build_net(latent_dim, decoder_hidden_dims, decoder_activations)
 
-        gmm_hidden_dims = json.loads(config['gmm_density_net']) + [n_gmm]
-        gmm_activations = [tf.nn.tanh] * (len(gmm_hidden_dims) - 1) + [tf.nn.softmax]
-        gmm_net = build_net(latent_dim + 2, gmm_hidden_dims, gmm_activations)
+        gmm_net = tf.keras.Sequential(
+            [
+                InputLayer(input_shape=(latent_dim + 2,)),
+                Dense(3, activation=tf.nn.tanh),
+                Dropout(0.5),
+                Dense(10, activation=tf.nn.tanh),
+                Dense(n_gmm, activation=tf.nn.softmax)
+            ]
+        )
 
         # initialize outlier detector
         od = OutlierAEGMM(threshold=0.0,  # threshold for outlier score
