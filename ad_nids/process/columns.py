@@ -311,105 +311,18 @@ UGR_COLUMNS = [
 
 
 """
-########## CIC-IDS  ############
-"""
-
-
-CIC_IDS_FEATURE_COLUMNS = [
-    'flow_dur',
-    'tot_fwd_pkts',
-    'tot_bwd_pkts',
-    'tot_len_fwd_pkts',
-    'tot_len_bwd_pkts',
-    'fwd_pkt_len_max',
-    'fwd_pkt_len_min',
-    'fwd_pkt_len_mean',
-    'fwd_pkt_len_std',
-    'bwd_pkt_len_max',
-    'bwd_pkt_len_min',
-    'bwd_pkt_len_mean',
-    'bwd_pkt_len_std',
-    'flow_byts/s',
-    'flow_pkts/s',
-    'flow_iat_mean',
-    'flow_iat_std',
-    'flow_iat_max',
-    'flow_iat_min',
-    'fwd_iat_tot',
-    'fwd_iat_mean',
-    'fwd_iat_std',
-    'fwd_iat_max',
-    'fwd_iat_min',
-    'bwd_iat_tot',
-    'bwd_iat_mean',
-    'bwd_iat_std',
-    'bwd_iat_max',
-    'bwd_iat_min',
-    'fwd_psh_flags',
-    'bwd_psh_flags',
-    'fwd_urg_flags',
-    'bwd_urg_flags',
-    'fwd_header_len',
-    'bwd_header_len',
-    'fwd_pkts/s',
-    'bwd_pkts/s',
-    'pkt_len_min',
-    'pkt_len_max',
-    'pkt_len_mean',
-    'pkt_len_std',
-    'pkt_len_var',
-    'fin_flag_cnt',
-    'syn_flag_cnt',
-    'rst_flag_cnt',
-    'psh_flag_cnt',
-    'ack_flag_cnt',
-    'urg_flag_cnt',
-    'cwe_flag_cnt',
-    'ece_flag_cnt',
-    'down/up_ratio',
-    'pkt_size_avg',
-    'fwd_seg_size_avg',
-    'bwd_seg_size_avg',
-    'fwd_header_len',
-    'fwd_byts/blk_avg',
-    'fwd_pkts/blk_avg',
-    'fwd_blk_rate_avg',
-    'bwd_byts/blk_avg',
-    'bwd_pkts/blk_avg',
-    'bwd_blk_rate_avg',
-    'subflow_fwd_pkts',
-    'subflow_fwd_byts',
-    'subflow_bwd_pkts',
-    'subflow_bwd_byts',
-    'init_fwd_win_byts',
-    'init_bwd_win_byts',
-    'fwd_act_data_pkts',
-    'fwd_seg_size_min',
-    'active_mean',
-    'active_std',
-    'active_max',
-    'active_min',
-    'idle_mean',
-    'idle_std',
-    'idle_max',
-    'idle_min',
-    'label'
-]
-
-
-"""
-########## CSE-CIC-IDS2017 ############
+########## CIC-IDS2017 ############
 """
 
 CIC_IDS2017_COLUMN_MAPPING = {
     'Flow ID': 'flow_id',
     'Source IP': 'src_ip',
     'Source Port': 'src_port',
-    'Destination IP': 'dest_ip',
-    'Destination Port': 'dest_port',
+    'Destination IP': 'dst_ip',
+    'Destination Port': 'dst_port',
     'Protocol': 'protocol',
     'Timestamp': 'timestamp',
-    'Flow Duration': 'flow_dur',
+    'Flow Duration': 'dur',
     'Total Fwd Packets': 'tot_fwd_pkts',
     'Total Backward Packets': 'tot_bwd_pkts',
     'Total Length of Fwd Packets': 'tot_len_fwd_pkts',
@@ -506,6 +419,235 @@ CIC_IDS2017_ATTACK_LABELS = {
     'Web Attack  Sql Injection': 'web',
     'Web Attack  XSS': 'web'
 }
+
+
+CIC_IDS2017_COLUMNS = list(CIC_IDS2017_COLUMN_MAPPING.values()) + \
+                      ['label_orig', 'scenario', 'target']
+
+
+CIC_IDS2017_FEATURES = {
+    'protocol': CATEGORICAL([6, 17, 0]),
+    'dur': NUMERICAL(),
+    'tot_fwd_pkts': NUMERICAL(),
+    'tot_bwd_pkts': NUMERICAL(),
+    'tot_len_fwd_pkts': NUMERICAL(),
+    'tot_len_bwd_pkts': NUMERICAL(),
+    'fwd_pkt_len_max': NUMERICAL(),
+    'fwd_pkt_len_min': NUMERICAL(),
+    'fwd_pkt_len_mean': NUMERICAL(),
+    'fwd_pkt_len_std': NUMERICAL(),
+    'bwd_pkt_len_max': NUMERICAL(),
+    'bwd_pkt_len_min': NUMERICAL(),
+    'bwd_pkt_len_mean': NUMERICAL(),
+    'bwd_pkt_len_std': NUMERICAL(),
+    'flow_byts/s': NUMERICAL(),
+    'flow_pkts/s': NUMERICAL(),
+    'flow_iat_mean': NUMERICAL(),
+    'flow_iat_std': NUMERICAL(),
+    'flow_iat_max': NUMERICAL(),
+    'flow_iat_min': NUMERICAL(),
+    'fwd_iat_tot': NUMERICAL(),
+    'fwd_iat_mean': NUMERICAL(),
+    'fwd_iat_std': NUMERICAL(),
+    'fwd_iat_max': NUMERICAL(),
+    'fwd_iat_min': NUMERICAL(),
+    'bwd_iat_tot': NUMERICAL(),
+    'bwd_iat_mean': NUMERICAL(),
+    'bwd_iat_std': NUMERICAL(),
+    'bwd_iat_max': NUMERICAL(),
+    'bwd_iat_min': NUMERICAL(),
+    'fwd_psh_flags': NUMERICAL(),
+    'bwd_psh_flags': NUMERICAL(),
+    'fwd_urg_flags': NUMERICAL(),
+    'bwd_urg_flags': NUMERICAL(),
+    'fwd_header_len': NUMERICAL(),
+    'bwd_header_len': NUMERICAL(),
+    'fwd_pkts/s': NUMERICAL(),
+    'bwd_pkts/s': NUMERICAL(),
+    'pkt_len_min': NUMERICAL(),
+    'pkt_len_max': NUMERICAL(),
+    'pkt_len_mean': NUMERICAL(),
+    'pkt_len_std': NUMERICAL(),
+    'pkt_len_var': NUMERICAL(),
+    'fin_flag_cnt': NUMERICAL(),
+    'syn_flag_cnt': NUMERICAL(),
+    'rst_flag_cnt': NUMERICAL(),
+    'psh_flag_cnt': NUMERICAL(),
+    'ack_flag_cnt': NUMERICAL(),
+    'urg_flag_cnt': NUMERICAL(),
+    'cwe_flag_cnt': NUMERICAL(),
+    'ece_flag_cnt': NUMERICAL(),
+    'down/up_ratio': NUMERICAL(),
+    'pkt_size_avg': NUMERICAL(),
+    'fwd_seg_size_avg': NUMERICAL(),
+    'bwd_seg_size_avg': NUMERICAL(),
+    'fwd_header_len1': NUMERICAL(),
+    'fwd_byts/blk_avg': NUMERICAL(),
+    'fwd_pkts/blk_avg': NUMERICAL(),
+    'fwd_blk_rate_avg': NUMERICAL(),
+    'bwd_byts/blk_avg': NUMERICAL(),
+    'bwd_pkts/blk_avg': NUMERICAL(),
+    'bwd_blk_rate_avg': NUMERICAL(),
+    'subflow_fwd_pkts': NUMERICAL(),
+    'subflow_fwd_byts': NUMERICAL(),
+    'subflow_bwd_pkts': NUMERICAL(),
+    'subflow_bwd_byts': NUMERICAL(),
+    'init_fwd_win_byts': NUMERICAL(),
+    'init_bwd_win_byts': NUMERICAL(),
+    'fwd_act_data_pkts': NUMERICAL(),
+    'fwd_seg_size_min': NUMERICAL(),
+    'active_mean': NUMERICAL(),
+    'active_std': NUMERICAL(),
+    'active_max': NUMERICAL(),
+    'active_min': NUMERICAL(),
+    'idle_mean': NUMERICAL(),
+    'idle_std': NUMERICAL(),
+    'idle_max': NUMERICAL(),
+    'idle_min': NUMERICAL(),
+    'target': LABEL()
+}
+
+CIC_IDS2017_CATEGORICAL_FEATURE_MAP = {
+    f: t.values for f, t in CIC_IDS2017_FEATURES.items() if t.type == 'CATEGORICAL'
+}
+
+
+CIC_IDS2017_NUMERICAL_FEATURES = [
+    f for f, t in CIC_IDS2017_FEATURES.items() if t.type == 'NUMERICAL'
+]
+
+
+CIC_IDS2017_BINARY_FEATURES = [
+    f for f, t in CIC_IDS2017_FEATURES.items() if t.type == 'BINARY'
+]
+
+
+CIC_IDS2017_META_COLUMNS = [
+    'timestamp',
+    'src_ip',
+    'src_port',
+    'dst_ip',
+    'dst_port',
+    'protocol',  # tcp, udp, icmp or other; categorical
+    'scenario',
+    'label_orig',
+    'label',
+]
+
+# numerical:  mean, min, max, std, median
+# categorical: num_unique, entropy
+CIC_IDS2017_AGGR_COLUMNS = [
+    'src_ip',
+    'time_window_start',
+    'total_cnt',
+    'dur_mean',
+    'dur_min',
+    'dur_max',
+    'dur_std',
+    'dur_median',
+    'dst_ip_entropy',
+    'dst_ip_nuniq',
+    'dst_port_entropy',
+    'dst_port_nuniq',
+    'src_port_entropy',
+    'src_port_nuniq',
+    'proto_entropy',
+    'proto_nuniq',
+    'flag_entropy',  #
+    'flag_nuniq',
+    'tot_fwd_pkts_mean',
+    'tot_fwd_pkts_min',
+    'tot_fwd_pkts_max',
+    'tot_fwd_pkts_std',
+    'tot_fwd_pkts_median',
+    'tot_bwd_pkts_mean',
+    'tot_bwd_pkts_min',
+    'tot_bwd_pkts_max',
+    'tot_bwd_pkts_std',
+    'tot_bwd_pkts_median',
+    'tot_len_fwd_pkts_mean',
+    'tot_len_fwd_pkts_min',
+    'tot_len_fwd_pkts_max',
+    'tot_len_fwd_pkts_std',
+    'tot_len_fwd_pkts_median',
+    'tot_len_bwd_pkts_mean',
+    'tot_len_bwd_pkts_min',
+    'tot_len_bwd_pkts_max',
+    'tot_len_bwd_pkts_std',
+    'tot_len_bwd_pkts_median',
+    'flow_byts/s_mean',
+    'flow_byts/s_min',
+    'flow_byts/s_max',
+    'flow_byts/s_std',
+    'flow_byts/s_median',
+    'flow_pkts/s_mean',
+    'flow_pkts/s_min',
+    'flow_pkts/s_max',
+    'flow_pkts/s_std',
+    'flow_pkts/s_median',
+    'scenario',
+    'target',
+]
+
+CIC_IDS2017_FLAGS_COLUMNS = [f'{f}_flag_cnt' for f in TCP_FLAGS.values()]
+
+CIC_IDS2017_AGGR_FUNCTIONS = {
+    'total_cnt': lambda f: f.shape[0],
+    'dur_mean': lambda f: f['dur'].mean(),
+    'dur_min': lambda f: f['dur'].min(),
+    'dur_max': lambda f: f['dur'].max(),
+    'dur_std': lambda f: f['dur'].std(),
+    'dur_median': lambda f: f['dur'].median(),
+    'dst_ip_entropy': lambda f: entropy(f['dst_ip'].value_counts()),
+    'dst_ip_nuniq': lambda f: f['dst_ip'].unique().shape[0],
+    'dst_port_entropy': lambda f: entropy(f['dst_port'].value_counts()),
+    'dst_port_nuniq': lambda f: f['dst_port'].unique().shape[0],
+    'src_port_entropy': lambda f: entropy(f['src_port'].value_counts()),
+    'src_port_nuniq': lambda f: f['src_port'].unique().shape[0],
+    'proto_entropy': lambda f: entropy(f['protocol'].value_counts()),
+    'proto_nuniq': lambda f: f['protocol'].unique().shape[0],
+    'flag_entropy': lambda f: entropy(f[CIC_IDS2017_FLAGS_COLUMNS].sum()),
+    'flag_nuniq': lambda f: np.sum(f[CIC_IDS2017_FLAGS_COLUMNS].sum() > 0),
+    'tot_fwd_pkts_mean': lambda f: f['tot_fwd_pkts'].mean(),
+    'tot_fwd_pkts_min': lambda f: f['tot_fwd_pkts'].min(),
+    'tot_fwd_pkts_max': lambda f: f['tot_fwd_pkts'].max(),
+    'tot_fwd_pkts_std': lambda f: f['tot_fwd_pkts'].std(),
+    'tot_fwd_pkts_median': lambda f: f['tot_fwd_pkts'].median(),
+    'tot_bwd_pkts_mean': lambda f: f['tot_bwd_pkts'].mean(),
+    'tot_bwd_pkts_min': lambda f: f['tot_bwd_pkts'].min(),
+    'tot_bwd_pkts_max': lambda f: f['tot_bwd_pkts'].max(),
+    'tot_bwd_pkts_std': lambda f: f['tot_bwd_pkts'].std(),
+    'tot_bwd_pkts_median': lambda f: f['tot_bwd_pkts'].median(),
+    'tot_len_fwd_pkts_mean': lambda f: f['tot_len_fwd_pkts'].mean(),
+    'tot_len_fwd_pkts_min': lambda f: f['tot_len_fwd_pkts'].min(),
+    'tot_len_fwd_pkts_max': lambda f: f['tot_len_fwd_pkts'].max(),
+    'tot_len_fwd_pkts_std': lambda f: f['tot_len_fwd_pkts'].std(),
+    'tot_len_fwd_pkts_median': lambda f: f['tot_len_fwd_pkts'].median(),
+    'tot_len_bwd_pkts_mean': lambda f: f['tot_len_bwd_pkts'].mean(),
+    'tot_len_bwd_pkts_min': lambda f: f['tot_len_bwd_pkts'].min(),
+    'tot_len_bwd_pkts_max': lambda f: f['tot_len_bwd_pkts'].max(),
+    'tot_len_bwd_pkts_std': lambda f: f['tot_len_bwd_pkts'].std(),
+    'tot_len_bwd_pkts_median': lambda f: f['tot_len_bwd_pkts'].median(),
+    'flow_byts/s_mean': lambda f: f['flow_byts/s'].mean(),
+    'flow_byts/s_min': lambda f: f['flow_byts/s'].min(),
+    'flow_byts/s_max': lambda f: f['flow_byts/s'].max(),
+    'flow_byts/s_std': lambda f: f['flow_byts/s'].std(),
+    'flow_byts/s_median': lambda f: f['flow_byts/s'].median(),
+    'flow_pkts/s_mean': lambda f: f['flow_pkts/s'].mean(),
+    'flow_pkts/s_min': lambda f: f['flow_pkts/s'].min(),
+    'flow_pkts/s_max': lambda f: f['flow_pkts/s'].max(),
+    'flow_pkts/s_std': lambda f: f['flow_pkts/s'].std(),
+    'flow_pkts/s_median': lambda f: f['flow_pkts/s'].median(),
+    'target': lambda f: np.int(f['target'].sum() > 0)
+}
+
+
+CIC_IDS2017_AGGR_META_COLUMNS = [
+    'src_ip',
+    'time_window_start',
+    'scenario'
+]
+
 
 
 """

@@ -1,6 +1,7 @@
 
 from datetime import datetime
 from functools import wraps
+from ipaddress import ip_address
 from timeit import default_timer as timer
 
 import numpy as np
@@ -156,3 +157,16 @@ def performance_asdict(cm, prf1s):
     )
 
     return perf
+
+
+def is_valid_ip(x):
+
+    IGNORE_IPS = ['0.0.0.0', '::', 'ff:ff:ff:ff:ff:ff']
+
+    try:
+        ip_address(x)
+    except ValueError:
+        return False
+    if x in IGNORE_IPS:
+        return False
+    return True

@@ -8,7 +8,6 @@ import multiprocessing as mp
 from pathlib import Path
 from subprocess import check_output
 from uuid import uuid4
-from ipaddress import ip_address
 
 import numpy as np
 import pandas as pd
@@ -25,7 +24,7 @@ from ad_nids.process.columns import CTU_13_ORIG_COLUMN_MAPPING, TCP_FLAGS, CTU_1
     CTU_13_CATEGORICAL_FEATURE_MAP, CTU_13_NUMERICAL_FEATURES, \
     CTU_13_AGGR_COLUMNS, CTU_13_AGGR_FUNCTIONS, CTU_13_AGGR_META_COLUMNS
 from ad_nids.report import BASE
-
+from ad_nids.utils.misc import is_valid_ip
 
 DATASET_NAME = 'CTU-13'
 
@@ -33,18 +32,6 @@ TOTAL_SCENARIOS = 13
 ORIG_TRAIN_SCENARIOS = [3, 4, 5, 7, 10, 11, 12, 13]
 ORIG_TEST_SCENARIOS = [1, 2, 6, 8, 9]
 ALL_SCENARIOS = list(range(1, TOTAL_SCENARIOS + 1))
-
-IGNORE_IPS = ['0.0.0.0', '::', 'ff:ff:ff:ff:ff:ff']
-
-
-def is_valid_ip(x):
-    try:
-        ip_address(x)
-    except ValueError:
-        return False
-    if x in IGNORE_IPS:
-        return False
-    return True
 
 
 def download_ctu13(data_path):
