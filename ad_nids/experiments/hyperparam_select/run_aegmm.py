@@ -13,6 +13,7 @@ from alibi_detect.models.autoencoder import eucl_cosim_features
 from alibi_detect.models.gmm import gmm_params
 from alibi_detect.models.losses import loss_aegmm
 from alibi_detect.utils.saving import save_detector
+from tensorflow.keras.layers import Dense, InputLayer, Dropout
 
 from ad_nids.ml import build_net, trainer, DataGenerator
 from ad_nids.utils.misc import jsonify
@@ -45,9 +46,15 @@ def run_aegmm(config, log_dir, experiment_data, contam_percs, i_run=0):
     decoder_activations = [tf.nn.tanh] * (len(decoder_hidden_dims) - 1) + [None]
     decoder_net = build_net(latent_dim, decoder_hidden_dims, decoder_activations)
 
-    gmm_hidden_dims = json.loads(config['gmm_density_net']) + [n_gmm]
-    gmm_activations = [tf.nn.tanh] * (len(gmm_hidden_dims) - 1) + [tf.nn.softmax]
-    gmm_net = build_net(latent_dim + 2, gmm_hidden_dims, gmm_activations)
+    gmm_net = tf.keras.Sequential(
+        [
+            InputLayer(input_shape=(latent_dim + 2,)),
+            Dense(3, activation=tf.nn.tanh),
+            Dropout(0.5),
+            Dense(10, activation=tf.nn.tanh),
+            Dense(n_gmm, activation=tf.nn.softmax)
+        ]
+    )
 
     # initialize outlier detector
     od = OutlierAEGMM(threshold=0.0,  # threshold for outlier score
