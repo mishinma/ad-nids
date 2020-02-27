@@ -215,7 +215,7 @@ def create_report_scenario_ctu13(data, static_path, timestamp_col='timestamp'):
     sns.distplot(data.loc[~data['target'].astype(bool), 'sec'], rug=True)
     sns.distplot(data.loc[data['target'].astype(bool), 'sec'], rug=True)
     plt.legend(labels=['normal', 'botnet'])
-    plot_name = start_tstmp.strftime("{}.png".format(str(uuid4())[:5]))
+    plot_name = "{}.png".format(str(uuid4())[:5])
     plot_path = os.path.join(static_path, plot_name)
     plt.savefig(plot_path)
     report += f'<img src="static/{plot_name}" alt="dataset visualization">'
