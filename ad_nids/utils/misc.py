@@ -84,9 +84,15 @@ def concatenate_preds(preds, other_preds):
     return preds
 
 
-def predict_batch(od, X, batch_size=64):
-    X = tf.data.Dataset.from_tensor_slices(X)
-    X = X.batch(batch_size)
+def batch_gen(data, batch_size=1024):
+    n_batch = int(np.ceil(data.shape[0] / batch_size))
+
+    for i in range(n_batch):
+        yield (data[i * batch_size:(i + 1) * batch_size])
+
+
+def predict_batch(od, X, batch_size=1024):
+    X = batch_gen(X, batch_size=batch_size)
     pred = None
     for batch in X:
         batch_pred = od.predict(batch)

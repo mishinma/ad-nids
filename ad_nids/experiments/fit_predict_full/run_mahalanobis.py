@@ -10,7 +10,7 @@ from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
 from alibi_detect.od import Mahalanobis
 from alibi_detect.utils.saving import load_detector, save_detector
 
-from ad_nids.utils.misc import jsonify
+from ad_nids.utils.misc import jsonify, predict_batch
 from ad_nids.utils.logging import log_plot_prf1_curve,\
     log_plot_frontier, log_plot_instance_score, log_preds
 from ad_nids.utils.metrics import precision_recall_curve_scores, select_threshold
@@ -75,7 +75,7 @@ def run_mahalanobis(config, log_dir, experiment_data,
     # Compute anomaly scores for test
     logging.info('Computing test anomaly scores...')
     se = timer()
-    X_test_pred = od.predict(X_test)
+    X_test_pred = predict_batch(od, X_test, batch_size=10000)
     y_test_pred = X_test_pred['data']['is_outlier']
     time_score_test = timer() - se
     test_cm = confusion_matrix(y_test, y_test_pred)
