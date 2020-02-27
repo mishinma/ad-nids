@@ -163,14 +163,14 @@ class DataGenerator:
     def __init__(self, data, batch_size, buffer_size=1024):
         self.data = tf.data.Dataset.from_tensor_slices(data)
         self.data = self.data.batch(batch_size).shuffle(buffer_size=buffer_size)
-        self.n_minibatches = int(np.ceil(data.shape[0] / batch_size))
+        self.n_minibatch = int(np.ceil(data.shape[0] / batch_size))
         self.buffer_size = buffer_size
         self.batch_size = batch_size
         self._iter_data = iter(self.data)
         self._cnt = 0
 
     def __next__(self):
-        if self._cnt >= self.n_minibatches:
+        if self._cnt >= self.n_minibatch:
             logging.info('Shuffling the data')
             self.data = self.data.shuffle(buffer_size=self.buffer_size)
             self._iter_data = iter(self.data)
