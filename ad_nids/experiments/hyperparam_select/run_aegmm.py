@@ -76,7 +76,7 @@ def run_aegmm(config, log_dir, experiment_data, contam_percs, i_run=0):
     i_run_log_dir = log_dir / str(i_run)
     train_gen = DataGenerator(X_train, batch_size=config['batch_size'])
     trainer(od.aegmm, loss_aegmm, train_gen, loss_fn_kwargs=loss_fn_kwargs,
-            epochs=config['num_epochs'], optimizer=optimizer, log_dir=i_run_log_dir,
+            epochs=config['num_epochs'],  epoch_size=config.get('epoch_size'), optimizer=optimizer, log_dir=i_run_log_dir,
             checkpoint=True, checkpoint_freq=5)
 
     # set GMM parameters

@@ -48,7 +48,7 @@ def run_ae(config, log_dir, experiment_data, contam_percs, i_run=0):
     mse = tf.losses.MeanSquaredError()
     i_run_log_dir = log_dir / str(i_run)
     train_gen = DataGenerator(X_train, batch_size=config['batch_size'])
-    trainer(od.ae, mse, train_gen, epochs=config['num_epochs'],
+    trainer(od.ae, mse, train_gen, epochs=config['num_epochs'],  epoch_size=config.get('epoch_size'),
             optimizer=optimizer, log_dir=i_run_log_dir,
             checkpoint=True, checkpoint_freq=5)
     time_fit = timer() - se

@@ -54,7 +54,8 @@ def run_vae(config, log_dir, experiment_data, contam_percs, i_run=0):
     i_run_log_dir = log_dir / str(i_run)
     train_gen = DataGenerator(X_train, batch_size=config['batch_size'])
     trainer(od.vae, elbo, train_gen, loss_fn_kwargs=loss_fn_kwargs,
-            epochs=config['num_epochs'], optimizer=optimizer, log_dir=i_run_log_dir,
+            epochs=config['num_epochs'], epoch_size=config.get('epoch_size'),
+            optimizer=optimizer, log_dir=i_run_log_dir,
             checkpoint=True, checkpoint_freq=5)
     time_fit = timer() - se
     logging.info(f'Done: {time_fit}')
