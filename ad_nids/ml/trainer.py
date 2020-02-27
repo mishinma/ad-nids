@@ -12,7 +12,7 @@ class NANLossError(ValueError):
 
 def trainer(model: tf.keras.Model,
             loss_fn: tf.keras.losses,
-            X_train: np.ndarray,
+            train_gen: np.ndarray,
             X_val: np.ndarray = None,
             optimizer: tf.keras.optimizers = tf.keras.optimizers.Adam(learning_rate=1e-3),
             loss_fn_kwargs: dict = None,
@@ -40,8 +40,6 @@ def trainer(model: tf.keras.Model,
         Training batch.
     X_val
         Validation batch.
-    y_val
-        Validation labels.
     optimizer
         Optimizer used for training.
     loss_fn_kwargs
@@ -64,14 +62,6 @@ def trainer(model: tf.keras.Model,
         Callbacks used during training.
     """
 
-    train_data = tf.data.Dataset.from_tensor_slices(X_train)
-    train_data = train_data.batch(batch_size)
-
-    if epoch_size is None:
-        n_minibatch = int(np.ceil(X_train.shape[0] / batch_size))
-    else:
-        n_minibatch = int(epoch_size)
-
     do_validation = X_val is not None
 
     if log_dir is not None:
@@ -83,10 +73,13 @@ def trainer(model: tf.keras.Model,
             val_log_dir = os.path.join(log_dir, 'val')
             val_summary_writer = tf.summary.create_file_writer(val_log_dir)
 
+    if batch_size is not None:
+        n_minibatch = int(batch_size)
+    else:
+        n_minibatch = train_gen.n_minibatch
+
     # iterate over epochs
     for epoch in range(epochs):
-
-        train_data = train_data.shuffle(buffer_size=buffer_size)
 
         if verbose:
             pbar = tf.keras.utils.Progbar(n_minibatch, 1)
@@ -96,10 +89,9 @@ def trainer(model: tf.keras.Model,
             tf.keras.backend.set_value(optimizer.lr, scheduled_lr)
 
         # iterate over the batches of the dataset
-        for step, X_train_batch in enumerate(train_data):
+        for step in range(n_minibatch):
 
-            if step >=   n_minibatch:
-                break
+            X_train_batch = next(train_gen)
 
             with tf.GradientTape() as tape:
                 preds = model(X_train_batch)
@@ -169,3 +161,27 @@ def trainer(model: tf.keras.Model,
             abs_step = (epoch + 1) * n_minibatch
             weights_fname = f'weights_epoch_{epoch}_step_{abs_step}.ckpt'
             model.save_weights(os.path.join(checkpoint_dir, weights_fname))
+
+
+class DataGenerator:
+
+    def __init__(self, data, batch_size, buffer_size=1024):
+        self.data = tf.data.Dataset.from_tensor_slices(data)
+        self.data = self.data.batch(batch_size).shuffle(buffer_size=buffer_size)
+        self.n_minibatches = int(np.ceil(data.shape[0] / batch_size))
+        self.buffer_size = buffer_size
+        self.batch_size = batch_size
+        self._iter_data = iter(self.data)
+        self._cnt = 0
+
+    def __next__(self):
+        if self._cnt >= self.n_minibatches:
+            logging.info('Shuffling the data')
+            self.data = self.data.shuffle(buffer_size=self.buffer_size)
+            self._iter_data = iter(self.data)
+            self._cnt = 0
+        self._cnt += 1
+        return next(self._iter_data)
+
+    def __iter__(self):
+        return self
