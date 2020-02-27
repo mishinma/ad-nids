@@ -12,14 +12,12 @@ class NANLossError(ValueError):
 
 def trainer(model: tf.keras.Model,
             loss_fn: tf.keras.losses,
-            train_gen: np.ndarray,
+            train_gen,
             X_val: np.ndarray = None,
             optimizer: tf.keras.optimizers = tf.keras.optimizers.Adam(learning_rate=1e-3),
             loss_fn_kwargs: dict = None,
             epochs: int = 20,
             epoch_size: int = None,
-            batch_size: int = 64,
-            buffer_size: int = 1024,
             verbose: bool = True,
             log_metric:  Tuple[str, "tf.keras.metrics"] = None,
             log_dir: str = None,
@@ -73,8 +71,8 @@ def trainer(model: tf.keras.Model,
             val_log_dir = os.path.join(log_dir, 'val')
             val_summary_writer = tf.summary.create_file_writer(val_log_dir)
 
-    if batch_size is not None:
-        n_minibatch = int(batch_size)
+    if epoch_size is not None:
+        n_minibatch = int(epoch_size)
     else:
         n_minibatch = train_gen.n_minibatch
 
@@ -118,9 +116,6 @@ def trainer(model: tf.keras.Model,
                 raise NANLossError
 
             if verbose:
-                if loss.shape != (batch_size,) and loss.shape:
-                    add_mean = np.ones((batch_size - loss.shape[0],)) * loss.mean()
-                    loss = np.r_[loss, add_mean]
 
                 pbar_values = [('loss', loss)]
                 if log_metric is not None:
