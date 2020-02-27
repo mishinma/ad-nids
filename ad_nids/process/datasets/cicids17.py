@@ -115,12 +115,12 @@ def cleanup_cidids17(data_path):
         weekday = path.name.split('-')[0]
         assert parserinfo().weekday(weekday) is not None
 
-        flows = pd.read_csv(path) == len(CIC_IDS2017_COLUMN_MAPPING)
+        flows = pd.read_csv(path)
 
         flows = flows.dropna(how='all')
         flows = flows.rename(columns=lambda c: CIC_IDS2017_COLUMN_MAPPING.get(c.strip(), c))
         flows = flows[list(CIC_IDS2017_COLUMN_MAPPING.values())]
-        assert len(flows.columns)
+        assert len(flows.columns) == len(CIC_IDS2017_COLUMN_MAPPING)
         valid_ip_idx = flows['src_ip'].apply(is_valid_ip) & flows['dst_ip'].apply(is_valid_ip)
         flows = flows[valid_ip_idx]
 
