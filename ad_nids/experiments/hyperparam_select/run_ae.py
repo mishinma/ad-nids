@@ -12,7 +12,7 @@ from alibi_detect.od import OutlierAE
 from alibi_detect.utils.saving import save_detector
 from alibi_detect.models.autoencoder import AE
 
-from ad_nids.ml import build_net, trainer
+from ad_nids.ml import build_net, trainer, DataGenerator
 from ad_nids.utils.misc import jsonify
 from ad_nids.utils.logging import log_plot_prf1_curve, log_plot_instance_score
 from ad_nids.utils.metrics import precision_recall_curve_scores, select_threshold
@@ -47,9 +47,9 @@ def run_ae(config, log_dir, experiment_data, contam_percs, i_run=0):
     optimizer = tf.keras.optimizers.Adam(learning_rate=config['learning_rate'])
     mse = tf.losses.MeanSquaredError()
     i_run_log_dir = log_dir / str(i_run)
-    trainer(od.ae, mse, X_train,
-            epochs=config['num_epochs'], batch_size=config['batch_size'],
-            optimizer=optimizer, log_dir=i_run_log_dir ,
+    train_gen = DataGenerator(X_train, batch_size=config['batch_size'])
+    trainer(od.ae, mse, train_gen, epochs=config['num_epochs'],
+            optimizer=optimizer, log_dir=i_run_log_dir,
             checkpoint=True, checkpoint_freq=5)
     time_fit = timer() - se
     logging.info(f'Done: {time_fit}')

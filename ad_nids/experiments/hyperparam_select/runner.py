@@ -202,9 +202,9 @@ def runner_fit_predict():
                         pickle.dump(preprocessor, f)
                     log_config(log_dir, config)
                     num_tries = config.get('num_tries', 1)
-                    i_run = 0
 
-                    while True:
+                    for i_run in range(num_tries):
+
                         logging.info(f'Starting {config["config_name"]}')
                         logging.info(json.dumps(config, indent=2))
                         logging.info(f'RUN: {i_run}')
@@ -220,15 +220,11 @@ def runner_fit_predict():
                                    contam_percs=DEFAULT_CONTAM_PERCS, i_run=i_run)
                         except Exception as e:
                             logging.exception(e)
-                        else:
-                            logger.removeHandler(fh)
-                            break
 
-                        i_run += 1
-                        if i_run >= num_tries:
-                            logging.warning('Model did NOT converge!')
-                            logger.removeHandler(fh)
-                            break
+                        if i_run == num_tries - 1:
+                            logging.warning('Model did not converge!')
+
+                        logger.removeHandler(fh)
 
     log_root_ave = log_root.parent/log_root.name + '_AVE'
     log_root_ave.mkdir(exist_ok=True)
