@@ -226,7 +226,7 @@ def runner_fit_predict():
 
                         logger.removeHandler(fh)
 
-    log_root_ave = log_root.parent/log_root.name + '_AVE'
+    log_root_ave = log_root.parent/(log_root.name + '_AVE')
     log_root_ave.mkdir(exist_ok=True)
     average_logs(log_root, log_root_ave)
 
