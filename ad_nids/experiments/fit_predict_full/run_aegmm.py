@@ -155,7 +155,7 @@ def run_aegmm(config, log_dir, experiment_data, contam_percs=None,
     log_plot_prf1_curve(log_dir, train_prf1_curve)
     log_preds(log_dir, 'test', X_test_pred, y_test)
     log_preds(log_dir, 'train', X_threshold_pred, y_threshold)
-
-    # ToDo: subsample
+    ylim = (X_test_pred['data']['instance_score'].min(),
+            X_test_pred['data']['instance_score'].quantile(0.99))
     log_plot_instance_score(log_dir, X_test_pred, y_test, od.threshold,
-                            labels=test_batch.target_names)
+                            labels=test_batch.target_names, y_lim=ylim)

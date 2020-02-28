@@ -107,5 +107,8 @@ def run_ae(config, log_dir, experiment_data, contam_percs, i_run=0):
     with open(log_dir / 'eval_results.json', 'w') as f:
         json.dump(jsonify(eval_results), f)
     log_plot_prf1_curve(log_dir, train_prf1_curve)
+    ylim = (X_test_pred['data']['instance_score'].min(),
+            X_test_pred['data']['instance_score'].quantile(0.99))
     log_plot_instance_score(log_dir, X_test_pred, y_test, od.threshold,
-                            labels=['normal', 'outlier'])
+                            labels=test_batch.target_names, y_lim=ylim)
+
