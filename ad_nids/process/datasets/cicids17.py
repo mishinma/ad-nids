@@ -207,24 +207,27 @@ def create_mock_cicids17(data_path, mock_path, num_ips_sample=3, max_sample_size
         sampled_flows.to_csv(out_path, index=False)
 
 
-def create_report_day_cicids(meta, static_path):
+def create_report_day_cicids(meta, static_path, timestamp_col):
 
     report = ""
 
-    meta['timestamp'] = pd.to_datetime(meta['timestamp'], format='%Y/%m/%d %H:%M:%S')
+    meta[timestamp_col] = pd.to_datetime(meta[timestamp_col], format='%Y/%m/%d %H:%M:%S')
 
     # assert only this day
     meta['day'] = meta['timestamp'].dt.strftime('%m%d')
     assert len(meta['day'].unique()) == 1
 
-    meta['target'] = (meta['label'] != 'benign').astype(int)
-
-    start_tstmp = meta['timestamp'].iloc[0]
-    meta.loc[:, 'sec'] = (meta['timestamp'] - start_tstmp).dt.total_seconds()
+    start_tstmp = meta[timestamp_col].iloc[0]
+    meta.loc[:, 'sec'] = (meta[timestamp_col] - start_tstmp).dt.total_seconds()
     day = start_tstmp.strftime("%a %m/%d")
     #         print(day)
     report += '<h2> {} </h2>'.format(day)
     report += '</br>'
+
+    if 'label' not in meta:
+        meta.loc[:, 'label'] = 'benign'
+        meta.loc[meta['target'] == 1, 'label'] = 'attack'
+
     label_counts = meta['label'].value_counts()
     report += '<div>' + pd.DataFrame(label_counts).to_html() + '</div>'
     report += '</br>'
