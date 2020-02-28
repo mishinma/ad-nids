@@ -263,7 +263,7 @@ def create_report_day_cicids(meta, static_path, timestamp_col):
     return report
 
 
-def create_dataset_report_cicids17(dataset_path, report_path):
+def create_dataset_report_cicids17(dataset_path, report_path, timestamp_col='timestamp'):
 
     dataset_path = Path(dataset_path).resolve()
     static_path = report_path/'static'
@@ -277,7 +277,7 @@ def create_dataset_report_cicids17(dataset_path, report_path):
         print(name)
 
         df = pd.read_csv(path)
-        path_report = create_report_day_cicids(df, static_path)
+        path_report = create_report_day_cicids(df, static_path, timestamp_col)
 
         report += f'<h1> {name} </h1></br>'
         report += path_report
