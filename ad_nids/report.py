@@ -7,6 +7,7 @@ import logging
 import json
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 from json2html import json2html
 
@@ -157,7 +158,7 @@ def create_experiments_per_dataset_report(log_paths, static_path):
 
             exp_name = config['experiment_name']
             config_name = config['config_name']
-            if results:
+            try:
                 time_fit = round(results['time_fit'], 2)
                 time_score_train = round(results['time_score_train'], 2)
                 time_score_test = round(results['time_score_test'], 2)
@@ -172,8 +173,9 @@ def create_experiments_per_dataset_report(log_paths, static_path):
                     time_score_test, test_perf['tp'], test_perf['fp'], test_perf['fn'],
                     test_perf['precision'], test_perf['recall'], test_perf['f1score']
                 ]
-            else:
-                exp = [config_name, exp_name] + [None]*15
+            except Exception as e:
+                logging.exception(e)
+                exp = [config_name, exp_name] + [np.nan]*15
 
             experiments.append(exp)
 
