@@ -240,7 +240,11 @@ def create_experiments_report(log_paths, static_path):
     reports = []
 
     for i, log_path in enumerate(log_paths):
-        report = create_experiment_report(log_path, static_path, exp_idx=i + 1)
+        try:
+            report = create_experiment_report(log_path, static_path, exp_idx=i + 1)
+        except Exception as e:
+            logging.exception(e)
+            report = EXPERIMENT
         reports.append(report)
 
     reports = '\n<br><br>\n'.join(reports)
