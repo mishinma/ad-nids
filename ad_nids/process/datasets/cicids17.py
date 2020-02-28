@@ -214,7 +214,7 @@ def create_report_day_cicids(meta, static_path, timestamp_col):
     meta[timestamp_col] = pd.to_datetime(meta[timestamp_col], format='%Y/%m/%d %H:%M:%S')
 
     # assert only this day
-    meta['day'] = meta['timestamp'].dt.strftime('%m%d')
+    meta['day'] = meta[timestamp_col].dt.strftime('%m%d')
     assert len(meta['day'].unique()) == 1
 
     start_tstmp = meta[timestamp_col].iloc[0]
