@@ -24,7 +24,8 @@ from ad_nids.utils.misc import sample_df, dd_mm_yyyy2mmdd, is_valid_ip
 from ad_nids.process.columns import CIC_IDS2017_COLUMN_MAPPING, CIC_IDS2017_ATTACK_LABELS,\
     CIC_IDS2017_COLUMNS, CIC_IDS2017_FEATURES, CIC_IDS2017_META_COLUMNS, \
     CIC_IDS2017_BINARY_FEATURES, CIC_IDS2017_CATEGORICAL_FEATURE_MAP, CIC_IDS2017_NUMERICAL_FEATURES, \
-    CIC_IDS2017_AGGR_FUNCTIONS, CIC_IDS2017_AGGR_COLUMNS, CIC_IDS2017_AGGR_META_COLUMNS
+    CIC_IDS2017_AGGR_FUNCTIONS, CIC_IDS2017_AGGR_COLUMNS, CIC_IDS2017_AGGR_META_COLUMNS, \
+    CIC_IDS2017_PROTOCOL_MAPPING
 from ad_nids.report import BASE
 
 
@@ -138,6 +139,7 @@ def cleanup_cidids17(data_path):
         # Ignore them
         bad_rows = flows.index[flows['protocol'].astype(str).str.isalpha()]
         flows = flows.drop(bad_rows).reset_index(drop=True)
+        flows['protocol'] = flows['protocol'].astype(int).apply(lambda s: CIC_IDS2017_PROTOCOL_MAPPING[s])
 
         # Fill na
         flows['flow_byts/s'] = flows['flow_byts/s'].astype(np.float64)\

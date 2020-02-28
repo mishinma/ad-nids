@@ -425,8 +425,15 @@ CIC_IDS2017_COLUMNS = list(CIC_IDS2017_COLUMN_MAPPING.values()) + \
                       ['label_orig', 'scenario', 'target']
 
 
+CIC_IDS2017_PROTOCOL_MAPPING = {
+    0: 'hopopt',
+    17: 'udp',
+    6: 'tcp',
+}
+
+
 CIC_IDS2017_FEATURES = {
-    'protocol': CATEGORICAL([6, 17, 0]),
+    'protocol': CATEGORICAL(list(CIC_IDS2017_PROTOCOL_MAPPING.values())),
     'dur': NUMERICAL(),
     'tot_fwd_pkts': NUMERICAL(),
     'tot_bwd_pkts': NUMERICAL(),
