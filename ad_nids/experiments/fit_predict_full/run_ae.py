@@ -126,4 +126,4 @@ def run_ae(config, log_dir, experiment_data,
     ylim = (np.min(X_test_pred['data']['instance_score']),
             np.quantile(X_test_pred['data']['instance_score'], 0.99))
     log_plot_instance_score(log_dir, X_test_pred, y_test, od.threshold,
-                            labels=test_batch.target_names, y_lim=ylim)
+                            labels=test_batch.target_names, ylim=ylim)
