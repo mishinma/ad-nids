@@ -148,6 +148,8 @@ def runner_fit_predict():
 
                 for i_run in range(num_tries):
 
+                    success = False
+
                     logging.info(f'Starting {config["config_name"]}')
                     logging.info(json.dumps(config, indent=2))
                     logging.info(f'RUN: {i_run}')
@@ -163,11 +165,17 @@ def runner_fit_predict():
                                contam_percs=DEFAULT_CONTAM_PERCS, i_run=i_run)
                     except Exception as e:
                         logging.exception(e)
+                    else:
+                        success = True
+                        logging.info('Successful')
 
                     if i_run == num_tries - 1:
                         logging.warning('Model did not converge!')
 
                     logger.removeHandler(fh)
+
+                    if success:
+                        break
 
 
 def runner_predict():
