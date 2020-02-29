@@ -91,12 +91,12 @@ def log_plot_frontier(log_dir, detector,
 
 
 def log_plot_instance_score(log_dir, detector_preds, y_true,
-                            detector_threshold, train=False, labels=None):
+                            detector_threshold, train=False, labels=None, ylim=None):
 
     if labels is None:
         labels = ['normal', 'outlier']
 
-    plot_instance_score(detector_preds, y_true, labels, detector_threshold)
+    plot_instance_score(detector_preds, y_true, labels, detector_threshold, ylim=ylim)
     set_ = 'train_' if train else 'test_'
     filename = set_ + 'instance_score.png'
     plt.savefig(log_dir / filename)
