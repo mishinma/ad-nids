@@ -16,7 +16,7 @@ from alibi_detect.models.autoencoder import AE
 from ad_nids.ml import build_net, trainer, DataGenerator
 from ad_nids.utils.misc import jsonify
 from ad_nids.utils.logging import log_plot_prf1_curve,\
-    log_plot_frontier, log_plot_instance_score
+    log_plot_frontier, log_plot_instance_score,  log_preds
 from ad_nids.utils.metrics import precision_recall_curve_scores, select_threshold
 
 EXPERIMENT_NAME = 'ae'
@@ -122,6 +122,8 @@ def run_ae(config, log_dir, experiment_data,
     with open(log_dir / 'eval_results.json', 'w') as f:
         json.dump(jsonify(eval_results), f)
     log_plot_prf1_curve(log_dir, train_prf1_curve)
+    log_preds(log_dir, 'test', X_test_pred, y_test)
+    log_preds(log_dir, 'train', X_threshold_pred, y_threshold)
     # ToDo: subsample
     ylim = (np.min(X_test_pred['data']['instance_score']),
             np.quantile(X_test_pred['data']['instance_score'], 0.99))
