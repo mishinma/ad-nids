@@ -760,3 +760,35 @@ CIC_IDS2018_ATTACK_LABELS = [
     'SQL Injection',
     'SSH-Bruteforce'
 ]
+
+
+"""
+########## IOT-23 ############
+"""
+
+IOT_24_ORIG_NAME_MAPPING = {
+    'CTU-IoT-Malware-Capture-33-1': (33, 'mirai'),
+    'CTU-IoT-Malware-Capture-42-1': (42, 'trojan'),
+    'CTU-IoT-Malware-Capture-48-1': (48, 'mirai'),
+    'CTU-IoT-Malware-Capture-8-1': (8, 'hakai'),
+    'Somfy-01': (7, 'benign'),
+    'CTU-IoT-Malware-Capture-21-1': (21, 'torii'),
+    'CTU-IoT-Malware-Capture-9-1': (9, 'linux'),
+    'CTU-IoT-Malware-Capture-20-1': (20, 'torii'),
+    'CTU-IoT-Malware-Capture-60-1': (60, 'gagfyt'),
+    'CTU-IoT-Malware-Capture-39-1': (39, 'ircbot'),
+    'CTU-Honeypot-Capture-5-1': (5, 'benign'),
+    'CTU-IoT-Malware-Capture-52-1': (52, 'mirai'),
+    'CTU-IoT-Malware-Capture-49-1': (49, 'mirai'),
+    'CTU-IoT-Malware-Capture-34-1': (34, 'mirai'),
+    'CTU-IoT-Malware-Capture-3-1': (3, 'muhstik'),
+    'CTU-IoT-Malware-Capture-35-1': (35, 'mirai'),
+    'CTU-IoT-Malware-Capture-7-1': (7, 'linux'),
+    'CTU-IoT-Malware-Capture-44-1': (44, 'mirai'),
+    'CTU-IoT-Malware-Capture-17-1': (17, 'kenjiro'),
+    'CTU-Honeypot-Capture-4-1': (4, 'benign'),
+    'CTU-IoT-Malware-Capture-1-1': (1, 'mirai'),
+    'CTU-IoT-Malware-Capture-36-1': (33, 'mirai'),
+    'CTU-IoT-Malware-Capture-43-1': (33, 'mirai')
+}
+

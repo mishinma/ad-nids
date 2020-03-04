@@ -11,6 +11,7 @@ import numpy as np
 
 from ad_nids.dataset import Dataset, create_meta
 from ad_nids.utils.exception import DownloadError
+from ad_nids.process.columns import IOT_24_ORIG_NAME_MAPPING
 
 
 DATASET_NAME = 'IOT-23'
@@ -36,8 +37,16 @@ def download_iot23(dataset_path):
         returncode = 0
     except CalledProcessError as e:
         returncode = e.returncode
-    finally:
-        os.chdir(mycwd)  # go back where you came from
+
+    check_output(['tar', '-xzvf', "iot_23_datasets_small.tar.gz"])
+
+    for path in dataset_path.glob('**/*.log.labeled'):
+        scenario = path.parent.parent.name
+        idx, name = IOT_24_ORIG_NAME_MAPPING[scenario]
+        new_name = '{:02d}_{}.csv'.format(idx, name)
+        shutil.move(path, dataset_path / new_name)
+    shutil.rmtree(dataset_path/'opt')
+    os.chdir(mycwd)  # go back where you came from
 
     if returncode != 0:
         raise DownloadError('Could not download the dataset')
