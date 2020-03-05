@@ -36,7 +36,8 @@ def download_iot23(dataset_path):
             )
         returncode = 0
     except CalledProcessError as e:
-        returncode = e.returncode
+        raise DownloadError('Could not download the dataset.'
+                            ' Return code: ', e.returncode)
 
     check_output(['tar', '-xzvf', "iot_23_datasets_small.tar.gz"])
 
@@ -45,11 +46,10 @@ def download_iot23(dataset_path):
         idx, name = IOT_24_ORIG_NAME_MAPPING[scenario]
         new_name = '{:02d}_{}.csv'.format(idx, name)
         shutil.move(path, dataset_path / new_name)
+    
     shutil.rmtree(dataset_path/'opt')
+    os.remove(dataset_path/"iot_23_datasets_small.tar.gz")
     os.chdir(mycwd)  # go back where you came from
-
-    if returncode != 0:
-        raise DownloadError('Could not download the dataset')
 
     return
 
