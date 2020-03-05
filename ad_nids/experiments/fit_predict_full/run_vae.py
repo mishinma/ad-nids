@@ -39,8 +39,7 @@ def run_vae(config, log_dir, experiment_data, contam_percs=None,
         try:
             od = load_detector(str(log_dir/'detector'))
             # fetch the time it took to fit the model
-            with open(log_dir / 'eval_results.json', 'r') as f:
-                time_fit = json.load(f)['time_fit']
+            time_fit = None
         except Exception as e:
             logging.exception("Could not load the detector")
             raise e

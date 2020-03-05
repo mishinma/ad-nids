@@ -134,7 +134,6 @@ def runner_fit_predict():
                 logging.info(json.dumps(config, indent=2))
 
                 num_tries = config.get('num_tries', 1)
-                i_run = 0
 
                 log_dir = get_log_dir(log_root, config)
                 log_dir.mkdir()
@@ -178,8 +177,65 @@ def runner_fit_predict():
                         break
 
 
-def runner_predict():
-    pass
+def runner_predict(log_root, log_predict_root,
+                   prepare_experiment_data_fn=prepare_experiment_data):
+    loglevel = getattr(logging, 'INFO', None)
+    logging.basicConfig(level=loglevel)
+    logger = logging.getLogger()
+    ch = logging.StreamHandler()
+    logger.addHandler(ch)
+    log_root = Path(log_root).resolve()
+
+    dataset2log_paths = []
+    for log_path in log_root.iterdir():
+        with open(log_path / 'config.json', 'r') as f:
+            conf = json.load(f)
+
+        dataset2log_paths.setdefault(conf['dataset_path'], []).append(log_path)
+
+    for dataset_path, log_paths in dataset2log_paths.items():
+
+        logging.info(f'Loading dataset {dataset_path.name}')
+        dataset = Dataset.from_path(dataset_path)
+
+        set_seed(PREPARE_DATA_RANDOM_SEED)
+        experiment_data, preprocessor = prepare_experiment_data_fn(dataset)
+
+        for log_path in log_paths:
+
+            with open(log_path / 'config.json', 'r') as f:
+                config = json.load(f)
+
+            log_predict_path = log_predict_root/log_path.name
+            log_predict_path.mkdir(parents=True)
+
+            logging.info(f'Starting {config["config_name"]}')
+            logging.info(json.dumps(config, indent=2))
+
+            with open(log_predict_path/'transformer.pickle', 'wb') as f:
+                pickle.dump(preprocessor, f)
+            log_config(log_predict_path , config)
+
+            shutil.copytree(
+                log_path/'detector',
+                log_predict_path/'detector'
+            )
+
+            run_fn = config.get('run_fn', 'no_fn')
+            try:
+                run_fn = getattr(experiments, run_fn)
+            except AttributeError as e:
+                logging.error(f"No such function {run_fn}")
+                continue
+
+            try:
+                # Pass data
+                run_fn(config, log_predict_path, experiment_data,
+                         contam_percs=DEFAULT_CONTAM_PERCS, load_outlier_detector=True)
+            except Exception as e:
+                logging.exception(e)
+            else:
+                logging.info('Successful')
 
 
 if __name__ == '__main__':
