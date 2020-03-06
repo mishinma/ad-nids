@@ -35,15 +35,18 @@ def parser_fit_predict():
     return parser
 
 
-def prepare_experiment_data(dataset):
+def prepare_experiment_data(dataset_path):
+
+    logging.info(f'Loading dataset {dataset_path.name}')
+    dataset = Dataset.from_path(dataset_path)
 
     X_train = dataset.train.loc[dataset.train["target"] == 0]
     X_train = X_train.drop(columns=['target'])
     y_train = np.zeros((X_train.shape[0],), dtype=np.int)
 
     X_threshold, y_threshold = dataset.create_outlier_batch(train=True,
-                                                             n_samples=THRESHOLD_BATCH_N_SAMPLES,
-                                                             perc_outlier=THRESHOLD_BATCH_PERC_OUTLIER)
+                                                            n_samples=THRESHOLD_BATCH_N_SAMPLES,
+                                                            perc_outlier=THRESHOLD_BATCH_PERC_OUTLIER)
     X_test = dataset.test.drop(columns=['target'])
     y_test = dataset.test['target'].values
 
@@ -78,7 +81,6 @@ def prepare_experiment_data(dataset):
 
 
 def runner_fit_predict():
-
     parser = parser_fit_predict()
     args = parser.parse_args()
 
@@ -109,10 +111,8 @@ def runner_fit_predict():
 
     for dataset_path in dataset_paths:
 
-        logging.info(f'Loading dataset {dataset_path.name}')
-        dataset = Dataset.from_path(dataset_path)
         set_seed(PREPARE_DATA_RANDOM_SEED)
-        experiment_data, preprocessor = prepare_experiment_data(dataset)
+        experiment_data, preprocessor = prepare_experiment_data(dataset_path)
 
         for config_path in config_paths:
 
@@ -155,7 +155,7 @@ def runner_fit_predict():
                     i_run_log_dir = log_dir / str(i_run)
                     i_run_log_dir.mkdir()
 
-                    fh = logging.FileHandler(i_run_log_dir/'run.log')
+                    fh = logging.FileHandler(i_run_log_dir / 'run.log')
                     logger.addHandler(fh)
 
                     try:
@@ -186,39 +186,36 @@ def runner_predict(log_root, log_predict_root,
     logger.addHandler(ch)
     log_root = Path(log_root).resolve()
 
-    dataset2log_paths = []
+    dataset2log_paths = {}
+
     for log_path in log_root.iterdir():
         with open(log_path / 'config.json', 'r') as f:
-            conf = json.load(f)
+            config = json.load(f)
 
-        dataset2log_paths.setdefault(conf['dataset_path'], []).append(log_path)
+        dataset_path = config['dataset_path']
+        dataset2log_paths.setdefault(dataset_path, []).append(log_path)
 
     for dataset_path, log_paths in dataset2log_paths.items():
 
-        logging.info(f'Loading dataset {dataset_path.name}')
-        dataset = Dataset.from_path(dataset_path)
-
         set_seed(PREPARE_DATA_RANDOM_SEED)
-        experiment_data, preprocessor = prepare_experiment_data_fn(dataset)
+        experiment_data, _ = prepare_experiment_data_fn(dataset_path)
 
         for log_path in log_paths:
 
             with open(log_path / 'config.json', 'r') as f:
                 config = json.load(f)
 
-            log_predict_path = log_predict_root/log_path.name
+            log_predict_path = log_predict_root / log_path.name
             log_predict_path.mkdir(parents=True)
 
             logging.info(f'Starting {config["config_name"]}')
             logging.info(json.dumps(config, indent=2))
 
-            with open(log_predict_path/'transformer.pickle', 'wb') as f:
-                pickle.dump(preprocessor, f)
-            log_config(log_predict_path , config)
+            log_config(log_predict_path, config)
 
             shutil.copytree(
-                log_path/'detector',
-                log_predict_path/'detector'
+                log_path / 'detector',
+                log_predict_path / 'detector'
             )
 
             run_fn = config.get('run_fn', 'no_fn')
@@ -231,7 +228,7 @@ def runner_predict(log_root, log_predict_root,
             try:
                 # Pass data
                 run_fn(config, log_predict_path, experiment_data,
-                         contam_percs=DEFAULT_CONTAM_PERCS, load_outlier_detector=True)
+                       contam_percs=DEFAULT_CONTAM_PERCS, load_outlier_detector=True)
             except Exception as e:
                 logging.exception(e)
             else:
