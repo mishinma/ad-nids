@@ -192,7 +192,7 @@ def runner_predict(log_root, log_predict_root,
         with open(log_path / 'config.json', 'r') as f:
             config = json.load(f)
 
-        dataset_path = config['dataset_path']
+        dataset_path = Path(config['dataset_path']).resolve()
         dataset2log_paths.setdefault(dataset_path, []).append(log_path)
 
     for dataset_path, log_paths in dataset2log_paths.items():
