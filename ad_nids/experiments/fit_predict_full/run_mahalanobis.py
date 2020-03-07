@@ -96,8 +96,7 @@ def run_mahalanobis(config, log_dir, experiment_data,
 
     # Log everything
     logging.info(f'Logging the results\n')
-    if not load_outlier_detector:
-        save_detector(od, str(log_dir / 'detector'))
+    save_detector(od, str(log_dir / 'detector'))
     with open(log_dir / 'eval_results.json', 'w') as f:
         json.dump(jsonify(eval_results), f)
     log_preds(log_dir, 'test', X_test_pred, y_test)
