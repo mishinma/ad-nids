@@ -10,6 +10,7 @@ from pathlib import Path
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, FunctionTransformer
 from sklearn.compose import ColumnTransformer
 from alibi_detect.datasets import Bunch
+from alibi_detect.utils.saving import load_detector, save_detector
 
 import ad_nids.experiments.fit_predict_full as experiments
 from ad_nids.dataset import Dataset
@@ -213,10 +214,13 @@ def runner_predict(log_root, log_predict_root,
 
             log_config(log_predict_path, config)
 
-            shutil.copytree(
-                log_path / 'detector',
-                log_predict_path / 'detector'
-            )
+            try:
+                od = load_detector(str(log_path / 'detector'))
+            except Exception as e:
+                logging.exception('Detector does not exist')
+                continue
+            else:
+                save_detector(od, str(log_predict_path / 'detector'))
 
             run_fn = config.get('run_fn', 'no_fn')
             try:
