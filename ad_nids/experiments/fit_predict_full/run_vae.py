@@ -79,7 +79,8 @@ def run_vae(config, log_dir, experiment_data, contam_percs=None,
     logging.info(f'Selecting the optimal threshold...')
     se = timer()
     X_threshold_pred = od.predict(X_threshold)  # feature and instance lvl
-    iscore_threshold = X_threshold_pred['data']['instance_score']
+    # vae can return nan??
+    iscore_threshold = np.nan_to_num(X_threshold_pred['data']['instance_score'])
     contam_percs = np.array(contam_percs)
     train_prf1_curve = precision_recall_curve_scores(
         y_threshold, iscore_threshold, 100 - contam_percs)
