@@ -89,6 +89,8 @@ def run_vae(config, log_dir, experiment_data, contam_percs, i_run=0):
     se = timer()
     X_test_pred = od.predict(X_test)
     y_test_pred = X_test_pred['data']['is_outlier']
+    X_test_pred['data']['feature_score'] = np.nan_to_num(X_test_pred['data']['feature_score'])
+    X_test_pred['data']['instance_score'] = np.nan_to_num(X_test_pred['data']['instance_score'])
     time_score_test = timer() - se
     test_cm = confusion_matrix(y_test, y_test_pred)
     test_prf1s = precision_recall_fscore_support(y_test, y_test_pred, average='binary')
