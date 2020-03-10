@@ -767,7 +767,7 @@ CIC_IDS2018_ATTACK_LABELS = [
 """
 
 IOT_24_ORIG_NAME_MAPPING = {
-    'CTU-IoT-Malware-Capture-33-1': (33, 'mirai'),
+    'CTU-IoT-Malware-Capture-33-1': (33, 'kenjiro'),
     'CTU-IoT-Malware-Capture-42-1': (42, 'trojan'),
     'CTU-IoT-Malware-Capture-48-1': (48, 'mirai'),
     'CTU-IoT-Malware-Capture-8-1': (8, 'hakai'),
@@ -791,4 +791,3 @@ IOT_24_ORIG_NAME_MAPPING = {
     'CTU-IoT-Malware-Capture-36-1': (33, 'mirai'),
     'CTU-IoT-Malware-Capture-43-1': (33, 'mirai')
 }
-
