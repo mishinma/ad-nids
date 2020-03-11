@@ -14,7 +14,7 @@ from json2html import json2html
 from ad_nids.utils import int_to_roman
 from ad_nids.utils.misc import performance_asdict
 
-templates_path = Path(__file__).parent/'templates'
+templates_path = Path(ad_nids.__path__[0])/'templates'
 
 with open(templates_path/'base.html', 'r') as f:
     BASE = f.read()
