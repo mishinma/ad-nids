@@ -12,7 +12,7 @@ from sklearn.compose import ColumnTransformer
 from alibi_detect.datasets import Bunch
 from alibi_detect.utils.saving import load_detector, save_detector
 
-import ad_nids.experiments.fit_predict_full as experiments
+import ad_nids.experiments.fit_predict as experiments
 from ad_nids.dataset import Dataset
 from ad_nids.utils.logging import get_log_dir, log_config
 from ad_nids.utils.misc import set_seed
