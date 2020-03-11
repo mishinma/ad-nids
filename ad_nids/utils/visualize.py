@@ -7,18 +7,16 @@ MSS = [0.1, 2]
 MARKERS = ['o', 'x']
 
 
-def plot_instance_score(ax,
-                        scores: np.ndarray,
-                        target: np.ndarray,
-                        idx: None,
-                        labels: None,
-                        mss: None,
-                        markers: None,
-                        threshold: None,
-                        ylim: tuple = (None, None),
-                        xlabel = 'Number of Instances',
-                        ylabel = 'Instance Score',
-                        ) -> None:
+def plot_instance_score(ax, scores, target,
+                        idx=None,
+                        labels=None,
+                        mss=None,
+                        markers=None,
+                        threshold=None,
+                        ylim=(None, None),
+                        xlabel='Number of Instances',
+                        ylabel='Instance Score',
+                        ):
     """
     Scatter plot of a batch of outlier or adversarial scores compared to the threshold.
 

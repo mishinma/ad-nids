@@ -1,6 +1,7 @@
 
 import json
 import logging
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -8,6 +9,7 @@ from matplotlib import pyplot as plt
 
 from ad_nids.utils.visualize import plot_instance_score
 from ad_nids.utils.aggregate import aggregate_features_pool
+from ad_nids.dataset import Dataset
 
 
 def _aggregate_scores_wkr(args):
@@ -32,20 +34,22 @@ def log_plot_contiguous_scores(data, log_score_path, aggr_frequency=None,
 
     for sc, data_sc in data_sc_grp:
 
+        logging.info(f'Logging scores scenario {sc}')
+
         if aggr_frequency is not None:
 
             logging.info(f'Aggregating scores for scenario {sc}')
-            timestamp_col = data_sc_grp.select_dtypes('datetime').columns[0]
+            timestamp_col = data_sc.select_dtypes('datetime').columns[0]
             data_sc = data_sc.sort_values(timestamp_col)
             aggr_sc = data_sc.groupby(['src_ip', pd.Grouper(key=timestamp_col, freq=aggr_frequency)])
             data_sc = aggregate_features_pool(aggr_sc, _aggregate_scores_wkr, processes=processes)
             data_sc = pd.DataFrame.from_records(data_sc)
 
         # time column may be different
-        timestamp_col = data_sc_grp.select_dtypes('datetime').columns[0]
+        timestamp_col = data_sc.select_dtypes('datetime').columns[0]
         data_sc = data_sc.sort_values(timestamp_col)
-        time_start = data_sc.iloc[0]['time_window_start']
-        data_sc['min_start'] = int((data_sc[timestamp_col] - time_start) / pd.Timedelta(minutes=1))
+        time_start = data_sc.iloc[0][timestamp_col]
+        data_sc['min_start'] = ((data_sc[timestamp_col] - time_start) / pd.Timedelta(minutes=1)).round()
 
         logging.info('Logging scores')
         fname = '{:02d}_scores.csv'.format(sc)
@@ -67,7 +71,7 @@ def log_plot_random_scores(data, log_score_path, threshold=None):
 
     for sc, data_sc in data_sc_grp:
 
-        logging.info('Logging scores')
+        logging.info(f'Logging scores scenario {sc}')
         fname = '{:02d}_scores.csv'.format(sc)
         data_sc.to_csv(log_score_path/fname)
 
@@ -84,6 +88,7 @@ def log_plot_random_scores(data, log_score_path, threshold=None):
 
 def create_scenario_score_log_path(log_path, dataset, train=True, test=True):
 
+    logging.info(f'Processing path {log_path.name}')
     if not (train or test):
         raise ValueError('Either test or train must be True')
 
@@ -94,8 +99,13 @@ def create_scenario_score_log_path(log_path, dataset, train=True, test=True):
         sets.append('test')
 
     # random or scenario split
-    is_random_split = dataset.meta.get('train_scenarios') is not None
+    is_random_split = dataset.meta.get('train_scenarios') is None
     frequency = dataset.meta.get('frequency')
+    if is_random_split:
+        logging.info('Random split')
+    else:
+        logging.info('Scenario split')
+    logging.info(f'Frequency {frequency}')
 
     for _set in sets:
 
@@ -107,7 +117,6 @@ def create_scenario_score_log_path(log_path, dataset, train=True, test=True):
 
         meta = dataset.train_meta if _set == 'train' else dataset.test_meta
         data = pd.DataFrame.copy(meta)
-
         data['is_outlier'] = preds['is_outlier']
         data['target'] = preds['ground_truth']
         data['instance_score'] = np.nan_to_num(preds['instance_score'])
@@ -151,3 +160,17 @@ def create_scenario_score_log_path(log_path, dataset, train=True, test=True):
                 log_score_path.mkdir(exist_ok=True)
                 log_plot_contiguous_scores(data, log_score_path, aggr_frequency=aggr_frequency,
                                            threshold=threshold)
+
+
+if __name__ == '__main__':
+    root_path = Path('/data/ctu-13/test_scenario_scores/')
+    log_root = root_path/'logs'
+    processed_path = root_path/'processed'
+    for log_path in log_root.iterdir():
+
+        with open(log_path / 'config.json', 'r') as f:
+            config = json.load(f)
+
+        dataset_name = config['dataset_name']
+        dset = Dataset.from_path(processed_path/dataset_name, only_meta=True)
+        create_scenario_score_log_path(log_path, dset, train=False)
