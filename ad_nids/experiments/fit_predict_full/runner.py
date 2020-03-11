@@ -17,7 +17,7 @@ from ad_nids.dataset import Dataset
 from ad_nids.utils.logging import get_log_dir, log_config
 from ad_nids.utils.misc import set_seed
 
-DEFAULT_CONTAM_PERCS = [0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.5, 1, 2, 3, 5, 10, 15, 20, 30, 40, 50, 70]
+DEFAULT_CONTAM_PERCS = [0.01, 0.05, 0.1, 0.15, 0.2, 0.5, 1, 2, 3, 5, 7, 10, 12, 15, 20, 30, 40, 50, 70]
 THRESHOLD_BATCH_N_SAMPLES = 10000
 THRESHOLD_BATCH_PERC_OUTLIER = 5
 PREPARE_DATA_RANDOM_SEED = 42

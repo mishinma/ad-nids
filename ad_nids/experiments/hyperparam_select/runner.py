@@ -19,7 +19,7 @@ from ad_nids.utils.logging import get_log_dir, log_config
 from ad_nids.utils.misc import set_seed, average_results, jsonify
 
 
-DEFAULT_CONTAM_PERCS = [0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.5, 1, 2, 3, 5, 10, 15, 20, 30, 40, 50, 70]
+DEFAULT_CONTAM_PERCS = [0.01, 0.05, 0.1, 0.15, 0.2, 0.5, 1, 2, 3, 5, 7, 10, 12, 15, 20, 30, 40, 50, 70]
 DEFAULT_RANDOM_SEEDS = [11, 33, 55]
 DEFAULT_SAMPLE_PARAMS = {
     'train': {'n_samples': 400000},
