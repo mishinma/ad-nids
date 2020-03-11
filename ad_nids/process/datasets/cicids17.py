@@ -6,7 +6,7 @@ import multiprocessing as mp
 from timeit import default_timer as timer
 from datetime import datetime, time
 from dateutil.parser import parse, parserinfo
-from subprocess import CalledProcessError, check_output
+from subprocess import check_output
 from pathlib import Path
 from uuid import uuid4
 
@@ -17,12 +17,12 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 from sklearn.model_selection import train_test_split
 
-from ad_nids.process.aggregate import aggregate_features_pool
+from ad_nids.utils.aggregate import aggregate_features_pool
 from ad_nids.utils.exception import DownloadError
-from ad_nids.dataset import Dataset, create_meta
-from ad_nids.utils.misc import sample_df, dd_mm_yyyy2mmdd, is_valid_ip
-from ad_nids.process.columns import CIC_IDS2017_COLUMN_MAPPING, CIC_IDS2017_ATTACK_LABELS,\
-    CIC_IDS2017_COLUMNS, CIC_IDS2017_FEATURES, CIC_IDS2017_META_COLUMNS, \
+from ad_nids.dataset import Dataset
+from ad_nids.utils.misc import is_valid_ip
+from ad_nids.process.columns import CIC_IDS2017_COLUMN_MAPPING, CIC_IDS2017_ATTACK_LABELS, \
+    CIC_IDS2017_FEATURES, CIC_IDS2017_META_COLUMNS, \
     CIC_IDS2017_BINARY_FEATURES, CIC_IDS2017_CATEGORICAL_FEATURE_MAP, CIC_IDS2017_NUMERICAL_FEATURES, \
     CIC_IDS2017_AGGR_FUNCTIONS, CIC_IDS2017_AGGR_COLUMNS, CIC_IDS2017_AGGR_META_COLUMNS, \
     CIC_IDS2017_PROTOCOL_MAPPING

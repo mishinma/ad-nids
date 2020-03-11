@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 
 from ad_nids.dataset import Dataset, create_meta
-from ad_nids.process.aggregate import aggregate_features_pool
+from ad_nids.utils.aggregate import aggregate_features_pool
 from ad_nids.process.columns import UGR_COLUMNS, FLOW_COLUMNS, FLOW_STATS
 from ad_nids.process.process_parser import get_argparser
 from ad_nids.utils import yyyy_mm_dd2mmdd

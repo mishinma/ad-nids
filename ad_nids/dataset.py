@@ -114,7 +114,7 @@ class Dataset:
         return (some_path/'train.csv').exists() and (some_path/'test.csv').exists()
 
     @classmethod
-    def from_path(cls, dataset_path):
+    def from_path(cls, dataset_path, only_meta=False):
 
         dataset_path = Path(dataset_path)
 
@@ -123,8 +123,12 @@ class Dataset:
         except AssertionError as e:
             raise ValueError(f'Dataset {dataset_path} does not exist')
 
-        train = pd.read_csv(dataset_path / 'train.csv')
-        test = pd.read_csv(dataset_path / 'test.csv')
+        if not only_meta:
+            train = pd.read_csv(dataset_path / 'train.csv')
+            test = pd.read_csv(dataset_path / 'test.csv')
+        else:
+            train = pd.DataFrame()
+            test = pd.DataFrame()
 
         train_meta_path = dataset_path / 'train-meta.csv'
         train_meta = None

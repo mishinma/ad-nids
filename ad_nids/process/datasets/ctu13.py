@@ -18,7 +18,7 @@ import seaborn as sns
 
 from ad_nids.utils.exception import DownloadError
 from ad_nids.dataset import Dataset
-from ad_nids.process.aggregate import aggregate_features_pool
+from ad_nids.utils.aggregate import aggregate_features_pool
 from ad_nids.process.columns import CTU_13_ORIG_COLUMN_MAPPING, TCP_FLAGS, CTU_13_PROTOS, \
     CTU_13_COLUMNS, CTU_13_FEATURES, CTU_13_META_COLUMNS, CTU_13_BINARY_FEATURES, \
     CTU_13_CATEGORICAL_FEATURE_MAP, CTU_13_NUMERICAL_FEATURES, \
