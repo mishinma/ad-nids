@@ -2,7 +2,6 @@ import argparse
 import ad_nids
 import os
 import shutil
-import uuid
 import logging
 import json
 from pathlib import Path
@@ -13,6 +12,7 @@ from json2html import json2html
 
 from ad_nids.utils import int_to_roman
 from ad_nids.utils.misc import performance_asdict
+from ad_nids.utils.report import copy_to_static, collect_plots
 
 templates_path = Path(ad_nids.__path__[0])/'templates'
 
@@ -30,22 +30,6 @@ CONFIG_NOREPORT_FIELDS = [
     'dataset_name',
     'dataset_path',
 ]
-
-
-def copy_to_static(loc_path, static_dir):
-    new_name = str(uuid.uuid4()) + loc_path.suffix
-    shutil.copy(loc_path, os.path.join(static_dir, new_name))
-    rel_new_path = os.path.join(static_dir.name, new_name)
-    return rel_new_path
-
-
-def collect_plots(plot_paths, static_path):
-    plots = ''
-    for plot_path in plot_paths:
-        static_plot_path = copy_to_static(plot_path, static_path)
-        alt_text = plot_path.name[:-len(plot_path.suffix)]
-        plots += f'<img src="{static_plot_path}" alt="{alt_text}"><br>\n'
-    return plots
 
 
 def create_experiment_report(log_path, static_path, exp_idx=1):

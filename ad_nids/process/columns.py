@@ -289,6 +289,23 @@ CTU_13_AGGR_META_COLUMNS = [
 ]
 
 
+CTU_13_SCENARIO_NAMES = {
+    1: 'Neris',
+    2: 'Neris',
+    3: 'Rbot',
+    4: 'Rbot',
+    5: 'Virut',
+    6: 'Menti',
+    7: 'Sogou',
+    8: 'Murlo',
+    9: 'Neris',
+    10: 'Rbot',
+    11: 'Rbot',
+    12: 'NSIS.ay',
+    13: 'Virut',
+}
+
+
 """
 ########## UGR-16 ############
 """
