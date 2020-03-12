@@ -178,18 +178,47 @@ def runner_fit_predict():
                         break
 
 
-def runner_predict(log_root, log_predict_root,
-                   prepare_experiment_data_fn=prepare_experiment_data):
+def copy_log_path(log_path, dst_log_root):
+
+    log_path = Path(log_path)
+    dst_log_path = Path(dst_log_root)/log_path.name
+    dst_log_path.mkdir(parents=True)
+
+    with open(log_path / 'config.json', 'r') as f:
+        config = json.load(f)
+
+    log_config(dst_log_path, config)
+
+    try:
+        od = load_detector(str(log_path / 'detector'))
+    except Exception as e:
+        logging.exception('Detector does not exist')
+    else:
+        save_detector(od, str(dst_log_path / 'detector'))
+
+
+def copy_log_paths(log_paths, dst_log_root):
+
+    log_paths = [Path(p).resolve() for p in log_paths]
+    for log_path in log_paths:
+        copy_log_path(log_path, dst_log_root)
+
+
+def runner_predict(log_paths, prepare_experiment_data_fn=prepare_experiment_data):
     loglevel = getattr(logging, 'INFO', None)
     logging.basicConfig(level=loglevel)
     logger = logging.getLogger()
     ch = logging.StreamHandler()
     logger.addHandler(ch)
-    log_root = Path(log_root).resolve()
+
+    # provided a single root_path
+    if not isinstance(log_paths, list):
+        log_paths = list(Path(log_paths).resolve().iterdir())
+    log_paths = [Path(p).resolve() for p in log_paths]
 
     dataset2log_paths = {}
+    for log_path in log_paths:
 
-    for log_path in log_root.iterdir():
         with open(log_path / 'config.json', 'r') as f:
             config = json.load(f)
 
@@ -206,21 +235,8 @@ def runner_predict(log_root, log_predict_root,
             with open(log_path / 'config.json', 'r') as f:
                 config = json.load(f)
 
-            log_predict_path = log_predict_root / log_path.name
-            log_predict_path.mkdir(parents=True)
-
             logging.info(f'Starting {config["config_name"]}')
             logging.info(json.dumps(config, indent=2))
-
-            log_config(log_predict_path, config)
-
-            try:
-                od = load_detector(str(log_path / 'detector'))
-            except Exception as e:
-                logging.exception('Detector does not exist')
-                continue
-            else:
-                save_detector(od, str(log_predict_path / 'detector'))
 
             run_fn = config.get('run_fn', 'no_fn')
             try:
@@ -231,7 +247,7 @@ def runner_predict(log_root, log_predict_root,
 
             try:
                 # Pass data
-                run_fn(config, log_predict_path, experiment_data,
+                run_fn(config, log_path, experiment_data,
                        contam_percs=DEFAULT_CONTAM_PERCS, load_outlier_detector=True)
             except Exception as e:
                 logging.exception(e)
