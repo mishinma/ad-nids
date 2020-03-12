@@ -121,11 +121,15 @@ def create_scenario_score_log_path(log_path, dataset, train=True, test=True):
         data['target'] = preds['ground_truth']
         data['instance_score'] = np.nan_to_num(preds['instance_score'])
 
+        # so that we don't have negative scores
+        offset = max(0, 1e-3 - data['instance_score'].min())
+        data['instance_score'] += offset
+
         # Fetch the threshold
         with open(log_path / 'eval_results.json', 'r') as f:
             eval_results = json.load(f)
         threshold = eval_results['threshold']
-        data['threshold'] = threshold
+        data['threshold'] = threshold + offset
 
         timestamp_col = [c for c in data.columns if 'time' in c][0]
         data[timestamp_col] = pd.to_datetime(data[timestamp_col])
