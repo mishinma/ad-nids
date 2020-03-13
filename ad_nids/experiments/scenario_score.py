@@ -128,8 +128,8 @@ def create_scenario_score_log_path(log_path, dataset, train=True, test=True):
         # Fetch the threshold
         with open(log_path / 'eval_results.json', 'r') as f:
             eval_results = json.load(f)
-        threshold = eval_results['threshold']
-        data['threshold'] = threshold + offset
+        threshold = eval_results['threshold'] + offset
+        data['threshold'] = threshold
 
         timestamp_col = [c for c in data.columns if 'time' in c][0]
         data[timestamp_col] = pd.to_datetime(data[timestamp_col])
