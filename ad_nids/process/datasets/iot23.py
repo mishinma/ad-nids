@@ -125,6 +125,22 @@ def cleanup_iot23_flows(flows):
     return flows
 
 
+def cleanup_ctu13(data_path):
+
+    logging.info('Cleaning up the data')
+    data_path = Path(data_path).resolve()
+
+    for path in data_path.iterdir():
+        name = path.with_suffix('').name
+        logging.info(f'Processing scenario {name}')
+
+        flows = pd.read_csv(path, skiprows=8, skipfooter=1, sep='\s+',
+                            header=None, names=list(IOT_23_ORIG_COLUMN_MAPPING.keys()),
+                            engine='python')
+        flows = cleanup_iot23_flows(flows)
+        flows.to_csv(path, index=False)
+
+
 def create_mock_iot23(data_path, mock_path, num_ips_sample=3, max_sample_size=1000,
                       num_mock_scenarios=None):
 
