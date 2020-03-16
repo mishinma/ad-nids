@@ -922,3 +922,94 @@ IOT_23_META_COLUMNS = [
     'scenario',
     'detailed_label',
 ]
+
+
+IOT_23_CATEGORICAL_FEATURE_MAP = {
+    f: t.values for f, t in IOT_23_FEATURES.items() if t.type == 'CATEGORICAL'
+}
+
+
+IOT_23_NUMERICAL_FEATURES = [
+    f for f, t in IOT_23_FEATURES.items() if t.type == 'NUMERICAL'
+]
+
+
+IOT_23_BINARY_FEATURES = [
+    f for f, t in IOT_23_FEATURES.items() if t.type == 'BINARY'
+]
+
+
+# numerical:  mean, min, max, std, median
+# categorical: num_unique, entropy
+IOT_23_AGGR_COLUMNS = [
+    'src_ip',
+    'time_window_start',
+    'total_cnt',
+    'dur_mean',
+    'dur_min',
+    'dur_max',
+    'dur_std',
+    'dur_median',
+    'dst_ip_entropy',
+    'dst_ip_nuniq',
+    'dst_port_entropy',
+    'dst_port_nuniq',
+    'src_port_entropy',
+    'src_port_nuniq',
+    'proto_entropy',
+    'proto_nuniq',
+    'service_entropy',
+    'service_nuniq',
+    'orig_hist_entropy',
+    'orig_hist_nuniq',
+    'resp_hist_entropy',
+    'resp_hist_nuniq',
+
+    'scenario',
+    'target',
+]
+
+    #
+    # CTU_13_AGGR_FUNCTIONS = {
+    #     'total_cnt': lambda f: f.shape[0],
+    #     'dur_mean': lambda f: f['dur'].mean(),
+    #     'dur_min': lambda f: f['dur'].min(),
+    #     'dur_max': lambda f: f['dur'].max(),
+    #     'dur_std': lambda f: f['dur'].std(),
+    #     'dur_median': lambda f: f['dur'].median(),
+    #     'dst_ip_entropy': lambda f: entropy(f['dst_ip'].value_counts()),
+    #     'dst_ip_nuniq': lambda f: f['dst_ip'].unique().shape[0],
+    #     'dst_port_entropy': lambda f: entropy(f['dst_port'].value_counts()),
+    #     'dst_port_nuniq': lambda f: f['dst_port'].unique().shape[0],
+    #     'src_port_entropy': lambda f: entropy(f['src_port'].value_counts()),
+    #     'src_port_nuniq': lambda f: f['src_port'].unique().shape[0],
+    #     'proto_entropy': lambda f: entropy(f['proto'].value_counts()),
+    #     'proto_nuniq': lambda f: f['proto'].unique().shape[0],
+    #     'fwd_flag_entropy': lambda f: entropy(f[CTU_13_FWD_FLAGS_COLUMNS].sum()),
+    #     'fwd_flag_nuniq': lambda f: np.sum(f[CTU_13_FWD_FLAGS_COLUMNS].sum() > 0),
+    #     'bwd_flag_entropy': lambda f: entropy(f[CTU_13_BWD_FLAGS_COLUMNS].sum()),
+    #     'bwd_flag_nuniq': lambda f: np.sum(f[CTU_13_BWD_FLAGS_COLUMNS].sum() > 0),
+    #     'tot_pkts_mean': lambda f: f['tot_pkts'].mean(),
+    #     'tot_pkts_min': lambda f: f['tot_pkts'].min(),
+    #     'tot_pkts_max': lambda f: f['tot_pkts'].max(),
+    #     'tot_pkts_std': lambda f: f['tot_pkts'].std(),
+    #     'tot_pkts_median': lambda f: f['tot_pkts'].median(),
+    #     'tot_byts_mean': lambda f: f['tot_byts'].mean(),
+    #     'tot_byts_min': lambda f: f['tot_byts'].min(),
+    #     'tot_byts_max': lambda f: f['tot_byts'].max(),
+    #     'tot_byts_std': lambda f: f['tot_byts'].std(),
+    #     'tot_byts_median': lambda f: f['tot_byts'].median(),
+    #     'src_byts_mean': lambda f: f['src_byts'].mean(),
+    #     'src_byts_min': lambda f: f['src_byts'].min(),
+    #     'src_byts_max': lambda f: f['src_byts'].max(),
+    #     'src_byts_std': lambda f: f['src_byts'].std(),
+    #     'src_byts_median': lambda f: f['src_byts'].median(),
+    #     'target': lambda f: np.int(f['target'].sum() > 0)
+    # }
+    #
+    #
+    # CTU_13_AGGR_META_COLUMNS = [
+    #     'src_ip',
+    #     'time_window_start',
+    #     'scenario'
+    # ]

@@ -11,17 +11,20 @@ from uuid import uuid4
 import pandas as pd
 import numpy as np
 import seaborn as sns
+from sklearn.model_selection import train_test_split
 from matplotlib import pyplot as plt
 
 from ad_nids.dataset import Dataset, create_meta
 from ad_nids.utils.exception import DownloadError
 from ad_nids.process.columns import IOT_23_ORIG_SCENARIO_NAME_MAPPING, IOT_23_ORIG_COLUMN_MAPPING, \
-    IOT_23_HISTORY_LETTERS, IOT_23_REPLACE_EMPTY_ZERO_FEATURES, IOT_23_COLUMNS
+    IOT_23_HISTORY_LETTERS, IOT_23_REPLACE_EMPTY_ZERO_FEATURES, IOT_23_COLUMNS, IOT_23_META_COLUMNS,  \
+    IOT_23_FEATURES
 
 
 from ad_nids.report.general import BASE
 
 DATASET_NAME = 'IOT-23'
+MAX_FLOWS_TO_PROCESS = 5000000  # 5M
 
 
 def download_iot23(dataset_path, separate_mirai=True):
@@ -133,10 +136,14 @@ def cleanup_iot23(data_path):
     for path in data_path.iterdir():
         name = path.with_suffix('').name
         logging.info(f'Processing scenario {name}')
+        flows = pd.read_csv(path, skiprows=8, sep='\s+', nrows=MAX_FLOWS_TO_PROCESS,
+                            header=None, names=list(IOT_23_ORIG_COLUMN_MAPPING.keys()))
 
-        flows = pd.read_csv(path, skiprows=8, skipfooter=1, sep='\s+',
-                            header=None, names=list(IOT_23_ORIG_COLUMN_MAPPING.keys()),
-                            engine='python')
+        # drop the last row if less than MAX_FLOWS_TO_PROCESS
+        last_row = flows.iloc[-1]
+        if last_row['ts'] == '#close':
+            flows = flows.drop(last_row.name, axis=0)
+        
         flows = cleanup_iot23_flows(flows)
         flows.to_csv(path, index=False)
 
@@ -247,6 +254,85 @@ def create_data_report_ctu13(dataset_path, report_path, timestamp_col='timestamp
     report = BASE.replace('{{STUFF}}', report)
     with open(report_path / 'report.html', 'w') as f:
         f.write(report)
+
+
+def _parse_scenario_name(name):
+    return int(name.split('_')[0])
+
+
+def create_dataset_ctu13(dataset_path,
+                         train_scenarios=None, test_scenarios=None, frequency=None,
+                         test_size=None, random_seed=None,
+                         create_hash=False):
+
+    dataset_path = Path(dataset_path).resolve()
+    logging.info("Creating dataset")
+
+    if random_seed is not None:
+
+        name = '{}_TEST_SIZE_{}_RANDOM_SEED_{}'.format(
+            DATASET_NAME, test_size, random_seed
+        )
+        data = pd.concat([pd.read_csv(p) for p in dataset_path.iterdir()])
+        train, test = train_test_split(data, test_size=test_size, random_state=random_seed)
+
+    else:
+        name = '{}_TRAIN_{}_TEST_{}'.format(
+            DATASET_NAME,
+            '-'.join(map(str, train_scenarios)),
+            '-'.join(map(str, test_scenarios)),
+        )
+        train_paths = [p for p in dataset_path.iterdir()
+                       if _parse_scenario_name(p.name) in train_scenarios]
+        test_paths = [p for p in dataset_path.iterdir()
+                      if _parse_scenario_name(p.name) in test_scenarios]
+        train = pd.concat([pd.read_csv(p) for p in train_paths])
+        test = pd.concat([pd.read_csv(p) for p in test_paths])
+
+    if frequency is not None:
+        name += '_AGGR_{}'.format(frequency)
+        feature_columns = list(IOT_23_AGGR_FUNCTIONS.keys())
+        meta_columns = IOT_23_AGGR_META_COLUMNS
+        # all numerical
+        features_info = {
+            'categorical_feature_map': {},
+            'categorical_features': [],
+            'binary_features': [],
+            'numerical_features': [k for k in IOT_23_AGGR_FUNCTIONS.keys() if k != 'target']
+        }
+    else:
+        feature_columns = list(IOT_23_FEATURES.keys())
+        meta_columns = IOT_23_META_COLUMNS
+        features_info = {
+            'categorical_feature_map': IOT_23_CATEGORICAL_FEATURE_MAP,
+            'categorical_features': list(IOT_23_CATEGORICAL_FEATURE_MAP.keys()),
+            'binary_features': IOT_23_BINARY_FEATURES,
+            'numerical_features': IOT_23_NUMERICAL_FEATURES
+        }
+
+    train_meta = train.loc[:, meta_columns]
+    train = train.loc[:, feature_columns]
+    test_meta = test.loc[:, meta_columns]
+    test = test.loc[:, feature_columns]
+
+    meta = {
+        'data_hash': None,
+        'dataset_name': DATASET_NAME,
+        'test_size': test_size,
+        'random_seed': random_seed,
+        'frequency': frequency,
+        'train_scenarios': train_scenarios,
+        'test_scenarios': test_scenarios,
+        'name': name
+    }
+    meta.update(features_info)
+
+    dataset = Dataset(train, test, train_meta, test_meta, meta,
+                      create_hash=create_hash)
+
+    logging.info('Done!')
+
+    return dataset
 
 
 if __name__ == '__main__':
