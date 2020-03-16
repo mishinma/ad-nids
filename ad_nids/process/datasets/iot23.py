@@ -125,7 +125,7 @@ def cleanup_iot23_flows(flows):
     return flows
 
 
-def cleanup_iot13(data_path):
+def cleanup_iot23(data_path):
 
     logging.info('Cleaning up the data')
     data_path = Path(data_path).resolve()
