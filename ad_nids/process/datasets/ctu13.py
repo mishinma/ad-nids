@@ -23,7 +23,7 @@ from ad_nids.process.columns import CTU_13_ORIG_COLUMN_MAPPING, TCP_FLAGS, CTU_1
     CTU_13_COLUMNS, CTU_13_FEATURES, CTU_13_META_COLUMNS, CTU_13_BINARY_FEATURES, \
     CTU_13_CATEGORICAL_FEATURE_MAP, CTU_13_NUMERICAL_FEATURES, \
     CTU_13_AGGR_COLUMNS, CTU_13_AGGR_FUNCTIONS, CTU_13_AGGR_META_COLUMNS
-from ad_nids.report import BASE
+from ad_nids.report.general import BASE
 from ad_nids.utils.misc import is_valid_ip
 
 DATASET_NAME = 'CTU-13'

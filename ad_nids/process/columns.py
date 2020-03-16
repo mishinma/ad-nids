@@ -783,7 +783,7 @@ CIC_IDS2018_ATTACK_LABELS = [
 ########## IOT-23 ############
 """
 
-IOT_24_ORIG_NAME_MAPPING = {
+IOT_23_ORIG_SCENARIO_NAME_MAPPING = {
     'CTU-IoT-Malware-Capture-33-1': (33, 'kenjiro'),
     'CTU-IoT-Malware-Capture-42-1': (42, 'trojan'),
     'CTU-IoT-Malware-Capture-48-1': (48, 'mirai'),
@@ -808,3 +808,117 @@ IOT_24_ORIG_NAME_MAPPING = {
     'CTU-IoT-Malware-Capture-36-1': (33, 'mirai'),
     'CTU-IoT-Malware-Capture-43-1': (33, 'mirai')
 }
+
+
+IOT_23_ORIG_COLUMN_MAPPING = {
+    'ts': 'timestamp',
+    'uid': 'uid',
+    'id.orig_h': 'src_ip',
+    'id.orig_p': 'src_port',
+    'id.resp_h': 'dst_ip',
+    'id.resp_p': 'dst_port',
+    'proto': 'proto',
+    'service': 'service',
+    'duration': 'dur',
+    'orig_bytes': 'orig_bytes',
+    'resp_bytes': 'resp_bytes',
+    'conn_state': 'conn_state',
+    'local_orig': 'local_orig',
+    'local_resp': 'local_resp',
+    'missed_bytes': 'missed_bytes',
+    'history': 'history',
+    'orig_pkts': 'orig_pkts',
+    'orig_ip_bytes': 'orig_ip_bytes',
+    'resp_pkts': 'resp_pkts',
+    'resp_ip_bytes': 'resp_ip_bytes',
+    'tunnel_parents': 'tunnel_parents',
+    'label': 'label',
+    'detailed-label': 'detailed_label'
+}
+
+
+IOT_23_HISTORY_LETTERS = ['s', 'h', 'a', 'd', 'f', 'r',
+                          'c', 'g', 't', 'w', 'i', 'q']
+IOT_23_PROTO_VALUES = ['tcp', 'udp', 'icmp']
+IOT_23_SERVICE_VALUES = ['-', 'http', 'dns', 'ssh', 'dhcp', 'irc', 'ssl']
+IOT_23_CONN_STATE_VALUES = [
+    'S0', 'S1', 'SF', 'REJ',
+    'S2', 'S3', 'RSTO', 'RSTR',
+    'RSTOS0', 'RSTRH', 'SH',
+    'SHR', 'OTH'
+]
+
+IOT_23_REPLACE_EMPTY_ZERO_FEATURES = [
+    'dur', 'orig_bytes', 'resp_bytes', 'missed_bytes',
+    'orig_pkts', 'orig_ip_bytes', 'resp_pkts', 'resp_ip_bytes'
+]
+
+
+IOT_23_COLUMNS = [
+    'timestamp',
+    'uid',
+    'src_ip',
+    'src_port',
+    'dst_ip',
+    'dst_port',
+    'proto',
+    'service',
+    'dur',
+    'orig_bytes',
+    'resp_bytes',
+    'conn_state',
+    'local_orig',
+    'local_resp',
+    'missed_bytes',
+    'history',
+    'history_empty',
+    'history_dir_flipped',
+    *[f'orig_history_{l}_cnt' for l in IOT_23_HISTORY_LETTERS],
+    *[f'resp_history_{l}_cnt' for l in IOT_23_HISTORY_LETTERS],
+    'orig_pkts',
+    'orig_ip_bytes',
+    'resp_pkts',
+    'resp_ip_bytes',
+    'tunnel_parents',
+    'label',
+    'detailed_label',
+    'target'
+]
+
+
+# local_orig, local_resp and tunnel parents doesn't seem to be used
+IOT_23_FEATURES = {
+    'proto': CATEGORICAL(IOT_23_PROTO_VALUES),
+    'service': CATEGORICAL(IOT_23_SERVICE_VALUES),
+    'dur': NUMERICAL(),
+    'orig_bytes': NUMERICAL(),
+    'resp_bytes': NUMERICAL(),
+    'conn_state': CATEGORICAL(IOT_23_CONN_STATE_VALUES),
+    # 'local_orig': CATEGORICAL(['T', 'F', '-']),  # True, False, Unset
+    # 'local_resp': CATEGORICAL(['T', 'F', '-']),
+    'missed_bytes': NUMERICAL(),
+    'history_empty': BINARY(),
+    'history_dir_flipped': BINARY(),
+    **{f'orig_history_{l}_cnt': NUMERICAL() for l in IOT_23_HISTORY_LETTERS},
+    **{f'resp_history_{l}_cnt': NUMERICAL() for l in IOT_23_HISTORY_LETTERS},
+    'orig_pkts': NUMERICAL(),
+    'orig_ip_bytes': NUMERICAL(),
+    'resp_pkts': NUMERICAL(),
+    'resp_ip_bytes': NUMERICAL(),
+    # 'tunnel_parents': BINARY(),  # present or not
+    'target': LABEL()
+}
+
+
+IOT_23_META_COLUMNS = [
+    'timestamp',
+    'uid',
+    'src_ip',
+    'src_port',
+    'dst_ip',
+    'dst_port',
+    'proto',
+    'history'
+    'scenario',
+    'detailed_label',
+]
