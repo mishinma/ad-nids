@@ -18,7 +18,8 @@ from ad_nids.dataset import Dataset, create_meta
 from ad_nids.utils.exception import DownloadError
 from ad_nids.process.columns import IOT_23_ORIG_SCENARIO_NAME_MAPPING, IOT_23_ORIG_COLUMN_MAPPING, \
     IOT_23_HISTORY_LETTERS, IOT_23_REPLACE_EMPTY_ZERO_FEATURES, IOT_23_COLUMNS, IOT_23_META_COLUMNS,  \
-    IOT_23_FEATURES
+    IOT_23_FEATURES, IOT_23_AGGR_COLUMNS, IOT_23_AGGR_FUNCTIONS, IOT_23_AGGR_META_COLUMNS, \
+    IOT_23_CATEGORICAL_FEATURE_MAP, IOT_23_BINARY_FEATURES, IOT_23_NUMERICAL_FEATURES
 
 
 from ad_nids.report.general import BASE
