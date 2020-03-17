@@ -1022,7 +1022,6 @@ def _detailed_label_aggr_fn(f):
     return aggr_label
 
 
-
 IOT_23_AGGR_FUNCTIONS = {
     'total_cnt': lambda f: f.shape[0],
     'dur_mean': lambda f: f['dur'].mean(),
@@ -1093,4 +1092,3 @@ IOT_23_AGGR_META_COLUMNS = [
     'detailed_label'
     'target'
 ]
-

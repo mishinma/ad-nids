@@ -1,8 +1,10 @@
-import shutil
-import logging
-import os
 
-from datetime import datetime
+import os
+import time
+import logging
+import shutil
+import multiprocessing as mp
+
 from collections import Counter
 from subprocess import CalledProcessError, check_output
 from pathlib import Path
@@ -15,17 +17,54 @@ from sklearn.model_selection import train_test_split
 from matplotlib import pyplot as plt
 
 from ad_nids.dataset import Dataset, create_meta
+from ad_nids.utils.aggregate import aggregate_features_pool
 from ad_nids.utils.exception import DownloadError
+from ad_nids.utils.misc import set_seed
 from ad_nids.process.columns import IOT_23_ORIG_SCENARIO_NAME_MAPPING, IOT_23_ORIG_COLUMN_MAPPING, \
     IOT_23_HISTORY_LETTERS, IOT_23_REPLACE_EMPTY_ZERO_FEATURES, IOT_23_COLUMNS, IOT_23_META_COLUMNS,  \
     IOT_23_FEATURES, IOT_23_AGGR_COLUMNS, IOT_23_AGGR_FUNCTIONS, IOT_23_AGGR_META_COLUMNS, \
     IOT_23_CATEGORICAL_FEATURE_MAP, IOT_23_BINARY_FEATURES, IOT_23_NUMERICAL_FEATURES
-
-
 from ad_nids.report.general import BASE
 
 DATASET_NAME = 'IOT-23'
 MAX_FLOWS_TO_PROCESS = 5000000  # 5M
+
+
+def _parse_scenario_idx(name):
+    return int(name.split('_')[0])
+
+
+def _parse_history(hist):
+    orig_letters_cnt = Counter()
+    resp_letters_cnt = Counter()
+    is_empty = False
+    is_dir_flipped = False
+
+    for l in hist:
+
+        if l == '-':
+            is_empty = True
+            break
+
+        if l == '^':
+            is_dir_flipped = True
+            continue
+
+        from_orig = l.isupper()
+        l = l.lower()
+        if from_orig:
+            orig_letters_cnt[l] += 1
+        else:
+            resp_letters_cnt[l] += 1
+
+    parsed = pd.Series({
+        'history_empty': int(is_empty),
+        'history_dir_flipped': int(is_dir_flipped),
+        **{f'orig_history_{l}_cnt': orig_letters_cnt[l] for l in IOT_23_HISTORY_LETTERS},
+        **{f'resp_history_{l}_cnt': resp_letters_cnt[l] for l in IOT_23_HISTORY_LETTERS}
+    })
+
+    return parsed
 
 
 def download_iot23(dataset_path, separate_mirai=True):
@@ -73,39 +112,6 @@ def download_iot23(dataset_path, separate_mirai=True):
         shutil.move(dataset_path, dataset_other_path)
 
     return
-
-
-def _parse_history(hist):
-    orig_letters_cnt = Counter()
-    resp_letters_cnt = Counter()
-    is_empty = False
-    is_dir_flipped = False
-
-    for l in hist:
-
-        if l == '-':
-            is_empty = True
-            break
-
-        if l == '^':
-            is_dir_flipped = True
-            continue
-
-        from_orig = l.isupper()
-        l = l.lower()
-        if from_orig:
-            orig_letters_cnt[l] += 1
-        else:
-            resp_letters_cnt[l] += 1
-
-    parsed = pd.Series({
-        'history_empty': int(is_empty),
-        'history_dir_flipped': int(is_dir_flipped),
-        **{f'orig_history_{l}_cnt': orig_letters_cnt[l] for l in IOT_23_HISTORY_LETTERS},
-        **{f'resp_history_{l}_cnt': resp_letters_cnt[l] for l in IOT_23_HISTORY_LETTERS}
-    })
-
-    return parsed
 
 
 def cleanup_iot23_flows(flows):
@@ -262,10 +268,6 @@ def create_data_report_iot23(dataset_path, report_path, timestamp_col='timestamp
         f.write(report)
 
 
-def _parse_scenario_name(name):
-    return int(name.split('_')[0])
-
-
 def create_dataset_iot23(dataset_path,
                          train_scenarios=None, test_scenarios=None, frequency=None,
                          test_size=None, random_seed=None,
@@ -275,12 +277,19 @@ def create_dataset_iot23(dataset_path,
     logging.info("Creating dataset")
 
     if random_seed is not None:
-
+        set_seed(random_seed)
         name = '{}_TEST_SIZE_{}_RANDOM_SEED_{}'.format(
             DATASET_NAME, test_size, random_seed
         )
         data = pd.concat([pd.read_csv(p) for p in dataset_path.iterdir()])
-        train, test = train_test_split(data, test_size=test_size, random_state=random_seed)
+        data_outlier_idx = data['target'] == 1
+        data_outlier = data.loc[data_outlier_idx]
+        data_normal = data.loc[~data_outlier_idx]
+        # take:  test_size normal, (1 - test_size) outlier
+        train_normal, test_normal = train_test_split(data_normal, test_size=test_size, random_state=random_seed)
+        train_outlier, test_outlier = train_test_split(data_outlier, test_size=(1-test_size), random_state=random_seed)
+        train = pd.concat([train_normal, train_outlier], axis=0).sample(frac=1)
+        test = pd.concat([test_normal, test_outlier], axis=0).sample(frac=1)
 
     else:
         name = '{}_TRAIN_{}_TEST_{}'.format(
@@ -289,9 +298,9 @@ def create_dataset_iot23(dataset_path,
             '-'.join(map(str, test_scenarios)),
         )
         train_paths = [p for p in dataset_path.iterdir()
-                       if _parse_scenario_name(p.name) in train_scenarios]
+                       if _parse_scenario_idx(p.name) in train_scenarios]
         test_paths = [p for p in dataset_path.iterdir()
-                      if _parse_scenario_name(p.name) in test_scenarios]
+                      if _parse_scenario_idx(p.name) in test_scenarios]
         train = pd.concat([pd.read_csv(p) for p in train_paths])
         test = pd.concat([pd.read_csv(p) for p in test_paths])
 
@@ -339,6 +348,53 @@ def create_dataset_iot23(dataset_path,
     logging.info('Done!')
 
     return dataset
+
+
+def _aggregate_flows_wkr(args):
+
+    grp_name, grp = args
+
+    flow_stats = {col_name: aggr_fn(grp)
+                  for col_name, aggr_fn in IOT_23_AGGR_FUNCTIONS.items()}
+    record = {
+        'src_ip': grp_name[0],
+        'time_window_start': grp_name[1],
+        **flow_stats
+    }
+
+    return record
+
+
+def aggregate_flows_iot23(data_path, aggr_path, processes=-1, frequency='T'):
+
+    if processes == -1:
+        processes = mp.cpu_count() - 1
+
+    logging.info('Aggregating the data')
+    data_path = Path(data_path).resolve()
+    aggr_path = Path(aggr_path).resolve()
+    aggr_path.mkdir(exist_ok=True)
+
+    for path in data_path.iterdir():
+
+        name = path.with_suffix('').name
+        logging.info(f'Processing scenario {name}')
+        start_time = time.time()
+
+        out_path = aggr_path / path.name
+
+        flows = pd.read_csv(path)
+        flows['timestamp'] = pd.to_datetime(flows['timestamp'])
+        grouped = flows.groupby(['src_ip', pd.Grouper(key='timestamp', freq=frequency)])
+        aggr_flows = aggregate_features_pool(grouped, _aggregate_flows_wkr, processes)
+        aggr_flows = pd.DataFrame.from_records(aggr_flows)
+        aggr_flows['scenario'] = _parse_scenario_idx(name)
+        aggr_flows = aggr_flows[IOT_23_AGGR_COLUMNS]
+        aggr_flows = aggr_flows.sort_values(by='time_window_start').reset_index(drop=True)
+        aggr_flows = aggr_flows.fillna(0)
+        aggr_flows.to_csv(out_path, index=False)
+
+        logging.info("Done {0:.2f}".format(time.time() - start_time))
 
 
 if __name__ == '__main__':
