@@ -143,7 +143,7 @@ def cleanup_iot23(data_path):
         last_row = flows.iloc[-1]
         if last_row['ts'] == '#close':
             flows = flows.drop(last_row.name, axis=0)
-        
+
         flows = cleanup_iot23_flows(flows)
         flows.to_csv(path, index=False)
 
@@ -204,6 +204,11 @@ def create_report_scenario_iot23(data, static_path, timestamp_col='timestamp'):
     report += '<h2> Contamination perc: {:.2f} </h2>'.format(contamination_perc)
     report += '</br>'
 
+    attack_value_counts = data['detailed_label'].value_counts()
+    report += '<h3> Labels distribution </h3>'
+    report += attack_value_counts.to_html()
+    report += '</br>'
+
     plt.close('all')
     labels = []
     groups = data.groupby('detailed_label')
@@ -231,7 +236,7 @@ def create_report_scenario_iot23(data, static_path, timestamp_col='timestamp'):
     return report
 
 
-def create_data_report_ctu13(dataset_path, report_path, timestamp_col='timestamp'):
+def create_data_report_iot23(dataset_path, report_path, timestamp_col='timestamp'):
 
     dataset_path = Path(dataset_path).resolve()
     static_path = report_path/'static'
@@ -260,7 +265,7 @@ def _parse_scenario_name(name):
     return int(name.split('_')[0])
 
 
-def create_dataset_ctu13(dataset_path,
+def create_dataset_iot23(dataset_path,
                          train_scenarios=None, test_scenarios=None, frequency=None,
                          test_size=None, random_seed=None,
                          create_hash=False):
