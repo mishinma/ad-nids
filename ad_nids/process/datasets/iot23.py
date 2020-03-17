@@ -213,7 +213,7 @@ def create_report_scenario_iot23(data, static_path, timestamp_col='timestamp'):
 
     attack_value_counts = data['detailed_label'].value_counts()
     report += '<h3> Labels distribution </h3>'
-    report += attack_value_counts.to_html()
+    report += pd.DataFrame(attack_value_counts).to_html()
     report += '</br>'
 
     plt.close('all')
