@@ -1,10 +1,12 @@
 
+from math import floor
 from datetime import datetime
 from functools import wraps
 from ipaddress import ip_address
 from timeit import default_timer as timer
 
 import numpy as np
+import pandas as pd
 import tensorflow as tf
 
 
@@ -170,3 +172,27 @@ def is_valid_ip(x):
     if x in IGNORE_IPS:
         return False
     return True
+
+
+def fair_attack_sample(data, num_sample, scenario_col='scenario'):
+    uniq_scenarios = data[scenario_col].unique()
+    num_sample_per_scenario = floor(num_sample / len(uniq_scenarios))
+
+    scenario2num_sample = {s: num_sample_per_scenario for s in uniq_scenarios}
+    extra_sample = num_sample - num_sample_per_scenario * len(uniq_scenarios)
+    for i in range(extra_sample):
+        s = list(scenario2num_sample.keys())[i]
+        scenario2num_sample[s] += 1
+
+    sample = []
+
+    groups = data.groupby(scenario_col)
+    for scenario, group in groups:
+        n = scenario2num_sample[scenario]
+        replace = n > group.shape[0]
+        scenario_sample = group.sample(n=n, replace=replace)
+        sample.append(scenario_sample)
+
+    sample = pd.concat(sample)
+
+    return sample

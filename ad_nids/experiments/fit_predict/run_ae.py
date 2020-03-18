@@ -63,7 +63,7 @@ def run_ae(config, log_dir, experiment_data,
         train_gen = DataGenerator(X_train, batch_size=config['batch_size'])
         i_run_log_dir = log_dir/str(i_run)
         trainer(od.ae, mse, train_gen, X_val=X_threshold[y_threshold == 0],
-                epochs=config['num_epochs'], epoch_size=config['epoch_size'],
+                epochs=config['num_epochs'], epoch_size=config.get('epoch_size'),
                 optimizer=optimizer, log_dir=i_run_log_dir,
                 checkpoint=True, checkpoint_freq=5)
         time_fit = timer() - se

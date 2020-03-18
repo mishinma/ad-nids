@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 from alibi_detect.utils.data import create_outlier_batch
 
 from ad_nids.utils import plot_data_2d
+from ad_nids.utils.misc import fair_attack_sample
 
 
 def sample_df(df: pd.DataFrame,
@@ -93,8 +94,15 @@ class Dataset:
 
         self.train = train
         self.test = test
-        self.train_meta = train_meta
-        self.test_meta = test_meta
+        if train_meta is not None:
+            self.train_meta = train_meta
+        else:
+            self.train_meta = pd.DataFrame()
+
+        if test_meta is not None:
+            self.test_meta = test_meta
+        else:
+            self.test_meta = pd.DataFrame()
 
         if meta is not None:
             self.meta = meta
@@ -167,10 +175,24 @@ class Dataset:
         val = self._contamination(self.test)
         return val*100
 
-    def create_outlier_batch(self, n_samples, perc_outlier, train=True):
+    @property
+    def meta_columns(self):
+        return list(self.train_meta.columns)
+
+    @property
+    def data_columns(self):
+        return list(self.train.columns)
+
+    def create_outlier_batch(self, n_samples, perc_outlier, train=True,
+                             fair_sample=True, include_meta=True):
         """ Create a batch with a defined percentage of outliers. """
 
         data = self.train if train else self.test
+
+        if include_meta:
+            meta = self.train_meta if train else self.test_meta
+            data = pd.concat([data, meta])
+            data = data.loc[:, ~data.columns.duplicated()]  # if there are duplicate columns, like target
 
         # separate inlier and outlier data
         normal = data[data['target'] == 0]
@@ -185,15 +207,26 @@ class Dataset:
 
         # draw samples
         batch_normal = sample_df(normal, n_normal)
-        batch_outlier = sample_df(outlier, n_outlier)
+
+        if fair_sample:
+            scenario_col = self.meta.get('scenario_col')
+            assert scenario_col is not None
+            batch_outlier = fair_attack_sample(outlier, num_sample=n_outlier, scenario_col=scenario_col)
+        else:
+            batch_outlier = sample_df(outlier, n_outlier)
 
         batch = pd.concat([batch_normal, batch_outlier])
-        batch = batch.sample(frac=1).reset_index(drop=True)
+        batch = batch.sample(frac=1)
 
         is_outlier = batch['target'].values
-        batch.drop(columns=['target'], inplace=True)
 
-        return batch, is_outlier
+        if include_meta and self.meta_columns:
+            batch_meta = batch.loc[self.meta_columns]
+        else:
+            batch_meta = None
+
+        batch.drop(columns=['target'], inplace=True)
+        return batch, is_outlier, batch_meta
 
     def visualize(self, ax, train=True):
 
@@ -238,18 +271,17 @@ class Dataset:
         test_meta_path = dataset_path / 'test-meta.csv'
         meta_path = dataset_path / 'meta.json'
 
-        self.train.to_csv(train_path, index=None)
-        self.test.to_csv(test_path, index=None)
+        self.train.to_csv(train_path, index=False)
+        self.test.to_csv(test_path, index=False)
 
-        if self.train_meta is not None:
-            self.train_meta.to_csv(train_meta_path, index=None)
+        if not self.train_meta.empty:
+            self.train_meta.to_csv(train_meta_path, index=False)
 
-        if self.test_meta is not None:
-            self.test_meta.to_csv(test_meta_path, index=None)
+        if not self.test_meta.empty:
+            self.test_meta.to_csv(test_meta_path, index=False)
 
-        if self.meta is not None:
-            with open(meta_path, 'w') as f:
-                json.dump(self.meta, f)
+        with open(meta_path, 'w') as f:
+            json.dump(self.meta, f)
 
         if visualize:
             logging.info('Visualizing the data')
@@ -265,4 +297,3 @@ class Dataset:
         if archive:
             logging.info('Compressing the data')
             shutil.make_archive(dataset_path, 'zip', root_path, self.name)
-

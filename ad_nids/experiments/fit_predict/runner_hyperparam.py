@@ -15,7 +15,7 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder, FunctionTransfo
 from sklearn.compose import ColumnTransformer
 from alibi_detect.datasets import Bunch
 
-import ad_nids.experiments.hyperparam_select as experiments
+import ad_nids.experiments.fit_predict as experiments
 from ad_nids.dataset import Dataset
 from ad_nids.utils.logging import get_log_dir, log_config
 from ad_nids.utils.misc import set_seed, average_results, jsonify
@@ -26,7 +26,7 @@ DEFAULT_RANDOM_SEEDS = [11, 33, 55]
 DEFAULT_SAMPLE_PARAMS = {
     'train': {'n_samples': 400000},
     'threshold': {'n_samples': 10000, 'perc_outlier': 5},
-    'test': {'n_samples': 10000, 'perc_outlier': 5}
+    'test': {'n_samples': 10000, 'perc_outlier': 10}
 }
 
 
@@ -40,12 +40,15 @@ def parser_fit_predict():
                         help="directory with config files")
     parser.add_argument("--seeds", nargs='*',
                         help="random seeds")
+    parser.add_argument("--log_sample_data_path", type=str,
+                        help="log directory for sampled data meta")
     parser.add_argument("-l", "--logging", type=str, default='INFO',
                         help="logging level")
     return parser
 
 
-def prepare_experiment_data(dataset, random_seed, sample_params):
+def prepare_experiment_data(dataset, random_seed, sample_params, log_root=None):
+
     set_seed(random_seed)
 
     n_train_samples = sample_params['train']['n_samples']
@@ -54,12 +57,12 @@ def prepare_experiment_data(dataset, random_seed, sample_params):
     n_test_samples = sample_params['test']['n_samples']
     perc_test_outlier = sample_params['test']['perc_outlier']
 
-    X_train, y_train = dataset.create_outlier_batch(train=True, n_samples=n_train_samples,
-                                                    perc_outlier=0)
-    X_threshold, y_threshold = dataset.create_outlier_batch(train=True, n_samples=n_threshold_samples,
-                                                            perc_outlier=perc_threshold_outlier)
-    X_test, y_test = dataset.create_outlier_batch(train=True, n_samples=n_test_samples,
-                                                  perc_outlier=perc_test_outlier)
+    X_train, y_train, X_train_meta = dataset.create_outlier_batch(
+        train=True, n_samples=n_train_samples,  perc_outlier=0)
+    X_threshold, y_threshold, X_threshold_meta = dataset.create_outlier_batch(
+        train=True, n_samples=n_threshold_samples, perc_outlier=perc_threshold_outlier, fair_sample=True)
+    X_test, y_test, X_test_meta = dataset.create_outlier_batch(
+        train=True, n_samples=n_test_samples, perc_outlier=perc_test_outlier, fair_sample=True)
 
     numeric_features = dataset.meta['numerical_features']
     binary_features = dataset.meta['binary_features']
@@ -87,6 +90,20 @@ def prepare_experiment_data(dataset, random_seed, sample_params):
     test_batch = Bunch(data=X_test,
                        target=y_test,
                        target_names=['normal', 'outlier'])
+
+    if log_root is not None:
+        # log ONLY META
+        log_root = Path(log_root)
+        name = dataset.name + f'_SAMPLE_RS_{random_seed}'
+        log_path = log_root/name
+        if not log_path.exists() or log_path.with_suffix('.zip').exists():
+            log_path.mkdir(parents=True)
+            if X_threshold_meta is not None:
+                X_threshold_meta.to_csv(log_path / 'X_threshold_meta.csv')
+            if X_test_meta is not None:
+                X_test_meta.to_csv(log_path / 'X_test_meta.csv')
+            shutil.make_archive(log_path, 'zip', log_root, name)
+            shutil.rmtree(log_path)
 
     return (train_normal_batch, threshold_batch, test_batch), preprocessor
 
@@ -166,6 +183,11 @@ def runner_fit_predict():
     else:
         random_seeds = [int(s) for s in args.seeds]
 
+    if args.log_sample_data_path is not None:
+        log_sample_data_path = Path(args.log_sample_data_path).resolve()
+    else:
+        log_sample_data_path = None
+
     for dataset_path in dataset_paths:
 
         logging.info(f'Loading dataset {dataset_path.name}')
@@ -173,7 +195,8 @@ def runner_fit_predict():
 
         for rs in random_seeds:
 
-            experiment_data, preprocessor = prepare_experiment_data(dataset, rs, DEFAULT_SAMPLE_PARAMS)
+            experiment_data, preprocessor = prepare_experiment_data(
+                dataset, rs, DEFAULT_SAMPLE_PARAMS, log_root=log_sample_data_path)
 
             for config_path in config_paths:
 
