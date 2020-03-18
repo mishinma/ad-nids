@@ -883,7 +883,7 @@ IOT_23_COLUMNS = [
     'label',
     'detailed_label',
     'scenario',
-    'target'
+    'target',
 ]
 
 
@@ -919,7 +919,7 @@ IOT_23_META_COLUMNS = [
     'dst_ip',
     'dst_port',
     'proto',
-    'history'
+    'history',
     'scenario',
     'detailed_label',
 ]
@@ -1089,7 +1089,7 @@ IOT_23_AGGR_FUNCTIONS = {
 IOT_23_AGGR_META_COLUMNS = [
     'src_ip',
     'time_window_start',
-    'scenario'
-    'detailed_label'
-    'target'
+    'scenario',
+    'detailed_label',
+    'target',
 ]
