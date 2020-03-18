@@ -882,6 +882,7 @@ IOT_23_COLUMNS = [
     'tunnel_parents',
     'label',
     'detailed_label',
+    'scenario',
     'target'
 ]
 

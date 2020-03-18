@@ -151,7 +151,9 @@ def cleanup_iot23(data_path):
         if last_row['ts'] == '#close':
             flows = flows.drop(last_row.name, axis=0)
 
+        flows['scenario'] = _parse_scenario_idx(path.name)
         flows = cleanup_iot23_flows(flows)
+
         flows.to_csv(path, index=False)
 
 
