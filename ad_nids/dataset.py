@@ -225,6 +225,7 @@ class Dataset:
         else:
             batch_meta = None
 
+        batch = batch.loc[:, self.data_columns]
         batch.drop(columns=['target'], inplace=True)
         return batch, is_outlier, batch_meta
 
