@@ -191,7 +191,7 @@ class Dataset:
 
         if include_meta:
             meta = self.train_meta if train else self.test_meta
-            data = pd.concat([data, meta])
+            data = pd.concat([data, meta], axis=1)
             data = data.loc[:, ~data.columns.duplicated()]  # if there are duplicate columns, like target
 
         # separate inlier and outlier data
@@ -215,13 +215,13 @@ class Dataset:
         else:
             batch_outlier = sample_df(outlier, n_outlier)
 
-        batch = pd.concat([batch_normal, batch_outlier])
+        batch = pd.concat([batch_normal, batch_outlier], axis=0)
         batch = batch.sample(frac=1)
 
         is_outlier = batch['target'].values
 
         if include_meta and self.meta_columns:
-            batch_meta = batch.loc[self.meta_columns]
+            batch_meta = batch.loc[:, self.meta_columns]
         else:
             batch_meta = None
 
