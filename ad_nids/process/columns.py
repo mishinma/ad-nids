@@ -1085,6 +1085,13 @@ IOT_23_AGGR_FUNCTIONS = {
     'target': lambda f: np.int(f['target'].sum() > 0),
 }
 
+IOT_23_AGGR_FEATURES = {k: NUMERICAL() for k in IOT_23_AGGR_FUNCTIONS
+                        if k not in ['target', 'detailed_label']}
+IOT_23_AGGR_FUNCTIONS['target'] = LABEL()
+
+IOT_23_AGGR_NUMERICAL_FEATURES = [f for f, t in IOT_23_AGGR_FEATURES.items()
+                                  if t.type == 'NUMERICAL']
+
 
 IOT_23_AGGR_META_COLUMNS = [
     'src_ip',

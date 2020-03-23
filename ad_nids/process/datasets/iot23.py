@@ -23,7 +23,8 @@ from ad_nids.utils.misc import set_seed
 from ad_nids.process.columns import IOT_23_ORIG_SCENARIO_NAME_MAPPING, IOT_23_ORIG_COLUMN_MAPPING, \
     IOT_23_HISTORY_LETTERS, IOT_23_REPLACE_EMPTY_ZERO_FEATURES, IOT_23_COLUMNS, IOT_23_META_COLUMNS,  \
     IOT_23_FEATURES, IOT_23_AGGR_COLUMNS, IOT_23_AGGR_FUNCTIONS, IOT_23_AGGR_META_COLUMNS, \
-    IOT_23_CATEGORICAL_FEATURE_MAP, IOT_23_BINARY_FEATURES, IOT_23_NUMERICAL_FEATURES
+    IOT_23_CATEGORICAL_FEATURE_MAP, IOT_23_BINARY_FEATURES, IOT_23_NUMERICAL_FEATURES,  \
+    IOT_23_AGGR_FEATURES, IOT_23_AGGR_NUMERICAL_FEATURES
 from ad_nids.report.general import BASE
 
 DATASET_NAME = 'IOT-23'
@@ -308,14 +309,14 @@ def create_dataset_iot23(dataset_path,
 
     if frequency is not None:
         name += '_AGGR_{}'.format(frequency)
-        feature_columns = list(IOT_23_AGGR_FUNCTIONS.keys())
+        feature_columns = list(IOT_23_AGGR_FEATURES.keys())
         meta_columns = IOT_23_AGGR_META_COLUMNS
         # all numerical
         features_info = {
             'categorical_feature_map': {},
             'categorical_features': [],
             'binary_features': [],
-            'numerical_features': [k for k in IOT_23_AGGR_FUNCTIONS.keys() if k != 'target']
+            'numerical_features': IOT_23_AGGR_NUMERICAL_FEATURES
         }
     else:
         feature_columns = list(IOT_23_FEATURES.keys())
