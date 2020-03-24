@@ -8,8 +8,7 @@ import numpy as np
 
 from alibi_detect.utils.visualize import plot_instance_score
 from ad_nids.utils.metrics import get_frontier
-from ad_nids.utils.plot import plot_precision_recall, \
-    plot_f1score, plot_data_2d, plot_frontier
+from ad_nids.utils.visualize import plot_precision_recall, plot_f1score, plot_data_2d, plot_frontier
 
 
 def get_log_dir(log_root_dir, config):
