@@ -113,7 +113,8 @@ def average_logs(log_root, log_root_ave):
     logging.info('Averaging the results in '.format(log_root))
     #  We average results and save in another log dir
     #  So that we can reuse report module for generating reports
-    config2logs = {}
+
+    log_records = []
 
     for log_dir in log_root.iterdir():
 
@@ -124,21 +125,27 @@ def average_logs(log_root, log_root_ave):
             continue
 
         config_name = 'conf_' + config['config_name'].split('_')[1]  # exclude random seed
-        config2logs.setdefault(config_name, []).append(log_dir)
+        dataset_name = config['dataset_name']
+        log_records.append((config_name, dataset_name, log_dir))
 
-    for config_name, log_dirs in config2logs.items():
+    log_records = pd.DataFrame.from_records(log_records,
+                                            columns=['config_name', 'dataset_name', 'dir'])
+    log_grouped = log_records.groupby(['dataset_name', 'config_name'])
+
+    for (dataset_name, config_name), log_grp in log_grouped:
 
         all_results = []
-        for log_dir in log_dirs:
+        for log_dir in log_grp['dir']:
             try:
                 with open(log_dir/'eval_results.json', 'r') as f:
-                            results = json.load(f)
+                    results = json.load(f)
             except FileNotFoundError:
                 continue
             all_results.append(results)
 
-        log_ave_dir = log_root_ave / ('_'.join(log_dirs[0].name.split('_')[:-1] + ['AVE']))
-        with open(log_dirs[0] / 'config.json', 'r') as f:
+        some_dir = log_grp.iloc[0]['dir']
+        log_ave_dir = log_root_ave / ('_'.join(some_dir.name.split('_')[:-1] + ['AVE']))
+        with open(some_dir / 'config.json', 'r') as f:
             config_ave = json.load(f)
         log_ave_dir.mkdir()
         ave_results = average_results(all_results)
