@@ -48,7 +48,7 @@ def prepare_experiment_data(dataset_path):
     X_threshold, y_threshold, _ = dataset.create_outlier_batch(train=True,
                                                                n_samples=THRESHOLD_BATCH_N_SAMPLES,
                                                                perc_outlier=THRESHOLD_BATCH_PERC_OUTLIER,
-                                                               fair_attack_sample=False, include_meta=False)
+                                                               fair_sample=False, include_meta=False)
     X_test = dataset.test.drop(columns=['target'])
     y_test = dataset.test['target'].values
 
