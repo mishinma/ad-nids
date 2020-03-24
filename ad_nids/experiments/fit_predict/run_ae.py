@@ -94,7 +94,7 @@ def run_ae(config, log_dir, experiment_data,
     # Compute anomaly scores for test
     logging.info('Computing test anomaly scores...')
     se = timer()
-    X_test_pred = od.predict(X_test)
+    X_test_pred = od.predict(X_test, batch_size=1e5)
     y_test_pred = X_test_pred['data']['is_outlier']
     time_score_test = timer() - se
     test_cm = confusion_matrix(y_test, y_test_pred)
