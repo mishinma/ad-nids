@@ -28,7 +28,8 @@ def _aggregate_scores_wkr(args):
 
 
 def log_plot_contiguous_scores(data, log_score_path, aggr_frequency=None,
-                               threshold=None, processes=8):
+                               threshold=None, processes=8, target_col='target',
+                               labels=None, mss=None, markers=None):
 
     data_sc_grp = data.groupby('scenario')
 
@@ -56,8 +57,9 @@ def log_plot_contiguous_scores(data, log_score_path, aggr_frequency=None,
         data_sc.to_csv(log_score_path/fname)
 
         fig, ax = plt.subplots(1, 1, figsize=(16, 10))
-        plot_instance_score(ax, scores=data_sc['instance_score'], target=data_sc['target'],
-                            idx=data_sc['min_start'], threshold=threshold, xlabel='Min from Start')
+        plot_instance_score(ax, scores=data_sc['instance_score'], target=data_sc[target_col],
+                            idx=data_sc['min_start'], threshold=threshold, xlabel='Min from Start',
+                            labels=labels, mss=mss, markers=markers)
         plot_fname = '{:02d}_scores.png'.format(sc)
         plt.savefig(str(log_score_path/plot_fname))
         plt.close()
@@ -65,7 +67,8 @@ def log_plot_contiguous_scores(data, log_score_path, aggr_frequency=None,
         logging.info('Done')
 
 
-def log_plot_random_scores(data, log_score_path, threshold=None):
+def log_plot_random_scores(data, log_score_path, threshold=None, target_col='target',
+                           labels=None, mss=None, markers=None):
 
     data_sc_grp = data.groupby('scenario')
 
@@ -77,8 +80,9 @@ def log_plot_random_scores(data, log_score_path, threshold=None):
 
         data_sc = data_sc.sample(frac=1)  # shuffle data points
         fig, ax = plt.subplots(1, 1, figsize=(16, 10))
-        plot_instance_score(ax, scores=data_sc['instance_score'], target=data_sc['target'],
-                            threshold=threshold, xlabel='Number of Instances')
+        plot_instance_score(ax, scores=data_sc['instance_score'], target=data_sc[target_col],
+                            threshold=threshold, xlabel='Number of Instances',
+                            labels=labels, mss=mss, markers=markers)
         plot_fname = '{:02d}_scores.png'.format(sc)
         plt.savefig(str(log_score_path/plot_fname))
         plt.close()
@@ -121,6 +125,16 @@ def create_scenario_score_log_path(log_path, dataset, train=True, test=True):
         data['target'] = preds['ground_truth']
         data['instance_score'] = np.nan_to_num(preds['instance_score'])
 
+        if data.meta.get('instance_score_plot_param') is not None:
+            plot_param = data.meta['instance_score_plot_param']
+        else:
+            plot_param = {
+                'target_col': 'target',
+                'labels': None,
+                'mss': None,
+                'markers': None,
+            }
+
         # so that we don't have negative scores
         offset = max(0, 1e-3 - data['instance_score'].min())
         data['instance_score'] += offset
@@ -142,14 +156,14 @@ def create_scenario_score_log_path(log_path, dataset, train=True, test=True):
                 name += f'_{frequency}'
             log_score_path = log_path/_set/name
             log_score_path.mkdir(exist_ok=True)
-            log_plot_random_scores(data, log_score_path, threshold=threshold)
+            log_plot_random_scores(data, log_score_path, threshold=threshold, **plot_param)
         else:
 
             if frequency == '3T':
                 # 3Min is the largest aggr window, no need to aggr
                 log_score_path = log_path / _set / f'scores_per_scenario_{frequency}'
                 log_score_path.mkdir(exist_ok=True)
-                log_plot_contiguous_scores(data, log_score_path, threshold=threshold)
+                log_plot_contiguous_scores(data, log_score_path, threshold=threshold, **plot_param)
             else:
                 # log plot two times: using the orig freq and aggr 3T
                 name = 'scores_per_scenario'
@@ -157,13 +171,13 @@ def create_scenario_score_log_path(log_path, dataset, train=True, test=True):
                     name += f'_{frequency}'
                 log_score_path = log_path / _set / name
                 log_score_path.mkdir(exist_ok=True)
-                log_plot_contiguous_scores(data, log_score_path, threshold=threshold)
+                log_plot_contiguous_scores(data, log_score_path, threshold=threshold, **plot_param)
 
                 aggr_frequency = '3T'
                 log_score_path = log_path / _set / f'scores_per_scenario_{aggr_frequency}'
                 log_score_path.mkdir(exist_ok=True)
                 log_plot_contiguous_scores(data, log_score_path, aggr_frequency=aggr_frequency,
-                                           threshold=threshold)
+                                           threshold=threshold, **plot_param)
 
 
 if __name__ == '__main__':

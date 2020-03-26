@@ -341,7 +341,7 @@ def create_dataset_iot23(dataset_path,
         'frequency': frequency,
         'train_scenarios': train_scenarios,
         'test_scenarios': test_scenarios,
-        'scenario_col': 'detailed_label',
+        'scenario_col': 'detailed_label',  # for fair sample
         'name': name
     }
     meta.update(features_info)
