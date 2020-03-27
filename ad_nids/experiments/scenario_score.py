@@ -10,6 +10,7 @@ from matplotlib import pyplot as plt
 from ad_nids.utils.visualize import plot_instance_score
 from ad_nids.utils.aggregate import aggregate_features_pool
 from ad_nids.dataset import Dataset
+from ad_nids.process.columns import detailed_label_aggr_fn
 
 
 def _aggregate_scores_wkr(args):
@@ -23,6 +24,9 @@ def _aggregate_scores_wkr(args):
         'target': np.int(grp['target'].sum() > 0),
         'is_outlier': np.int(grp['is_outlier'].sum() > 0),
     }
+
+    if 'detailed_label' in grp.columns:
+        record['detailed_label'] = detailed_label_aggr_fn(grp)
 
     return record
 

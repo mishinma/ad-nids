@@ -1008,7 +1008,7 @@ IOT_23_AGGR_COLUMNS = [
 ]
 
 
-def _detailed_label_aggr_fn(f):
+def detailed_label_aggr_fn(f):
 
     labels = dict(f['detailed_label'].value_counts())
     if '-' in labels:
@@ -1081,7 +1081,7 @@ IOT_23_AGGR_FUNCTIONS = {
     'resp_ip_bytes_max': lambda f: f['resp_ip_bytes'].max(),
     'resp_ip_bytes_std': lambda f: f['resp_ip_bytes'].std(),
     'resp_ip_bytes_median': lambda f: f['resp_ip_bytes'].median(),
-    'detailed_label': lambda f: _detailed_label_aggr_fn(f),
+    'detailed_label': lambda f: detailed_label_aggr_fn(f),
     'target': lambda f: np.int(f['target'].sum() > 0),
 }
 
