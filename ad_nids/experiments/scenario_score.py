@@ -125,7 +125,7 @@ def create_scenario_score_log_path(log_path, dataset, train=True, test=True):
         data['target'] = preds['ground_truth']
         data['instance_score'] = np.nan_to_num(preds['instance_score'])
 
-        if data.meta.get('instance_score_plot_param') is not None:
+        if dataset.meta.get('instance_score_plot_param') is not None:
             plot_param = data.meta['instance_score_plot_param']
         else:
             plot_param = {
