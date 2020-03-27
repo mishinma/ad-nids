@@ -25,6 +25,7 @@ def _aggregate_scores_wkr(args):
         'is_outlier': np.int(grp['is_outlier'].sum() > 0),
     }
 
+    # This if for IOT23
     if 'detailed_label' in grp.columns:
         record['detailed_label'] = detailed_label_aggr_fn(grp)
 
