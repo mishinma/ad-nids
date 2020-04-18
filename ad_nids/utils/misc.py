@@ -142,7 +142,7 @@ def average_results(results):
 
 def performance_asdict(cm, prf1s):
 
-    tn, fp, fn, tp = np.array(cm).ravel()
+    tn, fp, fn, tp = map(int, np.array(cm).ravel())
 
     p = tp + fn
     n = tn + fp
@@ -153,9 +153,9 @@ def performance_asdict(cm, prf1s):
         tp=tp,
         fp=fp,
         fn=fn,
-        precision=round(prf1s[0], 2),
-        recall=round(prf1s[1], 2),
-        f1score=round(prf1s[2], 2),
+        precision=round(prf1s[0], 4),
+        recall=round(prf1s[1], 4),
+        f1score=round(prf1s[2], 4),
     )
 
     return perf
