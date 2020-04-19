@@ -46,12 +46,13 @@ def run_mahalanobis(config, log_dir, experiment_data,
             threshold=None,
             n_components=config['n_components'],
             std_clip=config['std_clip'],
-            start_clip=config['start_clip']
+            start_clip=config['start_clip'],
+            max_n=X_threshold.shape[0]
         )
         time_fit = timer() - se
         logging.info(f'Done: {time_fit}')
 
-    # Compute the anomaly scores for train with anomalies
+    # Compute the anomaly scores for train  anomalies
     # Select a threshold that maximises F1 Score
     logging.info(f'Selecting the optimal threshold...')
     se = timer()
