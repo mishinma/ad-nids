@@ -75,7 +75,10 @@ def run_mahalanobis(config, log_dir, experiment_data,
     # Compute anomaly scores for test
     logging.info('Computing test anomaly scores...')
     se = timer()
-    X_test_pred = predict_batch(od, X_test, batch_size=10000)
+    if X_test.shape[0] > int(1e5):
+        X_test_pred = predict_batch(od, X_test, batch_size=int(1e5))
+    else:
+        X_test_pred = od.predict(X_test)
     y_test_pred = X_test_pred['data']['is_outlier']
     time_score_test = timer() - se
     test_cm = confusion_matrix(y_test, y_test_pred)
