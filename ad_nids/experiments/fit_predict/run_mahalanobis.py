@@ -47,7 +47,6 @@ def run_mahalanobis(config, log_dir, experiment_data,
             n_components=config['n_components'],
             std_clip=config['std_clip'],
             start_clip=config['start_clip'],
-            max_n=X_threshold.shape[0]
         )
         time_fit = timer() - se
         logging.info(f'Done: {time_fit}')
