@@ -9,6 +9,8 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 
+from alibi_detect.utils.saving import load_detector
+
 
 def set_seed(s=0):
     np.random.seed(s)
@@ -98,6 +100,19 @@ def predict_batch(od, X, batch_size=1024):
     X = batch_gen(X, batch_size=batch_size)
     pred = None
     for batch in X:
+        batch_pred = od.predict(batch)
+        if pred is not None:
+            concatenate_preds(pred, batch_pred)
+        else:
+            pred = batch_pred
+    return pred
+
+
+def predict_batch_reload(log_path, X, batch_size=1024):
+    X = batch_gen(X, batch_size=batch_size)
+    pred = None
+    for batch in X:
+        od = load_detector(str(log_path/'detector'))
         batch_pred = od.predict(batch)
         if pred is not None:
             concatenate_preds(pred, batch_pred)
