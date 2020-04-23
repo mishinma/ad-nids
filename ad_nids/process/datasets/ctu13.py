@@ -24,7 +24,7 @@ from ad_nids.process.columns import CTU_13_ORIG_COLUMN_MAPPING, TCP_FLAGS, CTU_1
     CTU_13_CATEGORICAL_FEATURE_MAP, CTU_13_NUMERICAL_FEATURES, \
     CTU_13_AGGR_COLUMNS, CTU_13_AGGR_FUNCTIONS, CTU_13_AGGR_META_COLUMNS
 from ad_nids.report.general import BASE
-from ad_nids.utils.misc import is_valid_ip
+from ad_nids.utils.misc import is_valid_ip, sample_df, fair_attack_sample
 
 DATASET_NAME = 'CTU-13'
 
@@ -32,6 +32,11 @@ TOTAL_SCENARIOS = 13
 ORIG_TRAIN_SCENARIOS = [3, 4, 5, 7, 10, 11, 12, 13]
 ORIG_TEST_SCENARIOS = [1, 2, 6, 8, 9]
 ALL_SCENARIOS = list(range(1, TOTAL_SCENARIOS + 1))
+
+THRESHOLD_BATCH_N_SAMPLES = 10000
+THRESHOLD_BATCH_PERC_OUTLIER = 5
+TEST_BATCH_PERC_OUTLIER = 10
+PREPARE_DATA_RANDOM_SEED = 42
 
 
 def download_ctu13(data_path):
@@ -252,7 +257,35 @@ def create_dataset_ctu13(dataset_path,
         )
         data_paths = [dataset_path / '{:02d}.csv'.format(i) for i in ALL_SCENARIOS]
         data = pd.concat([pd.read_csv(p) for p in data_paths])
-        train, test = train_test_split(data, test_size=test_size, random_state=random_seed)
+        data_outlier_idx = data['target'] == 1
+        data_outlier = data.loc[data_outlier_idx]
+        data_normal = data.loc[~data_outlier_idx]
+
+        # take:  test_size normal, (1 - test_size) outlier
+        train_normal, test_normal = train_test_split(data_normal,
+                                                     test_size=test_size,
+                                                     random_state=random_seed)
+        train_outlier, test_outlier = train_test_split(data_outlier,
+                                                       test_size=(1 - test_size),
+                                                       random_state=random_seed)
+
+        # Construct the threshold batch
+        threshold_n_samples = THRESHOLD_BATCH_N_SAMPLES
+        threshold_perc_outlier = THRESHOLD_BATCH_PERC_OUTLIER
+        threshold_n_outlier_samples = int(threshold_n_samples * .01 * threshold_perc_outlier)
+        threshold_n_normal_samples = threshold_n_samples - threshold_n_outlier_samples
+        threshold_normal = sample_df(train_normal, threshold_n_normal_samples)
+        threshold_outlier = fair_attack_sample(train_outlier, threshold_n_outlier_samples)
+
+        # Resample the test batch
+        test_perc_outlier = TEST_BATCH_PERC_OUTLIER
+        test_n_normal_samples = test_normal.shape[0]
+        test_n_outlier_samples = int(test_n_normal_samples * test_perc_outlier / (100 - test_perc_outlier))
+        test_outlier = fair_attack_sample(test_outlier, test_n_outlier_samples)
+
+        train = train_normal.sample(frac=1)
+        threshold = pd.concat([threshold_normal, threshold_outlier], axis=0).sample(frac=1)
+        test = pd.concat([test_normal, test_outlier], axis=0).sample(frac=1)
 
     else:
         name = '{}_TRAIN_{}_TEST_{}'.format(
@@ -264,6 +297,22 @@ def create_dataset_ctu13(dataset_path,
         train_paths = [dataset_path / '{:02d}.csv'.format(i) for i in train_scenarios]
         test_paths = [dataset_path / '{:02d}.csv'.format(i) for i in test_scenarios]
         train = pd.concat([pd.read_csv(p) for p in train_paths])
+
+        # Create threshold and clean test
+        train_outlier_idx = train['target'] == 1
+        train_outlier = train.loc[train_outlier_idx]
+        train_normal = train.loc[~train_outlier_idx]
+
+        # Construct the threshold batch
+        threshold_n_samples = THRESHOLD_BATCH_N_SAMPLES
+        threshold_perc_outlier = THRESHOLD_BATCH_PERC_OUTLIER
+        threshold_n_outlier_samples = int(threshold_n_samples * .01 * threshold_perc_outlier)
+        threshold_n_normal_samples = threshold_n_samples - threshold_n_outlier_samples
+        threshold_normal = sample_df(train_normal, threshold_n_normal_samples)
+        threshold_outlier = fair_attack_sample(train_outlier, threshold_n_outlier_samples)
+
+        train = train_normal
+        threshold = pd.concat([threshold_normal, threshold_outlier], axis=0).sample(frac=1)
         test = pd.concat([pd.read_csv(p) for p in test_paths])
 
     if frequency is not None:
@@ -291,6 +340,8 @@ def create_dataset_ctu13(dataset_path,
     train = train.loc[:, feature_columns]
     test_meta = test.loc[:, meta_columns]
     test = test.loc[:, feature_columns]
+    threshold_meta = threshold.loc[:, meta_columns]
+    threshold = threshold.loc[:, feature_columns]
 
     meta = {
         'data_hash': None,
@@ -304,8 +355,8 @@ def create_dataset_ctu13(dataset_path,
     }
     meta.update(features_info)
 
-    dataset = Dataset(train, test, train_meta, test_meta, meta,
-                      create_hash=create_hash)
+    dataset = Dataset(train, threshold, test, train_meta, threshold_meta,
+                      test_meta, meta, create_hash=False)
 
     logging.info('Done!')
 
