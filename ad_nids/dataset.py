@@ -250,7 +250,7 @@ class Dataset:
 
         for _set in ['test', 'train', 'threshold']:
 
-            print('{} batch'.format(_set.upper))
+            print('{} batch'.format(_set.upper()))
 
             if _set == 'train':
                 data = self.train
@@ -261,9 +261,9 @@ class Dataset:
 
             n = data.shape[0]
             n_outlier = np.sum(data['target'])
-            normal = n - n_outlier
-            print('N_normal {}, {:.02f}'.format(normal, normal / n))
-            print('N_outlier {}, {:.02f}'.format(normal, normal / n))
+            n_normal = n - n_outlier
+            print('N_normal {}, {:.02f}'.format(n_normal, n_normal / n))
+            print('N_outlier {}, {:.02f}'.format(n_outlier, n_outlier / n))
             print()
 
     def visualize(self, ax, _set='test'):
