@@ -193,6 +193,8 @@ class Dataset:
                 prerocessor = pickle.load(f)
             dset.preprocessor = prerocessor
 
+        return dset
+
     def _create_hash(self):
         data_hash = hash_from_frames([self.train, self.test])
         self.meta['data_hash'] = data_hash
