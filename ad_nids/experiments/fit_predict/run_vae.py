@@ -72,9 +72,9 @@ def run_vae(config, log_dir, experiment_data, contam_percs=None,
         num_epochs = config['num_epochs']
         batch_size = config['batch_size']
         if X_train.shape[0] > num_epochs * batch_size * EPOCH_SIZE:
-            epoch_size = None
-        else:
             epoch_size = EPOCH_SIZE
+        else:
+            epoch_size = None
 
         trainer(od.vae, elbo, train_gen, X_val=X_threshold[y_threshold == 0], loss_fn_kwargs=loss_fn_kwargs,
                 epochs=config['num_epochs'], epoch_size=epoch_size,
