@@ -44,9 +44,9 @@ def run_mahalanobis(config, log_dir, experiment_data,
         se = timer()
         od = Mahalanobis(
             threshold=None,
-            n_components=config['n_components'],
-            std_clip=config['std_clip'],
-            start_clip=config['start_clip'],
+            n_components=config['n_components']
+            # std_clip=config['std_clip'],
+            # start_clip=config['start_clip'],
         )
         time_fit = timer() - se
         logging.info(f'Done: {time_fit}')

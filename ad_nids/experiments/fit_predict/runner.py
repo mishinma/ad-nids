@@ -96,8 +96,7 @@ def runner_fit_predict():
 
     for dataset_path in dataset_paths:
 
-        set_seed(PREPARE_DATA_RANDOM_SEED)
-        experiment_data, preprocessor = prepare_experiment_data(dataset_path)
+        experiment_data = prepare_experiment_data(dataset_path)
 
         for config_path in config_paths:
 
@@ -115,15 +114,10 @@ def runner_fit_predict():
                     continue
 
                 config = config.to_dict()
-                logging.info(f'Starting {config["config_name"]}')
-                logging.info(json.dumps(config, indent=2))
-
                 num_tries = config.get('num_tries', 1)
 
                 log_dir = get_log_dir(log_root, config)
                 log_dir.mkdir()
-                with open(log_dir / 'transformer.pickle', 'wb') as f:
-                    pickle.dump(preprocessor, f)
                 log_config(log_dir, config)
 
                 # Create a directory to store experiment logs

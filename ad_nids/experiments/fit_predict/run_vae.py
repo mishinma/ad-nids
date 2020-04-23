@@ -101,7 +101,7 @@ def run_vae(config, log_dir, experiment_data, contam_percs=None,
     # Compute anomaly scores for test
     logging.info('Computing test anomaly scores...')
     se = timer()
-    X_test_pred = od.predict(X_test, batch_size=int(1e5))
+    X_test_pred = od.predict(X_test, batch_size=int(1e4))
     X_test_pred['data']['feature_score'] = np.nan_to_num(X_test_pred['data']['feature_score'])
     X_test_pred['data']['instance_score'] = np.nan_to_num(X_test_pred['data']['instance_score'])
     y_test_pred = X_test_pred['data']['is_outlier']
