@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
+# from PIL import Image
 
 from alibi_detect.utils.data import create_outlier_batch
 
@@ -253,18 +254,17 @@ class Dataset:
             print('{} batch'.format(_set.upper()))
 
             if _set == 'train':
-                data = self.train
+                data = self.train_meta
             elif _set == 'threshold':
-                data = self.threshold
+                data = self.threshold_meta
             else:
-                data = self.test
+                data = self.test_meta
 
             n = data.shape[0]
             n_outlier = np.sum(data['target'])
             n_normal = n - n_outlier
             print('N_normal {}, {:.02f}'.format(n_normal, n_normal / n))
             print('N_outlier {}, {:.02f}'.format(n_outlier, n_outlier / n))
-            print()
 
     def visualize(self, ax, _set='test'):
 
@@ -316,7 +316,7 @@ class Dataset:
         meta_path = dataset_path / 'meta.json'
 
         self.train.to_csv(train_path, index=False)
-        self.threshold.to_csv(train_path, index=False)
+        self.threshold.to_csv(threshold_path, index=False)
         self.test.to_csv(test_path, index=False)
 
         if not self.train_meta.empty:

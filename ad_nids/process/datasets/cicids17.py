@@ -408,6 +408,7 @@ def create_dataset_cicids17(dataset_path,
         'frequency': frequency,
         'train_scenarios': train_scenarios,
         'test_scenarios': test_scenarios,
+        'scenario_col': 'scenario',
         'name': name
     }
     meta.update(features_info)
