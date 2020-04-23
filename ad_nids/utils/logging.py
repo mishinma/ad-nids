@@ -94,7 +94,7 @@ def log_plot_instance_score(log_dir, detector_preds, y_true,
                             detector_threshold, train=False):
 
     fig, ax = plt.subplots(1, 1)
-    plot_instance_score(ax, detector_preds['data']['instance_scores'],
+    plot_instance_score(ax, detector_preds['data']['instance_score'],
                         y_true, threshold=detector_threshold)
     set_ = 'train_' if train else 'test_'
     filename = set_ + 'instance_score.png'

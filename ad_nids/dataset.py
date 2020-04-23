@@ -366,7 +366,7 @@ class Dataset:
             self.test_meta.to_csv(test_meta_path, index=False)
 
         if self.preprocessor is not None:
-            with open(dataset_path/'transformer.pickle', 'wb') as f:
+            with open(dataset_path/'preprocessor.pickle', 'wb') as f:
                 pickle.dump(self.preprocessor, f)
 
         with open(meta_path, 'w') as f:
