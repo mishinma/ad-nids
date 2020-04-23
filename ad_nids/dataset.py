@@ -177,12 +177,6 @@ class Dataset:
             with open(meta_path, 'r') as f:
                 meta = json.load(f)
 
-        meta_path = dataset_path / 'meta.json'
-        meta = None
-        if meta_path.exists():
-            with open(meta_path, 'r') as f:
-                meta = json.load(f)
-
         dset = Dataset(train, threshold, test, train_meta, threshold_meta, test_meta, meta,
                        create_hash=False, create_preprocessor=False)
 
