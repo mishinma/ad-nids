@@ -199,6 +199,7 @@ CTU_13_META_COLUMNS = [
     'state',
     'scenario',
     'label',
+    'target'
 ]
 
 # numerical:  mean, min, max, std, median
@@ -285,7 +286,8 @@ CTU_13_AGGR_FUNCTIONS = {
 CTU_13_AGGR_META_COLUMNS = [
     'src_ip',
     'time_window_start',
-    'scenario'
+    'scenario',
+    'target'
 ]
 
 
@@ -556,6 +558,7 @@ CIC_IDS2017_META_COLUMNS = [
     'scenario',
     'label_orig',
     'label',
+    'target'
 ]
 
 # numerical:  mean, min, max, std, median
@@ -669,7 +672,8 @@ CIC_IDS2017_AGGR_FUNCTIONS = {
 CIC_IDS2017_AGGR_META_COLUMNS = [
     'src_ip',
     'time_window_start',
-    'scenario'
+    'scenario',
+    'target'
 ]
 
 
@@ -922,6 +926,7 @@ IOT_23_META_COLUMNS = [
     'history',
     'scenario',
     'detailed_label',
+    'target'
 ]
 
 

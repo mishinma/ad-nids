@@ -20,13 +20,14 @@ from sklearn.model_selection import train_test_split
 from ad_nids.utils.aggregate import aggregate_features_pool
 from ad_nids.utils.exception import DownloadError
 from ad_nids.dataset import Dataset
-from ad_nids.utils.misc import is_valid_ip
+from ad_nids.utils.misc import is_valid_ip, sample_df, fair_attack_sample
 from ad_nids.process.columns import CIC_IDS2017_COLUMN_MAPPING, CIC_IDS2017_ATTACK_LABELS, \
     CIC_IDS2017_FEATURES, CIC_IDS2017_META_COLUMNS, \
     CIC_IDS2017_BINARY_FEATURES, CIC_IDS2017_CATEGORICAL_FEATURE_MAP, CIC_IDS2017_NUMERICAL_FEATURES, \
     CIC_IDS2017_AGGR_FUNCTIONS, CIC_IDS2017_AGGR_COLUMNS, CIC_IDS2017_AGGR_META_COLUMNS, \
     CIC_IDS2017_PROTOCOL_MAPPING
 from ad_nids.report.general import BASE
+from ad_nids.utils.misc import set_seed
 
 
 DATASET_NAME = 'CIC-IDS2017'
@@ -35,6 +36,11 @@ TOTAL_SCENARIOS = 8
 ORIG_TRAIN_SCENARIOS = [3, 0, 1, 5]
 ORIG_TEST_SCENARIOS = [2, 4, 6, 7]
 ALL_SCENARIOS = list(range(TOTAL_SCENARIOS))
+
+THRESHOLD_BATCH_N_SAMPLES = 10000
+THRESHOLD_BATCH_PERC_OUTLIER = 5
+TEST_BATCH_PERC_OUTLIER = 10
+PREPARE_DATA_RANDOM_SEED = 42
 
 
 def _parse_scenario(name):
@@ -300,12 +306,40 @@ def create_dataset_cicids17(dataset_path,
 
     if random_seed is not None:
 
+        set_seed(random_seed)
         name = '{}_TEST_SIZE_{}_RANDOM_SEED_{}'.format(
             DATASET_NAME, test_size, random_seed
         )
-        data_paths = list(dataset_path.iterdir())
-        data = pd.concat([pd.read_csv(p) for p in data_paths])
-        train, test = train_test_split(data, test_size=test_size, random_state=random_seed)
+        data = pd.concat([pd.read_csv(p) for p in dataset_path.iterdir()])
+        data_outlier_idx = data['target'] == 1
+        data_outlier = data.loc[data_outlier_idx]
+        data_normal = data.loc[~data_outlier_idx]
+
+        # take:  test_size normal, (1 - test_size) outlier
+        train_normal, test_normal = train_test_split(data_normal,
+                                                     test_size=test_size,
+                                                     random_state=random_seed)
+        train_outlier, test_outlier = train_test_split(data_outlier,
+                                                       test_size=(1 - test_size),
+                                                       random_state=random_seed)
+
+        # Construct the threshold batch
+        threshold_n_samples = THRESHOLD_BATCH_N_SAMPLES
+        threshold_perc_outlier = THRESHOLD_BATCH_PERC_OUTLIER
+        threshold_n_outlier_samples = int(threshold_n_samples * .01 * threshold_perc_outlier)
+        threshold_n_normal_samples = threshold_n_samples - threshold_n_outlier_samples
+        threshold_normal = sample_df(train_normal, threshold_n_normal_samples)
+        threshold_outlier = fair_attack_sample(train_outlier, threshold_n_outlier_samples)
+
+        # Resample the test batch
+        test_perc_outlier = TEST_BATCH_PERC_OUTLIER
+        test_n_normal_samples = test_normal.shape[0]
+        test_n_outlier_samples = int(test_n_normal_samples * test_perc_outlier / (100 - test_perc_outlier))
+        test_outlier = fair_attack_sample(test_outlier, test_n_outlier_samples)
+
+        train = train_normal.sample(frac=1)
+        threshold = pd.concat([threshold_normal, threshold_outlier], axis=0).sample(frac=1)
+        test = pd.concat([test_normal, test_outlier], axis=0).sample(frac=1)
 
     else:
         name = '{}_TRAIN_{}_TEST_{}'.format(
@@ -319,7 +353,25 @@ def create_dataset_cicids17(dataset_path,
         test_paths = [p for p in dataset_path.iterdir()
                        if _parse_scenario(p.name) in test_scenarios]
         train = pd.concat([pd.read_csv(p) for p in train_paths])
+
+        # Create threshold and clean test
+        train_outlier_idx = train['target'] == 1
+        train_outlier = train.loc[train_outlier_idx]
+        train_normal = train.loc[~train_outlier_idx]
+
+        # Construct the threshold batch
+        threshold_n_samples = THRESHOLD_BATCH_N_SAMPLES
+        threshold_perc_outlier = THRESHOLD_BATCH_PERC_OUTLIER
+        threshold_n_outlier_samples = int(threshold_n_samples * .01 * threshold_perc_outlier)
+        threshold_n_normal_samples = threshold_n_samples - threshold_n_outlier_samples
+        threshold_normal = sample_df(train_normal, threshold_n_normal_samples)
+        threshold_outlier = fair_attack_sample(train_outlier, threshold_n_outlier_samples)
+
+        train = train_normal
+        threshold = pd.concat([threshold_normal, threshold_outlier], axis=0).sample(frac=1)
         test = pd.concat([pd.read_csv(p) for p in test_paths])
+
+
 
     if frequency is not None:
         name += '_AGGR_{}'.format(frequency)
@@ -345,6 +397,8 @@ def create_dataset_cicids17(dataset_path,
     train = train.loc[:, feature_columns]
     test_meta = test.loc[:, meta_columns]
     test = test.loc[:, feature_columns]
+    threshold_meta = threshold.loc[:, meta_columns]
+    threshold = threshold.loc[:, feature_columns]
 
     meta = {
         'data_hash': None,
@@ -358,8 +412,7 @@ def create_dataset_cicids17(dataset_path,
     }
     meta.update(features_info)
 
-    dataset = Dataset(train, test, train_meta, test_meta, meta,
-                      create_hash=create_hash)
+    dataset = Dataset(train, threshold, test, train_meta, threshold_meta, test_meta, meta)
 
     logging.info('Done!')
 
