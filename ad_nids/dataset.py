@@ -89,11 +89,13 @@ def hash_from_paths(paths):
 
 class Dataset:
 
-    def __init__(self, train, test, train_meta=None, test_meta=None,
-                 meta=None, create_hash=True):
+    def __init__(self, train, threshold, test, train_meta=None, threshold_meta=None, test_meta=None,
+                 meta=None, create_hash=False):
 
         self.train = train
+        self.threshold = threshold
         self.test = test
+
         if train_meta is not None:
             self.train_meta = train_meta
         else:
@@ -103,6 +105,11 @@ class Dataset:
             self.test_meta = test_meta
         else:
             self.test_meta = pd.DataFrame()
+
+        if threshold_meta is not None:
+            self.threshold_meta = threshold_meta
+        else:
+            self.threshold_meta = pd.DataFrame()
 
         if meta is not None:
             self.meta = meta
@@ -133,9 +140,11 @@ class Dataset:
 
         if not only_meta:
             train = pd.read_csv(dataset_path / 'train.csv')
+            threshold = pd.read_csv(dataset_path / 'threshold.csv')
             test = pd.read_csv(dataset_path / 'test.csv')
         else:
             train = pd.DataFrame()
+            threshold = pd.DataFrame()
             test = pd.DataFrame()
 
         train_meta_path = dataset_path / 'train-meta.csv'
@@ -148,13 +157,18 @@ class Dataset:
         if test_meta_path.exists():
             test_meta = pd.read_csv(test_meta_path)
 
+        threshold_meta_path = dataset_path / 'threshold-meta.csv'
+        threshold_meta = None
+        if threshold_meta_path.exists():
+            threshold_meta = pd.read_csv(threshold_meta_path)
+
         meta_path = dataset_path / 'meta.json'
         meta = None
         if meta_path.exists():
             with open(meta_path, 'r') as f:
                 meta = json.load(f)
 
-        return Dataset(train, test, train_meta, test_meta, meta, create_hash=False)
+        return Dataset(train, threshold, test, train_meta, threshold_meta, test_meta, meta, create_hash=False)
 
     def _create_hash(self):
         data_hash = hash_from_frames([self.train, self.test])
@@ -183,55 +197,60 @@ class Dataset:
     def data_columns(self):
         return list(self.train.columns)
 
-    def create_outlier_batch(self, n_samples, perc_outlier, train=True,
-                             fair_sample=True, include_meta=True):
-        """ Create a batch with a defined percentage of outliers. """
+    # def create_outlier_batch(self, n_samples, perc_outlier, train=True,
+    #                          fair_sample=True, include_meta=True):
+    #     """ Create a batch with a defined percentage of outliers. """
+    #
+    #     data = self.train if train else self.test
+    #
+    #     if include_meta:
+    #         meta = self.train_meta if train else self.test_meta
+    #         data = pd.concat([data, meta], axis=1)
+    #         data = data.loc[:, ~data.columns.duplicated()]  # if there are duplicate columns, like target
+    #
+    #     # separate inlier and outlier data
+    #     normal = data[data['target'] == 0]
+    #     outlier = data[data['target'] == 1]
+    #
+    #     if n_samples == 1:
+    #         n_outlier = np.random.binomial(1, .01 * perc_outlier)
+    #         n_normal = 1 - n_outlier
+    #     else:
+    #         n_outlier = int(perc_outlier * .01 * n_samples)
+    #         n_normal = int((100 - perc_outlier) * .01 * n_samples)
+    #
+    #     # draw samples
+    #     batch_normal = sample_df(normal, n_normal)
+    #
+    #     if fair_sample:
+    #         scenario_col = self.meta.get('scenario_col')
+    #         assert scenario_col is not None
+    #         batch_outlier = fair_attack_sample(outlier, num_sample=n_outlier, scenario_col=scenario_col)
+    #     else:
+    #         batch_outlier = sample_df(outlier, n_outlier)
+    #
+    #     batch = pd.concat([batch_normal, batch_outlier], axis=0)
+    #     batch = batch.sample(frac=1)
+    #
+    #     is_outlier = batch['target'].values
+    #
+    #     if include_meta and self.meta_columns:
+    #         batch_meta = batch.loc[:, self.meta_columns]
+    #     else:
+    #         batch_meta = None
+    #
+    #     batch = batch.loc[:, self.data_columns]
+    #     batch.drop(columns=['target'], inplace=True)
+    #     return batch, is_outlier, batch_meta
 
-        data = self.train if train else self.test
+    def visualize(self, ax, _set='test'):
 
-        if include_meta:
-            meta = self.train_meta if train else self.test_meta
-            data = pd.concat([data, meta], axis=1)
-            data = data.loc[:, ~data.columns.duplicated()]  # if there are duplicate columns, like target
-
-        # separate inlier and outlier data
-        normal = data[data['target'] == 0]
-        outlier = data[data['target'] == 1]
-
-        if n_samples == 1:
-            n_outlier = np.random.binomial(1, .01 * perc_outlier)
-            n_normal = 1 - n_outlier
+        if _set == 'train':
+            data = self.train
+        elif _set == 'threshold':
+            data = self.threshold
         else:
-            n_outlier = int(perc_outlier * .01 * n_samples)
-            n_normal = int((100 - perc_outlier) * .01 * n_samples)
-
-        # draw samples
-        batch_normal = sample_df(normal, n_normal)
-
-        if fair_sample:
-            scenario_col = self.meta.get('scenario_col')
-            assert scenario_col is not None
-            batch_outlier = fair_attack_sample(outlier, num_sample=n_outlier, scenario_col=scenario_col)
-        else:
-            batch_outlier = sample_df(outlier, n_outlier)
-
-        batch = pd.concat([batch_normal, batch_outlier], axis=0)
-        batch = batch.sample(frac=1)
-
-        is_outlier = batch['target'].values
-
-        if include_meta and self.meta_columns:
-            batch_meta = batch.loc[:, self.meta_columns]
-        else:
-            batch_meta = None
-
-        batch = batch.loc[:, self.data_columns]
-        batch.drop(columns=['target'], inplace=True)
-        return batch, is_outlier, batch_meta
-
-    def visualize(self, ax, train=True):
-
-        data = self.train if train else self.test
+            data = self.test
 
         targets = data.loc[:, "target"]
 
@@ -250,8 +269,7 @@ class Dataset:
         X_norm, X_anom = X[y], X[~y]
         plot_data_2d(ax, X_norm, X_anom)
 
-        title = 'Train data' if train else 'Test data'
-        ax.set_title(title)
+        ax.set_title(f'{_set} data')
 
     def write_to(self, root_path, archive=False, overwrite=False, visualize=False):
 
@@ -267,16 +285,22 @@ class Dataset:
         dataset_path.mkdir(parents=True, exist_ok=True)
 
         train_path = dataset_path / 'train.csv'
+        threshold_path = dataset_path / 'threshold.csv'
         test_path = dataset_path / 'test.csv'
         train_meta_path = dataset_path / 'train-meta.csv'
+        threshold_meta_path = dataset_path / 'threshold-meta.csv'
         test_meta_path = dataset_path / 'test-meta.csv'
         meta_path = dataset_path / 'meta.json'
 
         self.train.to_csv(train_path, index=False)
+        self.threshold.to_csv(train_path, index=False)
         self.test.to_csv(test_path, index=False)
 
         if not self.train_meta.empty:
             self.train_meta.to_csv(train_meta_path, index=False)
+
+        if not self.threshold_meta.empty:
+            self.threshold_meta.to_csv(threshold_meta_path, index=False)
 
         if not self.test_meta.empty:
             self.test_meta.to_csv(test_meta_path, index=False)
@@ -288,8 +312,8 @@ class Dataset:
             logging.info('Visualizing the data')
             fig, ax = plt.subplots(1, 2)
             try:
-                self.visualize(ax[0], train=True)
-                self.visualize(ax[1], train=False)
+                self.visualize(ax[0], _set='threshold')
+                self.visualize(ax[1], _set='test')
             except Exception as e:
                 logging.exception("Failed to visualize_data")
             fig.savefig(dataset_path / 'data.png')
