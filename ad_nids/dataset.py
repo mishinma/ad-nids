@@ -177,7 +177,21 @@ class Dataset:
             with open(meta_path, 'r') as f:
                 meta = json.load(f)
 
-        return Dataset(train, threshold, test, train_meta, threshold_meta, test_meta, meta, create_hash=False)
+        meta_path = dataset_path / 'meta.json'
+        meta = None
+        if meta_path.exists():
+            with open(meta_path, 'r') as f:
+                meta = json.load(f)
+
+        dset = Dataset(train, threshold, test, train_meta, threshold_meta, test_meta, meta,
+                       create_hash=False, create_preprocessor=False)
+
+        # load preprocessor
+        prerocessor_path = dataset_path / 'preprocessor.pickle'
+        if prerocessor_path.exists():
+            with open(prerocessor_path, 'rb') as f:
+                prerocessor = pickle.load(f)
+            dset.preprocessor = prerocessor
 
     def _create_hash(self):
         data_hash = hash_from_frames([self.train, self.test])

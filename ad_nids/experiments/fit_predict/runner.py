@@ -39,35 +39,18 @@ def parser_fit_predict():
 def prepare_experiment_data(dataset_path):
 
     logging.info(f'Loading dataset {dataset_path.name}')
-    dataset = Dataset.from_path(dataset_path)
+    dset = Dataset.from_path(dataset_path)
 
-    X_train = dataset.train.loc[dataset.train["target"] == 0]
-    X_train = X_train.drop(columns=['target'])
-    y_train = np.zeros((X_train.shape[0],), dtype=np.int)
+    X_train = dset.train.drop(columns=['target'])
+    y_train = dset.train['target'].values
+    X_threshold = dset.threshold.drop(columns=['target'])
+    y_threshold = dset.threshold['target'].values
+    X_test = dset.test.drop(columns=['target'])
+    y_test = dset.test['target'].values
 
-    X_threshold, y_threshold, _ = dataset.create_outlier_batch(train=True,
-                                                               n_samples=THRESHOLD_BATCH_N_SAMPLES,
-                                                               perc_outlier=THRESHOLD_BATCH_PERC_OUTLIER,
-                                                               fair_sample=False, include_meta=False)
-    X_test = dataset.test.drop(columns=['target'])
-    y_test = dataset.test['target'].values
-
-    numeric_features = dataset.meta['numerical_features']
-    binary_features = dataset.meta['binary_features']
-    categorical_feature_map = dataset.meta['categorical_feature_map']
-
-    # normalize
-    preprocessor = ColumnTransformer([
-        ('cat', OneHotEncoder(categories=list(categorical_feature_map.values())),
-         list(categorical_feature_map.keys())),
-        ('bin', FunctionTransformer(), binary_features),
-        ('num', StandardScaler(), numeric_features),
-    ])
-
-    preprocessor.fit(X_train)
-    X_train = preprocessor.transform(X_train).astype(np.float32)
-    X_threshold = preprocessor.transform(X_threshold).astype(np.float32)
-    X_test = preprocessor.transform(X_test).astype(np.float32)
+    X_train = dset.preprocessor.transform(X_train).astype(np.float32)
+    X_threshold = dset.preprocessor.transform(X_threshold).astype(np.float32)
+    X_test = dset.preprocessor.transform(X_test).astype(np.float32)
 
     train_normal_batch = Bunch(data=X_train,
                                target=y_train,
@@ -79,7 +62,7 @@ def prepare_experiment_data(dataset_path):
                        target=y_test,
                        target_names=['normal', 'outlier'])
 
-    return (train_normal_batch, threshold_batch, test_batch), preprocessor
+    return train_normal_batch, threshold_batch, test_batch
 
 
 def runner_fit_predict():
