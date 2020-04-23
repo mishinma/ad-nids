@@ -3,6 +3,7 @@ import shutil
 import zipfile
 import hashlib
 import logging
+import pickle
 
 from pathlib import Path
 from uuid import uuid4
@@ -10,10 +11,13 @@ from uuid import uuid4
 import numpy as np
 import pandas as pd
 from sklearn.manifold import TSNE
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, FunctionTransformer
+from sklearn.compose import ColumnTransformer
 import matplotlib.pyplot as plt
 # from PIL import Image
 
 from alibi_detect.utils.data import create_outlier_batch
+
 
 from ad_nids.utils import plot_data_2d
 from ad_nids.utils.misc import fair_attack_sample
@@ -91,7 +95,7 @@ def hash_from_paths(paths):
 class Dataset:
 
     def __init__(self, train, threshold, test, train_meta=None, threshold_meta=None, test_meta=None,
-                 meta=None, create_hash=False):
+                 meta=None, create_hash=False, create_preprocessor=True):
 
         self.train = train
         self.threshold = threshold
@@ -123,6 +127,10 @@ class Dataset:
 
         if create_hash:
             self._create_hash()
+
+        self.preprocessor = None
+        if create_preprocessor:
+            self.preprocessor = self.create_preprocessor()
 
     @staticmethod
     def is_dataset(some_path):
@@ -197,6 +205,25 @@ class Dataset:
     @property
     def data_columns(self):
         return list(self.train.columns)
+
+    def create_preprocessor(self):
+        X_train = self.train.drop(columns=['target'])
+
+        numeric_features = self.meta['numerical_features']
+        binary_features = self.meta['binary_features']
+        categorical_feature_map = self.meta['categorical_feature_map']
+
+        # normalize
+        preprocessor = ColumnTransformer([
+            ('cat', OneHotEncoder(categories=list(categorical_feature_map.values())),
+             list(categorical_feature_map.keys())),
+            ('bin', FunctionTransformer(), binary_features),
+            ('num', StandardScaler(), numeric_features),
+        ])
+
+        preprocessor.fit(X_train)
+        return preprocessor
+
 
     # def create_outlier_batch(self, n_samples, perc_outlier, train=True,
     #                          fair_sample=True, include_meta=True):
@@ -327,6 +354,10 @@ class Dataset:
 
         if not self.test_meta.empty:
             self.test_meta.to_csv(test_meta_path, index=False)
+
+        if self.preprocessor is not None:
+            with open(dataset_path/'transformer.pickle', 'wb') as f:
+                pickle.dump(self.preprocessor, f)
 
         with open(meta_path, 'w') as f:
             json.dump(self.meta, f)
