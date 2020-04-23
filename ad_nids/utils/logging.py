@@ -6,9 +6,10 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
-from alibi_detect.utils.visualize import plot_instance_score
+# from alibi_detect.utils.visualize import plot_instance_score
 from ad_nids.utils.metrics import get_frontier
-from ad_nids.utils.visualize import plot_precision_recall, plot_f1score, plot_data_2d, plot_frontier
+from ad_nids.utils.visualize import plot_precision_recall, \
+    plot_f1score, plot_data_2d, plot_frontier, plot_instance_score
 
 
 def get_log_dir(log_root_dir, config):
@@ -90,13 +91,12 @@ def log_plot_frontier(log_dir, detector,
 
 
 def log_plot_instance_score(log_dir, detector_preds, y_true,
-                            detector_threshold, train=False, labels=None, ylim=None):
+                            detector_threshold, train=False):
 
-    if labels is None:
-        labels = ['normal', 'outlier']
-
-    plot_instance_score(detector_preds, y_true, labels, detector_threshold, ylim=ylim)
+    fig, ax = plt.subplots(1, 1)
+    plot_instance_score(ax, detector_preds['data']['instance_scores'],
+                        y_true, threshold=detector_threshold)
     set_ = 'train_' if train else 'test_'
     filename = set_ + 'instance_score.png'
-    plt.savefig(log_dir / filename)
+    fig.savefig(log_dir / filename)
     plt.close()
