@@ -71,7 +71,7 @@ def run_vae(config, log_dir, experiment_data, contam_percs=None,
 
         num_epochs = config['num_epochs']
         batch_size = config['batch_size']
-        if X_train.shape[0] > num_epochs * batch_size * EPOCH_SIZE:
+        if X_train.shape[0] > batch_size * EPOCH_SIZE:
             epoch_size = EPOCH_SIZE
         else:
             epoch_size = None
