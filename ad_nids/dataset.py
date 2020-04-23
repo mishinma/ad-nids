@@ -243,6 +243,29 @@ class Dataset:
     #     batch.drop(columns=['target'], inplace=True)
     #     return batch, is_outlier, batch_meta
 
+    def describe(self):
+
+        print(self.meta['name'])
+        print()
+
+        for _set in ['test', 'train', 'threshold']:
+
+            print('{} batch'.format(_set.upper))
+
+            if _set == 'train':
+                data = self.train
+            elif _set == 'threshold':
+                data = self.threshold
+            else:
+                data = self.test
+
+            n = data.shape[0]
+            n_outlier = np.sum(self.data['target'])
+            normal = n - n_outlier
+            print('N_normal {}, {:.02f}'.format(normal, normal / n))
+            print('N_outlier {}, {:.02f}'.format(normal, normal / n))
+            print()
+
     def visualize(self, ax, _set='test'):
 
         if _set == 'train':
