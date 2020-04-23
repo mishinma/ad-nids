@@ -260,7 +260,7 @@ class Dataset:
                 data = self.test
 
             n = data.shape[0]
-            n_outlier = np.sum(self.data['target'])
+            n_outlier = np.sum(data['target'])
             normal = n - n_outlier
             print('N_normal {}, {:.02f}'.format(normal, normal / n))
             print('N_outlier {}, {:.02f}'.format(normal, normal / n))
