@@ -22,6 +22,7 @@ from ad_nids.utils.metrics import precision_recall_curve_scores, select_threshol
     cov_elbo_type
 
 EXPERIMENT_NAME = 'vae'
+EPOCH_SIZE = 500
 
 
 def run_vae(config, log_dir, experiment_data, contam_percs=None,
@@ -67,8 +68,16 @@ def run_vae(config, log_dir, experiment_data, contam_percs=None,
         loss_fn_kwargs.update(cov_elbo_type(cov_elbo=dict(sim=.1), X=X_train))
         i_run_log_dir = log_dir / str(i_run)
         train_gen = DataGenerator(X_train, batch_size=config['batch_size'])
+
+        num_epochs = config['num_epochs']
+        batch_size = config['batch_size']
+        if X_train.shape[0] > num_epochs * batch_size * EPOCH_SIZE:
+            epoch_size = None
+        else:
+            epoch_size = EPOCH_SIZE
+
         trainer(od.vae, elbo, train_gen, X_val=X_threshold[y_threshold == 0], loss_fn_kwargs=loss_fn_kwargs,
-                epochs=config['num_epochs'], epoch_size=config.get('epoch_size'),
+                epochs=config['num_epochs'], epoch_size=epoch_size,
                 optimizer=optimizer, log_dir=i_run_log_dir,
                 checkpoint=True, checkpoint_freq=5)
         time_fit = timer() - se

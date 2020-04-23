@@ -24,6 +24,7 @@ from ad_nids.utils.logging import log_plot_prf1_curve,\
 from ad_nids.utils.metrics import precision_recall_curve_scores, select_threshold
 
 EXPERIMENT_NAME = 'aegmm'
+EPOCH_SIZE = 500
 
 
 def run_aegmm(config, log_dir, experiment_data, contam_percs=None,
@@ -90,8 +91,16 @@ def run_aegmm(config, log_dir, experiment_data, contam_percs=None,
         )
         i_run_log_dir = log_dir / str(i_run)
         train_gen = DataGenerator(X_train, batch_size=config['batch_size'])
+
+        num_epochs = config['num_epochs']
+        batch_size = config['batch_size']
+        if X_train.shape[0] > num_epochs * batch_size * EPOCH_SIZE:
+            epoch_size = None
+        else:
+            epoch_size = EPOCH_SIZE
+
         trainer(od.aegmm, loss_aegmm, train_gen, X_val=X_threshold[y_threshold == 0], loss_fn_kwargs=loss_fn_kwargs,
-                epochs=config['num_epochs'], epoch_size=config.get('epoch_size'),
+                epochs=config['num_epochs'], epoch_size=epoch_size,
                 optimizer=optimizer, log_dir=i_run_log_dir,
                 checkpoint=True, checkpoint_freq=5)
         # set GMM parameters
