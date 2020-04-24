@@ -61,7 +61,8 @@ def run_ae(config, log_dir, experiment_data,
         od = OutlierAE(threshold=0.0, ae=ae)
         optimizer = tf.keras.optimizers.Adam(learning_rate=config['learning_rate'])
         mse = tf.losses.MeanSquaredError()
-        train_gen = DataGenerator(X_train, batch_size=config['batch_size'])
+        train_gen = DataGenerator(X_train, batch_size=config['batch_size'],
+                                  shuffle=config.get('shuffle', True))
         i_run_log_dir = log_dir/str(i_run)
 
         num_epochs = config['num_epochs']
@@ -72,7 +73,7 @@ def run_ae(config, log_dir, experiment_data,
             epoch_size = None
 
         trainer(od.ae, mse, train_gen, X_val=X_threshold[y_threshold == 0],
-                epochs=config['num_epochs'], epoch_size=epoch_size,
+                epochs=num_epochs, epoch_size=epoch_size,
                 optimizer=optimizer, log_dir=i_run_log_dir,
                 checkpoint=True, checkpoint_freq=5)
         time_fit = timer() - se

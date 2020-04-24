@@ -160,9 +160,10 @@ def trainer(model: tf.keras.Model,
 
 class DataGenerator:
 
-    def __init__(self, data, batch_size, buffer_size=1024):
+    def __init__(self, data, batch_size, buffer_size=1024, shuffle=True):
         self.data = tf.data.Dataset.from_tensor_slices(data)
         self.data = self.data.batch(batch_size).shuffle(buffer_size=buffer_size)
+        self.shuffle = shuffle
         self.n_minibatch = int(np.ceil(data.shape[0] / batch_size))
         self.buffer_size = buffer_size
         self.batch_size = batch_size
@@ -171,8 +172,9 @@ class DataGenerator:
 
     def __next__(self):
         if self._cnt >= self.n_minibatch:
-            logging.info('Shuffling the data')
-            self.data = self.data.shuffle(buffer_size=self.buffer_size)
+            if self.shuffle:
+                logging.info('Shuffling the data')
+                self.data = self.data.shuffle(buffer_size=self.buffer_size)
             self._iter_data = iter(self.data)
             self._cnt = 0
         self._cnt += 1
