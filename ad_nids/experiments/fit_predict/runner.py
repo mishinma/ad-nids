@@ -34,6 +34,7 @@ def parser_fit_predict():
     parser.add_argument("-l", "--logging", type=str, default='INFO',
                         help="logging level")
     parser.add_argument("--no-shuffle", action='store_true')
+    parser.add_argument("--skip-existing", action='store_true')
     return parser
 
 
@@ -79,6 +80,7 @@ def runner_fit_predict():
     log_root.mkdir(parents=True, exist_ok=True)
 
     shuffle_data = not args.no_shuffle
+    skip_existing = args.skip_existing
 
     config_paths = []
     for config_path in args.config_path:
@@ -118,6 +120,11 @@ def runner_fit_predict():
 
                 config = config.to_dict()
                 num_tries = config.get('num_tries', 1)
+
+                if skip_existing:
+                    log_part_name = f'{config["experiment_name"]}_{config["dataset_name"]}_{config["config_name"]}'
+                    if len([p for p in log_root.iterdir() if log_part_name in p.name]):
+                        continue
 
                 log_dir = get_log_dir(log_root, config)
                 log_dir.mkdir()
