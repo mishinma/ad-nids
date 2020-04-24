@@ -19,7 +19,7 @@ EXPERIMENT_NAME = 'mahalanobis'
 
 
 def run_mahalanobis(config, log_dir, experiment_data,
-                    contam_percs=None, load_outlier_detector=False, i_run=0):
+                    contam_percs=None, load_outlier_detector=False, **kwargs):
 
     # data
     train_normal_batch, threshold_batch, test_batch = experiment_data

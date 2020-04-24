@@ -33,6 +33,7 @@ def parser_fit_predict():
                         help="directory with config files")
     parser.add_argument("-l", "--logging", type=str, default='INFO',
                         help="logging level")
+    parser.add_argument("--no-shuffle", action='store_true')
     return parser
 
 
@@ -76,6 +77,8 @@ def runner_fit_predict():
     logger.addHandler(ch)
     log_root = Path(args.log_path).resolve()
     log_root.mkdir(parents=True, exist_ok=True)
+
+    shuffle_data = not args.no_shuffle
 
     config_paths = []
     for config_path in args.config_path:
@@ -140,7 +143,7 @@ def runner_fit_predict():
                     try:
                         # Pass data
                         run_fn(config, log_dir, experiment_data,
-                               contam_percs=DEFAULT_CONTAM_PERCS, i_run=i_run)
+                               contam_percs=DEFAULT_CONTAM_PERCS, i_run=i_run, shuffle=shuffle_data)
                     except Exception as e:
                         logging.exception(e)
                     else:

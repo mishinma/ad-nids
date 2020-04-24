@@ -18,7 +18,7 @@ from ad_nids.utils.metrics import precision_recall_curve_scores, select_threshol
 EXPERIMENT_NAME = 'if'
 
 
-def run_if(config, log_dir, experiment_data, contam_percs=None, load_outlier_detector=False, i_run=0):
+def run_if(config, log_dir, experiment_data, contam_percs=None, load_outlier_detector=False, **kwargs):
 
     # data
     train_normal_batch, threshold_batch, test_batch = experiment_data

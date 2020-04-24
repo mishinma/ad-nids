@@ -26,7 +26,7 @@ EPOCH_SIZE = 500
 
 
 def run_vae(config, log_dir, experiment_data, contam_percs=None,
-            load_outlier_detector=False, i_run=0):
+            load_outlier_detector=False, i_run=0, shuffle=True, **kwargs):
 
     # data
     train_normal_batch, threshold_batch, test_batch = experiment_data
@@ -68,7 +68,7 @@ def run_vae(config, log_dir, experiment_data, contam_percs=None,
         loss_fn_kwargs.update(cov_elbo_type(cov_elbo=dict(sim=.1), X=X_train))
         i_run_log_dir = log_dir / str(i_run)
         train_gen = DataGenerator(X_train, batch_size=config['batch_size'],
-                                  shuffle=config.get('shuffle', True))
+                                  shuffle=shuffle)
 
         num_epochs = config['num_epochs']
         batch_size = config['batch_size']
