@@ -1057,7 +1057,7 @@ IOT_23_AGGR_FUNCTIONS = {
 
 IOT_23_AGGR_FEATURES = {k: NUMERICAL() for k in IOT_23_AGGR_FUNCTIONS
                         if k not in ['target', 'detailed_label']}
-IOT_23_AGGR_FUNCTIONS['target'] = LABEL()
+IOT_23_AGGR_FEATURES['target'] = LABEL()
 
 IOT_23_AGGR_NUMERICAL_FEATURES = [f for f, t in IOT_23_AGGR_FEATURES.items()
                                   if t.type == 'NUMERICAL']
