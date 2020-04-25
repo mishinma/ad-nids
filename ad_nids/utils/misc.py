@@ -168,9 +168,9 @@ def performance_asdict(cm, prf1s):
         tp=tp,
         fp=fp,
         fn=fn,
-        precision=round(prf1s[0], 4),
-        recall=round(prf1s[1], 4),
-        f1score=round(prf1s[2], 4),
+        precision=prf1s[0],
+        recall=prf1s[1],
+        f1score=prf1s[2],
     )
 
     return perf

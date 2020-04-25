@@ -143,19 +143,24 @@ def create_experiments_per_dataset_report(log_paths, static_path):
             exp_name = config['experiment_name']
             config_name = config['config_name']
             try:
-                time_fit = round(results['time_fit'], 2)
-                time_score_train = round(results['time_score_train'], 2)
-                time_score_test = round(results['time_score_test'], 2)
+                time_fit = round(results['time_fit'], 3)
+                time_score_train = round(results['time_score_train'], 3)
+                time_score_test = round(results['time_score_test'], 3)
                 train_perf = performance_asdict(results['train_cm'],
                                                 results['train_prf1s'])
                 test_perf = performance_asdict(results['test_cm'],
                                                results['test_prf1s'])
+
+                th = results['threshold']
+                th_idx = results['train_prf1_curve']['thresholds'].index(th)
+                th_perc = results['train_prf1_curve']['threshold_percs'][th_idx]
+
                 exp = [
-                    config_name, exp_name, time_fit,
+                    config_name, exp_name, th, th_perc,  time_fit,
                     time_score_train, train_perf['tp'], train_perf['fp'], train_perf['fn'],
-                    train_perf['precision'], train_perf['recall'], train_perf['f1score'],
+                    round(train_perf['precision'], 3), round(train_perf['recall'], 3), round(train_perf['f1score'], 3),
                     time_score_test, test_perf['tp'], test_perf['fp'], test_perf['fn'],
-                    test_perf['precision'], test_perf['recall'], test_perf['f1score']
+                    round(test_perf['precision'], 3), round(test_perf['recall'], 3), round(test_perf['f1score'], 3)
                 ]
             except Exception as e:
                 logging.exception(e)
@@ -165,7 +170,7 @@ def create_experiments_per_dataset_report(log_paths, static_path):
 
         experiments = pd.DataFrame.from_records(
             experiments, columns=[
-                'config_name', 'model_name', 'time_fit',
+                'config_name', 'model_name', 'thresh', 'thresh_p', 'time_fit',
                 'time_score_train', 'train_tp', 'train_fp', 'train_fn',
                 'train_pre', 'train_rec', 'train_f1',
                 'time_score_test', 'test_tp', 'test_fp', 'test_fn',
