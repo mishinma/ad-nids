@@ -156,7 +156,7 @@ def create_experiments_per_dataset_report(log_paths, static_path):
                 th_perc = results['train_prf1_curve']['threshold_percs'][th_idx]
 
                 exp = [
-                    config_name, exp_name, th, th_perc,  time_fit,
+                    config_name, exp_name, th_perc,  time_fit,
                     time_score_train, train_perf['tp'], train_perf['fp'], train_perf['fn'],
                     round(train_perf['precision'], 3), round(train_perf['recall'], 3), round(train_perf['f1score'], 3),
                     time_score_test, test_perf['tp'], test_perf['fp'], test_perf['fn'],
@@ -170,7 +170,7 @@ def create_experiments_per_dataset_report(log_paths, static_path):
 
         experiments = pd.DataFrame.from_records(
             experiments, columns=[
-                'config_name', 'model_name', 'thresh', 'thresh_p', 'time_fit',
+                'config_name', 'model_name', 'thresh', 'time_fit',
                 'time_score_train', 'train_tp', 'train_fp', 'train_fn',
                 'train_pre', 'train_rec', 'train_f1',
                 'time_score_test', 'test_tp', 'test_fp', 'test_fn',
