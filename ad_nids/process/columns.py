@@ -1,4 +1,3 @@
-
 from collections import OrderedDict
 
 import numpy as np
@@ -41,15 +40,14 @@ TCP_FLAGS = {
     'E': 'ece'
 }
 
-
 FLOW_COLUMNS = [
-    'ts',   # timestamp of the start of a flow
-    'td',   # duration of flow
-    'sa',   # src addr
-    'da',   # dst addr
-    'sp',   # src port
-    'dp',   # dst port
-    'pr',   # proto
+    'ts',  # timestamp of the start of a flow
+    'td',  # duration of flow
+    'sa',  # src addr
+    'da',  # dst addr
+    'sp',  # src port
+    'dp',  # dst port
+    'pr',  # proto
     'pkt',  # num packets exchanged in the flow
     'byt',  # their corresponding num of bytes
     'lbl',  # 0 norm, 1 anomaly
@@ -72,9 +70,7 @@ FLOW_STATS = OrderedDict([
     ('lbl', lambda f: int(bool(np.sum(f['lbl']))))
 ])
 
-
 FLOW_STATS_COLUMNS = ['sa', 'tws'] + list(FLOW_STATS.keys())
-
 
 """
 ########## CTU-13 ############
@@ -144,7 +140,7 @@ CTU_13_FWD_FLAGS_COLUMNS = [f'fwd_{f}_flag' for f in TCP_FLAGS.values()]
 CTU_13_BWD_FLAGS_COLUMNS = [f'bwd_{f}_flag' for f in TCP_FLAGS.values()]
 
 CTU_13_FEATURES = {
-    'proto':  CATEGORICAL(['tcp', 'udp', 'icmp', 'other']),
+    'proto': CATEGORICAL(['tcp', 'udp', 'icmp', 'other']),
     'dur': NUMERICAL(),
     'fwd_dir': BINARY(),  # '>' in dir
     'bwd_dir': BINARY(),  # '<' in dir
@@ -172,21 +168,17 @@ CTU_13_FEATURES = {
     'target': LABEL()
 }
 
-
 CTU_13_CATEGORICAL_FEATURE_MAP = {
     f: t.values for f, t in CTU_13_FEATURES.items() if t.type == 'CATEGORICAL'
 }
-
 
 CTU_13_NUMERICAL_FEATURES = [
     f for f, t in CTU_13_FEATURES.items() if t.type == 'NUMERICAL'
 ]
 
-
 CTU_13_BINARY_FEATURES = [
     f for f, t in CTU_13_FEATURES.items() if t.type == 'BINARY'
 ]
-
 
 CTU_13_META_COLUMNS = [
     'timestamp',
@@ -244,7 +236,6 @@ CTU_13_AGGR_COLUMNS = [
     'target',
 ]
 
-
 CTU_13_AGGR_FUNCTIONS = {
     'total_cnt': lambda f: f.shape[0],
     'dur_mean': lambda f: f['dur'].mean(),
@@ -282,14 +273,12 @@ CTU_13_AGGR_FUNCTIONS = {
     'target': lambda f: np.int(f['target'].sum() > 0)
 }
 
-
 CTU_13_AGGR_META_COLUMNS = [
     'src_ip',
     'time_window_start',
     'scenario',
     'target'
 ]
-
 
 CTU_13_SCENARIO_NAMES = {
     1: 'Neris',
@@ -307,27 +296,25 @@ CTU_13_SCENARIO_NAMES = {
     13: 'Virut',
 }
 
-
 """
 ########## UGR-16 ############
 """
 
 UGR_COLUMNS = [
-    'te',   # timestamp of the end of a flow
-    'td',   # duration of flow
-    'sa',   # src addr
-    'da',   # dst addr
-    'sp',   # src port
-    'dp',   # dst port
-    'pr',   # proto
+    'te',  # timestamp of the end of a flow
+    'td',  # duration of flow
+    'sa',  # src addr
+    'da',  # dst addr
+    'sp',  # src port
+    'dp',  # dst port
+    'pr',  # proto
     'flg',  # flags
     'fwd',  # forwarding status
-    'stos', # type of service
+    'stos',  # type of service
     'pkt',  # packets exchanged in the flow
     'byt',  # their corresponding num of bytes
     'lbl'
 ]
-
 
 """
 ########## CIC-IDS2017 ############
@@ -421,7 +408,6 @@ CIC_IDS2017_COLUMN_MAPPING = {
     'Label': 'label'
 }
 
-
 CIC_IDS2017_ATTACK_LABELS = {
     'Bot': 'botnet',
     'DDoS': 'ddos',
@@ -439,17 +425,14 @@ CIC_IDS2017_ATTACK_LABELS = {
     'Web Attack  XSS': 'web'
 }
 
-
 CIC_IDS2017_COLUMNS = list(CIC_IDS2017_COLUMN_MAPPING.values()) + \
                       ['label_orig', 'scenario', 'target']
-
 
 CIC_IDS2017_PROTOCOL_MAPPING = {
     0: 'hopopt',
     17: 'udp',
     6: 'tcp',
 }
-
 
 CIC_IDS2017_FEATURES = {
     'protocol': CATEGORICAL(list(CIC_IDS2017_PROTOCOL_MAPPING.values())),
@@ -537,16 +520,13 @@ CIC_IDS2017_CATEGORICAL_FEATURE_MAP = {
     f: t.values for f, t in CIC_IDS2017_FEATURES.items() if t.type == 'CATEGORICAL'
 }
 
-
 CIC_IDS2017_NUMERICAL_FEATURES = [
     f for f, t in CIC_IDS2017_FEATURES.items() if t.type == 'NUMERICAL'
 ]
 
-
 CIC_IDS2017_BINARY_FEATURES = [
     f for f, t in CIC_IDS2017_FEATURES.items() if t.type == 'BINARY'
 ]
-
 
 CIC_IDS2017_META_COLUMNS = [
     'timestamp',
@@ -668,15 +648,12 @@ CIC_IDS2017_AGGR_FUNCTIONS = {
     'target': lambda f: np.int(f['target'].sum() > 0)
 }
 
-
 CIC_IDS2017_AGGR_META_COLUMNS = [
     'src_ip',
     'time_window_start',
     'scenario',
     'target'
 ]
-
-
 
 """
 ########## CSE-CIC-IDS2018 ############
@@ -764,7 +741,6 @@ CIC_IDS2018_COLUMN_MAPPING = {
     'Label': 'label',
 }
 
-
 CIC_IDS2018_ATTACK_LABELS = [
     'Bot',
     'Brute Force -Web',
@@ -781,7 +757,6 @@ CIC_IDS2018_ATTACK_LABELS = [
     'SQL Injection',
     'SSH-Bruteforce'
 ]
-
 
 """
 ########## IOT-23 ############
@@ -813,7 +788,6 @@ IOT_23_ORIG_SCENARIO_NAME_MAPPING = {
     'CTU-IoT-Malware-Capture-43-1': (33, 'mirai')
 }
 
-
 IOT_23_ORIG_COLUMN_MAPPING = {
     'ts': 'timestamp',
     'uid': 'uid',
@@ -840,7 +814,6 @@ IOT_23_ORIG_COLUMN_MAPPING = {
     'detailed-label': 'detailed_label'
 }
 
-
 IOT_23_HISTORY_LETTERS = ['s', 'h', 'a', 'd', 'f', 'r',
                           'c', 'g', 't', 'w', 'i', 'q']
 IOT_23_PROTO_VALUES = ['tcp', 'udp', 'icmp']
@@ -856,7 +829,6 @@ IOT_23_REPLACE_EMPTY_ZERO_FEATURES = [
     'dur', 'orig_bytes', 'resp_bytes', 'missed_bytes',
     'orig_pkts', 'orig_ip_bytes', 'resp_pkts', 'resp_ip_bytes'
 ]
-
 
 IOT_23_COLUMNS = [
     'timestamp',
@@ -890,7 +862,6 @@ IOT_23_COLUMNS = [
     'target',
 ]
 
-
 # local_orig, local_resp and tunnel parents doesn't seem to be used
 IOT_23_FEATURES = {
     'proto': CATEGORICAL(IOT_23_PROTO_VALUES),
@@ -914,7 +885,6 @@ IOT_23_FEATURES = {
     'target': LABEL()
 }
 
-
 IOT_23_META_COLUMNS = [
     'timestamp',
     'uid',
@@ -929,21 +899,17 @@ IOT_23_META_COLUMNS = [
     'target'
 ]
 
-
 IOT_23_CATEGORICAL_FEATURE_MAP = {
     f: t.values for f, t in IOT_23_FEATURES.items() if t.type == 'CATEGORICAL'
 }
-
 
 IOT_23_NUMERICAL_FEATURES = [
     f for f, t in IOT_23_FEATURES.items() if t.type == 'NUMERICAL'
 ]
 
-
 IOT_23_BINARY_FEATURES = [
     f for f, t in IOT_23_FEATURES.items() if t.type == 'BINARY'
 ]
-
 
 # numerical:  mean, min, max, std, median
 # categorical: num_unique, entropy
@@ -1014,13 +980,12 @@ IOT_23_AGGR_COLUMNS = [
 
 
 def detailed_label_aggr_fn(f):
-
     labels = dict(f['detailed_label'].value_counts())
     if '-' in labels:
         labels.pop('-')
 
     if labels:
-        labels = sorted(list(labels.items()), key = lambda x: x[1])
+        labels = sorted(list(labels.items()), key=lambda x: x[1])
         aggr_label = labels[0][0]
     else:
         aggr_label = '-'
@@ -1097,7 +1062,6 @@ IOT_23_AGGR_FUNCTIONS['target'] = LABEL()
 IOT_23_AGGR_NUMERICAL_FEATURES = [f for f, t in IOT_23_AGGR_FEATURES.items()
                                   if t.type == 'NUMERICAL']
 
-
 IOT_23_AGGR_META_COLUMNS = [
     'src_ip',
     'time_window_start',
@@ -1105,3 +1069,36 @@ IOT_23_AGGR_META_COLUMNS = [
     'detailed_label',
     'target',
 ]
+
+IOT_23_PLOT_PARAMS = {
+    'target_col': 'detailed_label',
+    'labels': {'-': '-',
+               'C&C-HeartBeat-FileDownload': 'C&C-HeartBeat-FileDownload',
+               'C&C-HeartBeat-Attack': 'C&C-HeartBeat-Attack',
+               'PartOfAHorizontalPortScan': 'PartOfAHorizontalPortScan',
+               'Attack': 'Attack',
+               'C&C-PartOfAHorizontalPortScan': 'C&C-PartOfAHorizontalPortScan',
+               'C&C': 'C&C',
+               'DDoS': 'DDoS',
+               'FileDownload': 'FileDownload',
+               'C&C-FileDownload': 'C&C-FileDownload'},
+    'mss': {'-': 1,
+            'C&C-HeartBeat-FileDownload': 3,
+            'C&C-HeartBeat-Attack': 3,
+            'PartOfAHorizontalPortScan': 3,
+            'Attack': 3,
+            'C&C-PartOfAHorizontalPortScan': 3,
+            'C&C': 3,
+            'DDoS': 3,
+            'FileDownload': 3,
+            'C&C-FileDownload': 3},
+    'markers': {'-': 'o',
+                'C&C-HeartBeat-FileDownload': 'x',
+                'C&C-HeartBeat-Attack': 'x',
+                'PartOfAHorizontalPortScan': 'x',
+                'Attack': 'x',
+                'C&C-PartOfAHorizontalPortScan': 'x',
+                'C&C': 'x',
+                'DDoS': 'x',
+                'FileDownload': 'x',
+                'C&C-FileDownload': 'x'}}

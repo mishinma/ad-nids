@@ -1,4 +1,3 @@
-
 import os
 import time
 import logging
@@ -19,16 +18,22 @@ from matplotlib import pyplot as plt
 from ad_nids.dataset import Dataset, create_meta
 from ad_nids.utils.aggregate import aggregate_features_pool
 from ad_nids.utils.exception import DownloadError
-from ad_nids.utils.misc import set_seed
+from ad_nids.utils.misc import is_valid_ip, sample_df, fair_attack_sample, set_seed
 from ad_nids.process.columns import IOT_23_ORIG_SCENARIO_NAME_MAPPING, IOT_23_ORIG_COLUMN_MAPPING, \
-    IOT_23_HISTORY_LETTERS, IOT_23_REPLACE_EMPTY_ZERO_FEATURES, IOT_23_COLUMNS, IOT_23_META_COLUMNS,  \
+    IOT_23_HISTORY_LETTERS, IOT_23_REPLACE_EMPTY_ZERO_FEATURES, IOT_23_COLUMNS, IOT_23_META_COLUMNS, \
     IOT_23_FEATURES, IOT_23_AGGR_COLUMNS, IOT_23_AGGR_FUNCTIONS, IOT_23_AGGR_META_COLUMNS, \
-    IOT_23_CATEGORICAL_FEATURE_MAP, IOT_23_BINARY_FEATURES, IOT_23_NUMERICAL_FEATURES,  \
-    IOT_23_AGGR_FEATURES, IOT_23_AGGR_NUMERICAL_FEATURES
+    IOT_23_CATEGORICAL_FEATURE_MAP, IOT_23_BINARY_FEATURES, IOT_23_NUMERICAL_FEATURES, \
+    IOT_23_AGGR_FEATURES, IOT_23_AGGR_NUMERICAL_FEATURES, IOT_23_PLOT_PARAMS
 from ad_nids.report.general import BASE
+
 
 DATASET_NAME = 'IOT-23'
 MAX_FLOWS_TO_PROCESS = 5000000  # 5M
+
+THRESHOLD_BATCH_N_SAMPLES = 10000
+THRESHOLD_BATCH_PERC_OUTLIER = 5
+TEST_BATCH_PERC_OUTLIER = 10
+PREPARE_DATA_RANDOM_SEED = 42
 
 
 def _parse_scenario_idx(name):
@@ -79,12 +84,12 @@ def download_iot23(dataset_path, separate_mirai=True):
 
     try:
         check_output(
-             'wget --header="Host: mcfp.felk.cvut.cz" '
-             '--header="User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.132 Safari/537.36" '
-             '--header="Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3" '
-             '--header="Accept-Language: en-US,en;q=0.9" "https://mcfp.felk.cvut.cz/publicDatasets/IoT-23-Dataset/iot_23_datasets_small.tar.gz" '
-             '-O "iot_23_datasets_small.tar.gz" -c --no-check-certificate', shell=True
-            )
+            'wget --header="Host: mcfp.felk.cvut.cz" '
+            '--header="User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.132 Safari/537.36" '
+            '--header="Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3" '
+            '--header="Accept-Language: en-US,en;q=0.9" "https://mcfp.felk.cvut.cz/publicDatasets/IoT-23-Dataset/iot_23_datasets_small.tar.gz" '
+            '-O "iot_23_datasets_small.tar.gz" -c --no-check-certificate', shell=True
+        )
         returncode = 0
     except CalledProcessError as e:
         raise DownloadError('Could not download the dataset.'
@@ -97,18 +102,18 @@ def download_iot23(dataset_path, separate_mirai=True):
         idx, name = IOT_23_ORIG_SCENARIO_NAME_MAPPING[scenario]
         new_name = '{:02d}_{}.csv'.format(idx, name)
         shutil.move(path, dataset_path / new_name)
-    
-    shutil.rmtree(dataset_path/'opt')
-    os.remove(dataset_path/"iot_23_datasets_small.tar.gz")
+
+    shutil.rmtree(dataset_path / 'opt')
+    os.remove(dataset_path / "iot_23_datasets_small.tar.gz")
     os.chdir(mycwd)  # go back where you came from
 
     if separate_mirai:
-        dataset_mirai_path = dataset_path.parent/(dataset_path.name + '_mirai')
+        dataset_mirai_path = dataset_path.parent / (dataset_path.name + '_mirai')
         dataset_mirai_path.mkdir(exist_ok=True)
         for path in dataset_path.iterdir():
             if 'mirai' in path.name:
-                shutil.move(path, dataset_mirai_path/path.name)
-        dataset_other_path = dataset_path.parent/(dataset_path.name + '_other')
+                shutil.move(path, dataset_mirai_path / path.name)
+        dataset_other_path = dataset_path.parent / (dataset_path.name + '_other')
         # rename the rest to other
         shutil.move(dataset_path, dataset_other_path)
 
@@ -116,7 +121,6 @@ def download_iot23(dataset_path, separate_mirai=True):
 
 
 def cleanup_iot23_flows(flows):
-
     flows = flows.rename(columns=IOT_23_ORIG_COLUMN_MAPPING)
 
     flows['timestamp'] = pd.to_datetime(flows['timestamp'], unit='s')
@@ -137,7 +141,6 @@ def cleanup_iot23_flows(flows):
 
 
 def cleanup_iot23(data_path):
-
     logging.info('Cleaning up the data')
     data_path = Path(data_path).resolve()
 
@@ -160,7 +163,6 @@ def cleanup_iot23(data_path):
 
 def create_mock_iot23(data_path, mock_path, num_ips_sample=3, max_sample_size=1000,
                       num_mock_scenarios=None):
-
     mock_path.mkdir(parents=True, exist_ok=True)
     mock_scenarios = list(data_path.iterdir())
     if num_mock_scenarios is not None:
@@ -190,11 +192,10 @@ def create_mock_iot23(data_path, mock_path, num_ips_sample=3, max_sample_size=10
         sampled_flows.append(flows.iloc[:max_sample_size])
         sampled_flows = pd.concat(sampled_flows).sort_values(by='timestamp')
 
-        sampled_flows.to_csv(mock_path/path.name, index=False)
+        sampled_flows.to_csv(mock_path / path.name, index=False)
 
 
 def create_report_scenario_iot23(data, static_path, timestamp_col='timestamp'):
-
     report = ""
 
     data[timestamp_col] = pd.to_datetime(data[timestamp_col])
@@ -247,15 +248,13 @@ def create_report_scenario_iot23(data, static_path, timestamp_col='timestamp'):
 
 
 def create_data_report_iot23(dataset_path, report_path, timestamp_col='timestamp'):
-
     dataset_path = Path(dataset_path).resolve()
-    static_path = report_path/'static'
+    static_path = report_path / 'static'
     static_path.mkdir(parents=True, exist_ok=True)
 
     report = ''
 
     for path in sorted(dataset_path.iterdir()):
-
         name = path.name[:-len(path.suffix)]
         print(name)
 
@@ -275,7 +274,6 @@ def create_dataset_iot23(dataset_path,
                          train_scenarios=None, test_scenarios=None, frequency=None,
                          test_size=None, random_seed=None,
                          create_hash=False):
-
     dataset_path = Path(dataset_path).resolve()
     logging.info("Creating dataset")
 
@@ -289,9 +287,29 @@ def create_dataset_iot23(dataset_path,
         data_outlier = data.loc[data_outlier_idx]
         data_normal = data.loc[~data_outlier_idx]
         # take:  test_size normal, (1 - test_size) outlier
-        train_normal, test_normal = train_test_split(data_normal, test_size=test_size, random_state=random_seed)
-        train_outlier, test_outlier = train_test_split(data_outlier, test_size=(1-test_size), random_state=random_seed)
-        train = pd.concat([train_normal, train_outlier], axis=0).sample(frac=1)
+        train_normal, test_normal = train_test_split(data_normal,
+                                                     test_size=test_size,
+                                                     random_state=random_seed)
+        train_outlier, test_outlier = train_test_split(data_outlier,
+                                                       test_size=(1 - test_size),
+                                                       random_state=random_seed)
+
+        # Construct the threshold batch
+        threshold_n_samples = THRESHOLD_BATCH_N_SAMPLES
+        threshold_perc_outlier = THRESHOLD_BATCH_PERC_OUTLIER
+        threshold_n_outlier_samples = int(threshold_n_samples * .01 * threshold_perc_outlier)
+        threshold_n_normal_samples = threshold_n_samples - threshold_n_outlier_samples
+        threshold_normal = sample_df(train_normal, threshold_n_normal_samples)
+        threshold_outlier = fair_attack_sample(train_outlier, threshold_n_outlier_samples)
+
+        # Resample the test batch
+        test_perc_outlier = TEST_BATCH_PERC_OUTLIER
+        test_n_normal_samples = test_normal.shape[0]
+        test_n_outlier_samples = int(test_n_normal_samples * test_perc_outlier / (100 - test_perc_outlier))
+        test_outlier = fair_attack_sample(test_outlier, test_n_outlier_samples)
+
+        train = train_normal.sample(frac=1)
+        threshold = pd.concat([threshold_normal, threshold_outlier], axis=0).sample(frac=1)
         test = pd.concat([test_normal, test_outlier], axis=0).sample(frac=1)
 
     else:
@@ -305,6 +323,22 @@ def create_dataset_iot23(dataset_path,
         test_paths = [p for p in dataset_path.iterdir()
                       if _parse_scenario_idx(p.name) in test_scenarios]
         train = pd.concat([pd.read_csv(p) for p in train_paths])
+
+        # Create threshold and clean test
+        train_outlier_idx = train['target'] == 1
+        train_outlier = train.loc[train_outlier_idx]
+        train_normal = train.loc[~train_outlier_idx]
+
+        # Construct the threshold batch
+        threshold_n_samples = THRESHOLD_BATCH_N_SAMPLES
+        threshold_perc_outlier = THRESHOLD_BATCH_PERC_OUTLIER
+        threshold_n_outlier_samples = int(threshold_n_samples * .01 * threshold_perc_outlier)
+        threshold_n_normal_samples = threshold_n_samples - threshold_n_outlier_samples
+        threshold_normal = sample_df(train_normal, threshold_n_normal_samples)
+        threshold_outlier = fair_attack_sample(train_outlier, threshold_n_outlier_samples)
+
+        train = train_normal
+        threshold = pd.concat([threshold_normal, threshold_outlier], axis=0).sample(frac=1)
         test = pd.concat([pd.read_csv(p) for p in test_paths])
 
     if frequency is not None:
@@ -325,13 +359,15 @@ def create_dataset_iot23(dataset_path,
             'categorical_feature_map': IOT_23_CATEGORICAL_FEATURE_MAP,
             'categorical_features': list(IOT_23_CATEGORICAL_FEATURE_MAP.keys()),
             'binary_features': IOT_23_BINARY_FEATURES,
-            'numerical_features': IOT_23_NUMERICAL_FEATURES
+            'numerical_features': IOT_23_NUMERICAL_FEATURES,
         }
 
     train_meta = train.loc[:, meta_columns]
     train = train.loc[:, feature_columns]
     test_meta = test.loc[:, meta_columns]
     test = test.loc[:, feature_columns]
+    threshold_meta = threshold.loc[:, meta_columns]
+    threshold = threshold.loc[:, feature_columns]
 
     meta = {
         'data_hash': None,
@@ -342,20 +378,18 @@ def create_dataset_iot23(dataset_path,
         'train_scenarios': train_scenarios,
         'test_scenarios': test_scenarios,
         'scenario_col': 'detailed_label',  # for fair sample
+        'instance_score_plot_param': IOT_23_PLOT_PARAMS,
         'name': name
     }
     meta.update(features_info)
 
-    dataset = Dataset(train, test, train_meta, test_meta, meta,
-                      create_hash=create_hash)
-
+    dataset = Dataset(train, threshold, test, train_meta, threshold_meta, test_meta, meta)
     logging.info('Done!')
 
     return dataset
 
 
 def _aggregate_flows_wkr(args):
-
     grp_name, grp = args
 
     flow_stats = {col_name: aggr_fn(grp)
@@ -370,7 +404,6 @@ def _aggregate_flows_wkr(args):
 
 
 def aggregate_flows_iot23(data_path, aggr_path, processes=-1, frequency='T'):
-
     if processes == -1:
         processes = mp.cpu_count() - 1
 
@@ -380,7 +413,6 @@ def aggregate_flows_iot23(data_path, aggr_path, processes=-1, frequency='T'):
     aggr_path.mkdir(exist_ok=True)
 
     for path in data_path.iterdir():
-
         name = path.with_suffix('').name
         logging.info(f'Processing scenario {name}')
         start_time = time.time()
